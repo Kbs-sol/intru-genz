@@ -1,7 +1,7 @@
 import { shell } from '../components/shell'
 import { STORE_CONFIG, LEGAL_PAGES, type LegalPage } from '../data'
 
-export function legalPage(page: LegalPage): string {
+export function legalPage(page: LegalPage, env?: { razorpayKeyId?: string; googleClientId?: string }): string {
   const schema = JSON.stringify({
     "@context": "https://schema.org",
     "@type": "WebPage",
@@ -45,6 +45,6 @@ ${LEGAL_PAGES.map(p => '<a href="/p/' + p.slug + '"' + (p.slug === page.slug ? '
     page.title + ' — INTRU.IN',
     page.title + ' for intru.in — India\'s premium minimalist streetwear brand. Limited drops, no restocks.',
     body,
-    { url: 'https://intru.in/p/' + page.slug, schema }
+    { url: 'https://intru.in/p/' + page.slug, schema, razorpayKeyId: env?.razorpayKeyId, googleClientId: env?.googleClientId }
   );
 }

@@ -1,0 +1,43 @@
+# ===========================================
+# intru.in — Local Development Environment
+# ===========================================
+# Copy this file to .dev.vars and fill in your keys.
+# .dev.vars is gitignored and loaded automatically by wrangler.
+#
+# HOW TO GET THESE KEYS:
+#
+# Razorpay:
+#   1. Go to https://dashboard.razorpay.com/app/keys
+#   2. Generate a Key ID and Key Secret (use Test Mode keys for development)
+#   3. Paste them below
+#
+# Supabase:
+#   1. Go to https://supabase.com/dashboard → your project → Settings → API
+#   2. Copy the URL and anon/service keys
+#   3. Run supabase/schema.sql in the SQL Editor first
+#
+# Google One-Tap:
+#   1. Go to https://console.cloud.google.com/apis/credentials
+#   2. Create an OAuth 2.0 Client ID (Web application)
+#   3. Add your domain to authorized origins
+#
+# ===========================================
+
+# Razorpay (REQUIRED for payments)
+RAZORPAY_KEY_ID=rzp_test_XXXXXXXXXXXX
+RAZORPAY_KEY_SECRET=XXXXXXXXXXXXXXXXXXXXXXXX
+
+# Supabase (REQUIRED for order storage, user auth, store credits)
+SUPABASE_URL=https://XXXXXXXXXXXX.supabase.co
+SUPABASE_ANON_KEY=eyJXXXXXXXXXXXXXXXXXX
+SUPABASE_SERVICE_KEY=eyJXXXXXXXXXXXXXXXXXX
+
+# Google One-Tap (OPTIONAL — sign-in with Google)
+GOOGLE_CLIENT_ID=XXXXXXXXXXXX.apps.googleusercontent.com
+
+# Admin password (override the default)
+ADMIN_PASSWORD=intru2026admin
+
+# Razorpay Webhook Secret (for /api/webhooks/razorpay endpoint)
+# Set this in Razorpay Dashboard → Webhooks → Secret
+RAZORPAY_WEBHOOK_SECRET=

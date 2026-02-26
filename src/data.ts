@@ -7,8 +7,21 @@ export interface LegalPage { slug: string; title: string; content: string; updat
 export interface CartItem { productId: string; size: string; quantity: number; }
 export interface StoreCredit { email: string; amount: number; reason: string; createdAt: string; }
 
+// Environment bindings — these come from wrangler secrets / .dev.vars
+export interface Env {
+  RAZORPAY_KEY_ID: string;
+  RAZORPAY_KEY_SECRET: string;
+  SUPABASE_URL: string;
+  SUPABASE_ANON_KEY: string;
+  SUPABASE_SERVICE_KEY: string;
+  GOOGLE_CLIENT_ID: string;
+  ADMIN_PASSWORD: string;
+}
+
 const IMG = (id: string) => `https://images.unsplash.com/photo-${id}?w=800&h=1000&fit=crop&q=80&auto=format`;
 
+// Fallback products — used when Supabase is not connected
+// In production, /api/products fetches from Supabase
 export const PRODUCTS: Product[] = [
   { id:"p1",slug:"essential-oversized-tee",name:"Essential Oversized Tee",tagline:"The foundation of every outfit",description:"Our signature oversized tee crafted from 240 GSM premium cotton. Drop shoulders, ribbed neckline, and a relaxed fit that drapes perfectly. Pre-shrunk and garment-dyed for that lived-in softness from day one.",price:1299,comparePrice:1799,currency:"INR",images:[IMG("1618354691373-d851c5c3a990"),IMG("1521572163474-6864f9cf17ab"),IMG("1583743814966-8936f5b7be1a"),IMG("1562157873-818bc0726f68")],sizes:["S","M","L","XL","XXL"],category:"Tops",inStock:true,featured:true },
   { id:"p2",slug:"midnight-cargo-joggers",name:"Midnight Cargo Joggers",tagline:"Utility meets comfort",description:"Relaxed-fit cargo joggers in washed black. Six-pocket design with snap closures, elastic waistband with drawcord, and tapered ankles with adjustable toggles. Built from heavyweight French terry.",price:1999,comparePrice:2499,currency:"INR",images:[IMG("1594938298603-c8148c4dae35"),IMG("1519235624215-85175d5eb36e"),IMG("1552374196-c4e7ffc6e126"),IMG("1506629082955-511b1aa562c8")],sizes:["S","M","L","XL","XXL"],category:"Bottoms",inStock:true,featured:true },
@@ -170,6 +183,56 @@ export const STORE_CONFIG = {
   shippingCost:99,
   email:"hello@intru.in",
   instagram:"intru.in",
+  // Defaults — overridden by env vars in production
   adminPassword:"intru2026admin",
   googleClientId:"YOUR_GOOGLE_CLIENT_ID",
+  razorpayKeyId:"YOUR_RAZORPAY_KEY_ID",
 };
+
+// ============ Supabase helpers (used in API routes) ============
+export function supabaseFetch(url: string, anonKey: string, path: string, options?: RequestInit) {
+  return fetch(`${url}/rest/v1/${path}`, {
+    ...options,
+    headers: {
+      'apikey': anonKey,
+      'Authorization': `Bearer ${anonKey}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation',
+      ...(options?.headers || {}),
+    },
+  });
+}
+
+// ============ Razorpay helpers (used in API routes) ============
+// HMAC-SHA256 using Web Crypto API (available in Cloudflare Workers)
+export async function hmacSHA256(key: string, data: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const cryptoKey = await crypto.subtle.importKey(
+    'raw', encoder.encode(key), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+  );
+  const signature = await crypto.subtle.sign('HMAC', cryptoKey, encoder.encode(data));
+  return Array.from(new Uint8Array(signature)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Create Razorpay order via their REST API (no SDK needed — Workers compatible)
+export async function createRazorpayOrder(keyId: string, keySecret: string, amount: number, receipt: string) {
+  const auth = btoa(`${keyId}:${keySecret}`);
+  const res = await fetch('https://api.razorpay.com/v1/orders', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Basic ${auth}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      amount: amount * 100, // Razorpay expects paise
+      currency: 'INR',
+      receipt,
+      notes: { store: 'intru.in' },
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Razorpay order creation failed: ${err}`);
+  }
+  return res.json();
+}

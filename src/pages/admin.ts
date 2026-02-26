@@ -1,7 +1,7 @@
 import { shell } from '../components/shell'
 import { STORE_CONFIG, PRODUCTS, LEGAL_PAGES } from '../data'
 
-export function adminPage(): string {
+export function adminPage(env?: { razorpayKeyId?: string; googleClientId?: string }): string {
   const pj = JSON.stringify(PRODUCTS.map(p => ({ id: p.id, slug: p.slug, name: p.name, price: p.price, comparePrice: p.comparePrice, images: p.images, sizes: p.sizes, inStock: p.inStock })));
   const lj = JSON.stringify(LEGAL_PAGES.map(l => ({ slug: l.slug, title: l.title, content: l.content, updatedAt: l.updatedAt })));
 
@@ -179,6 +179,6 @@ function saveLegal(){legals[curLeg].content=document.getElementById('alta').valu
     'Admin — INTRU.IN',
     'Admin panel for intru.in store management.',
     body,
-    { cls: 'admin-page' }
+    { cls: 'admin-page', razorpayKeyId: env?.razorpayKeyId, googleClientId: env?.googleClientId }
   );
 }

@@ -1,7 +1,7 @@
 import { shell } from '../components/shell'
 import { PRODUCTS, STORE_CONFIG } from '../data'
 
-export function homePage(): string {
+export function homePage(env?: { razorpayKeyId?: string; googleClientId?: string }): string {
   const schema = JSON.stringify({"@context":"https://schema.org","@type":"ItemList","itemListElement":PRODUCTS.map((p,i)=>({"@type":"ListItem","position":i+1,"item":{"@type":"Product","name":p.name,"url":"https://intru.in/product/"+p.slug,"image":p.images,"offers":{"@type":"Offer","price":p.price,"priceCurrency":"INR","availability":"https://schema.org/InStock"}}}))});
 
   const body = `<style>
@@ -140,6 +140,6 @@ document.querySelectorAll('.anim').forEach(function(el){el.style.animationPlaySt
     'INTRU.IN — Limited Drops. No Restocks. | Premium Indian Streetwear',
     'intru.in: premium minimalist streetwear crafted in India. Limited drops, no restocks. Oversized tees, cargo joggers, hoodies & more. Free shipping over Rs.1,999.',
     body,
-    { url: 'https://intru.in', schema }
+    { url: 'https://intru.in', schema, razorpayKeyId: env?.razorpayKeyId, googleClientId: env?.googleClientId }
   );
 }
