@@ -1,137 +1,89 @@
-# intru.in — Premium Minimalist E-Commerce Store
+# INTRU.IN — Premium Indian Streetwear
 
 ## Project Overview
 - **Name**: intru.in
-- **Goal**: Premium, minimalist e-commerce store for a streetwear brand with high-conversion design
-- **Stack**: Hono + Cloudflare Pages + D1 Database + Tailwind-inspired CSS
-- **Theme**: Black & White, high-contrast, Sabina/minimalist streetwear aesthetic
+- **Goal**: Premium, minimalist 6-product e-commerce site with a black-and-white, high-contrast aesthetic
+- **Stack**: Hono + TypeScript + Tailwind-inspired inline CSS, deployed on Cloudflare Pages
+- **Theme**: Inspired by [Sabina Framer](https://sabina.framer.wiki/) — clean, premium streetwear
 
 ## Live URLs
-- **Sandbox Preview**: (active during development)
-- **Production**: https://intru-in.pages.dev (after Cloudflare deployment)
-- **Admin Panel**: /admin (password: `intru2024admin`)
+- **Sandbox**: [Dev Preview](https://3000-ioenzsvi35kexko87nhfy-0e616f0a.sandbox.novita.ai)
 
-## Completed Features
+## Features Implemented
 
-### Landing Page
-- Full-screen hero with elegant typography (Playfair Display + Inter)
-- Animated marquee strip with brand values
-- Brand story section with imagery
-- 6-product grid with hover image swap & discount badges
-- Testimonial section (dark theme)
-- Newsletter signup form
-- Trust signals (Free Shipping, Easy Returns, Secure Payments, Organic Cotton)
-- Instagram feed placeholder
-- Full footer with legal links and payment icons
+### Pages
+- **Homepage** (`/`): Hero section, marquee, brand story, 6-product grid with hover effects, trust badges, testimonial, Instagram grid placeholder, newsletter signup
+- **Product Page** (`/product/:slug`): 4-image gallery (desktop: 2x2 grid, mobile: swipe carousel with dots), lightbox zoom, size selector, Add to Bag / Buy Now, store credit tooltip, accordion details, related products
+- **Legal Pages** (`/p/:slug`): Dynamic route for Terms, Returns, Privacy, Shipping with navigation tabs
+- **Admin Panel** (`/admin`): Password-protected dashboard with Orders, Products, and Legal editor tabs
+- **404 Page**: Branded error page
 
-### Product Detail Pages (`/product/:slug`)
-- **Desktop**: Thumbnail column + main image gallery with click-to-zoom
-- **Mobile**: Horizontal swipe carousel with pagination dots
-- Full product description, pricing with discount display
-- Quantity selector
-- Add-to-bag with price display
-- Product details & shipping accordion
-- Schema.org Product JSON-LD for SEO
+### Cart & Checkout
+- Real-time sidebar cart drawer with quantity controls
+- Server-side price validation via `/api/checkout`
+- Razorpay integration placeholder (ready for production key)
+- Free shipping over Rs.1,999, flat Rs.99 otherwise
 
-### Cart System
-- Sidebar drawer with real-time updates
-- Quantity adjustment (+/- buttons)
-- Remove items
-- Subtotal, shipping calculation (free above ₹1,999)
-- Keyboard shortcut (Escape to close)
+### Auth
+- Google One-Tap Sign-In placeholder (needs real Client ID)
+- Magic Link auth endpoint (`/api/auth/magic-link`)
 
-### Checkout (`/checkout`)
-- Full checkout form (name, email, phone, address, notes)
-- Order summary with item breakdown
-- Server-side price verification via `/api/checkout`
-- Razorpay integration ready (auto-detects if Razorpay key is configured)
-- Fallback to COD/direct order flow
-
-### Order Confirmation (`/order/:orderId`)
-- Order success page with checkmark
-- Progress tracker (Received → Confirmed → Shipped → Delivered)
-- Ordered items list with images
-- Order summary card
-
-### Legal Pages (`/legal/:slug`)
-- Dynamic routing for all legal pages
-- Sidebar navigation between policies
-- Seeded pages: Terms & Conditions, Privacy Policy, Refund Policy, Shipping Policy
-- New pages can be added via admin panel
-
-### Admin Panel (`/admin`)
-- Password-protected login
-- **Orders Manager**: View all orders, customer details, update status (received/confirmed/shipped/delivered/cancelled)
-- **Products Manager**: Edit name, price, compare price, description, stock status, and all 4 image URLs
-- **Legal Pages Manager**: Edit existing pages, create new pages, delete pages
-- **Settings**: Admin password, Razorpay keys, brand name/tagline, shipping thresholds, contact info
+### Legal Policies (Specifically Designed to Protect intru.in)
+- **Terms of Service**: All sales final, limited drop model, 36-hour processing, delivery liability disclaimer (carrier responsible post-handoff), store credit only, Bangalore jurisdiction
+- **Returns & Refunds**: Store Credit ONLY (no cash refunds), 36-hour claim window, eligible/ineligible claims defined, delivery liability clearly stated
+- **Privacy Policy**: Data collection, Razorpay PCI-DSS compliance, cookie policy
+- **Shipping Policy**: 36-hour dispatch, delivery estimates, liability disclaimer
 
 ### SEO
-- Dynamic meta titles and descriptions for every page
-- Schema.org Organization JSON-LD on homepage
-- Schema.org Product JSON-LD on product pages
-- Automatic image alt tags (`intru.in [Product Name] - View N`)
-- OpenGraph and Twitter Card meta tags
-- Semantic HTML structure
+- Auto-generated alt tags: `intru.in [Product Name] - View [N]`
+- Product schema.org markup (JSON-LD)
+- ItemList schema on homepage
+- Dynamic `<title>` and `<meta description>` per page
+- Open Graph and Twitter Card meta tags
+- Canonical URLs
+
+### Admin Panel (`/admin`)
+- **Password**: `intru2026admin`
+- **Orders Tab**: Demo order list with status badges (Pending/Shipped/Delivered)
+- **Products Tab**: Edit 4 image URLs, price, compare price, in-stock toggle per product
+- **Legal Tab**: WYSIWYG HTML editor with live preview for all legal pages
 
 ## API Endpoints
-
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/api/products` | All in-stock products |
-| GET | `/api/products/:slug` | Single product by slug |
-| POST | `/api/checkout` | Create order with price verification |
-| POST | `/api/payment/verify` | Verify Razorpay payment |
-| GET | `/api/legal` | List all active legal pages |
-| GET | `/api/legal/:slug` | Single legal page content |
-| GET | `/api/settings` | Public settings (brand, shipping) |
-| POST | `/api/admin/login` | Admin authentication |
-| GET | `/api/admin/orders` | All orders (auth required) |
-| PUT | `/api/admin/orders/:id` | Update order status |
-| GET | `/api/admin/products` | All products (auth required) |
-| PUT | `/api/admin/products/:id` | Update product |
-| GET | `/api/admin/legal` | All legal pages (auth required) |
-| POST | `/api/admin/legal` | Create legal page |
-| PUT | `/api/admin/legal/:id` | Update legal page |
-| DELETE | `/api/admin/legal/:id` | Delete legal page |
-| GET | `/api/admin/settings` | All settings (auth required) |
-| PUT | `/api/admin/settings` | Update settings |
+| GET | `/api/health` | Health check |
+| GET | `/api/products` | List all products |
+| GET | `/api/products/:id` | Get single product |
+| POST | `/api/checkout` | Validate cart & create order |
+| POST | `/api/auth/google` | Google One-Tap callback |
+| POST | `/api/auth/magic-link` | Send magic link email |
+| POST | `/api/admin/auth` | Admin authentication |
+| POST | `/api/store-credit` | Check store credit balance |
 
 ## Data Architecture
-- **Database**: Cloudflare D1 (SQLite)
-- **Tables**: `products`, `orders`, `legal_pages`, `settings`
-- **Images**: Stored as JSON array of URLs in `products.images` field (4 URLs per product)
-- **Local Dev**: Uses `--local` flag for automatic local SQLite
+- **Products**: 6 items, each with 4 images, sizes, pricing
+- **Storage**: Currently in-memory (data.ts). Production: Supabase + Cloudflare R2
+- **Store Credit**: Model defined, production uses Supabase `store_credits` table
 
-## User Guide
+## Products
+| # | Name | Price | Category |
+|---|------|-------|----------|
+| 1 | Essential Oversized Tee | Rs.1,299 | Tops |
+| 2 | Midnight Cargo Joggers | Rs.1,999 | Bottoms |
+| 3 | Structured Minimal Hoodie | Rs.2,499 | Tops |
+| 4 | Everyday Slim Chinos | Rs.1,799 | Bottoms |
+| 5 | Graphic Art Tee Vol. 1 | Rs.1,499 | Tops |
+| 6 | Monochrome Zip Jacket | Rs.2,999 | Outerwear |
 
-### Shopping
-1. Browse products on the homepage
-2. Click a product to see all 4 images and full details
-3. Add items to your bag
-4. Open the cart drawer and proceed to checkout
-5. Fill in shipping details and place order
-
-### Admin
-1. Go to `/admin` and enter password `intru2024admin`
-2. **Orders**: View/manage all customer orders
-3. **Products**: Update images (paste URLs, one per line), prices, descriptions
-4. **Legal**: Edit existing policies or add new pages
-5. **Settings**: Configure Razorpay keys, shipping thresholds, etc.
+## Production Next Steps
+1. **Supabase**: Set up tables (products, orders, users, store_credits, legal_pages)
+2. **Razorpay**: Add `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` as Cloudflare secrets
+3. **Google Auth**: Replace `YOUR_GOOGLE_CLIENT_ID` with real OAuth 2.0 client ID
+4. **Image Hosting**: Upload product images to Cloudflare R2 or Supabase Storage
+5. **Custom Domain**: Point `intru.in` to Cloudflare Pages
 
 ## Deployment
 - **Platform**: Cloudflare Pages
-- **Tech Stack**: Hono 4.x + TypeScript + D1 Database
-- **Build**: `npm run build` → Vite SSR bundle → `dist/`
-- **Database**: D1 with migration files in `migrations/`
-- **Status**: ✅ Active (local development)
-- **Last Updated**: February 2026
-
-## Next Steps
-1. Configure Razorpay API keys in admin settings for live payments
-2. Replace placeholder Unsplash images with actual product photos
-3. Set up Supabase Auth for Google One-Tap and Magic Link login
-4. Deploy to Cloudflare Pages with production D1 database
-5. Connect custom domain (intru.in)
-6. Set up Instagram feed API integration
-7. Add product size/variant selector if needed
+- **Build**: `npm run build` → outputs to `dist/`
+- **Deploy**: `npm run deploy:prod`
+- **Last Updated**: 2026-02-26
