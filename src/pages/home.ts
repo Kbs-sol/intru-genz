@@ -1,8 +1,16 @@
 import { shell } from '../components/shell'
-import { PRODUCTS, STORE_CONFIG } from '../data'
+import { STORE_CONFIG, type Product, type LegalPage } from '../data'
 
-export function homePage(env?: { razorpayKeyId?: string; googleClientId?: string }): string {
-  const schema = JSON.stringify({"@context":"https://schema.org","@type":"ItemList","itemListElement":PRODUCTS.map((p,i)=>({"@type":"ListItem","position":i+1,"item":{"@type":"Product","name":p.name,"url":"https://intru.in/product/"+p.slug,"image":p.images,"offers":{"@type":"Offer","price":p.price,"priceCurrency":"INR","availability":"https://schema.org/InStock"}}}))});
+export function homePage(opts: {
+  razorpayKeyId?: string;
+  googleClientId?: string;
+  products: Product[];
+  legalPages: LegalPage[];
+}): string {
+  const products = opts.products;
+  const legalPages = opts.legalPages;
+
+  const schema = JSON.stringify({"@context":"https://schema.org","@type":"ItemList","itemListElement":products.map((p,i)=>({"@type":"ListItem","position":i+1,"item":{"@type":"Product","name":p.name,"url":"https://intru.in/product/"+p.slug,"image":p.images,"offers":{"@type":"Offer","price":p.price,"priceCurrency":"INR","availability":"https://schema.org/InStock"}}}))});
 
   const body = `<style>
 .hero{min-height:calc(100vh - 64px);display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:80px 24px;position:relative}
@@ -84,12 +92,12 @@ ${Array(4).fill('<span class="mqi">Limited Drops</span><span class="mqi mqd">/</
 <section class="psec" id="products">
 <div class="shdr"><p class="sover anim">The Collection</p><h2 class="stitle anim d1">Current Drop</h2></div>
 <div class="pgrid">
-${PRODUCTS.map((p, i) => {
+${products.map((p, i) => {
   const d = p.comparePrice ? Math.round((1 - p.price / p.comparePrice) * 100) : 0;
   return `<a href="/product/${p.slug}" class="pcard anim d${(i%4)+1}">
 <div class="pcimg">
 <img src="${p.images[0]}" alt="intru.in ${p.name} - View 1" loading="${i<3?'eager':'lazy'}" width="400" height="533">
-<img class="ih" src="${p.images[1]}" alt="intru.in ${p.name} - View 2" loading="lazy" width="400" height="533" style="width:100%;height:100%;object-fit:cover">
+${p.images[1] ? '<img class="ih" src="'+p.images[1]+'" alt="intru.in '+p.name+' - View 2" loading="lazy" width="400" height="533" style="width:100%;height:100%;object-fit:cover">' : ''}
 ${d>0?'<span class="pcbadge">Save '+d+'%</span>':''}
 </div>
 <div class="pcinfo">
@@ -120,7 +128,7 @@ ${d>0?'<span class="sv">'+d+'% OFF</span>':''}
 <p class="sover">Follow Us</p>
 <h3 style="font-family:var(--head);font-size:24px;text-transform:uppercase;letter-spacing:-.02em;margin-bottom:28px">@${STORE_CONFIG.instagram}</h3>
 <div class="iggrid">
-${PRODUCTS.slice(0,5).map((p,i)=>'<a href="https://instagram.com/'+STORE_CONFIG.instagram+'" target="_blank" rel="noopener" class="igit"><img src="'+p.images[i%4]+'" alt="intru.in Instagram" loading="lazy" width="300" height="300"></a>').join('')}
+${products.slice(0,5).map((p,i)=>'<a href="https://instagram.com/'+STORE_CONFIG.instagram+'" target="_blank" rel="noopener" class="igit"><img src="'+p.images[i % p.images.length]+'" alt="intru.in Instagram" loading="lazy" width="300" height="300"></a>').join('')}
 </div></section>
 
 <section class="nlsec" id="newsletter">
@@ -140,6 +148,6 @@ document.querySelectorAll('.anim').forEach(function(el){el.style.animationPlaySt
     'INTRU.IN — Limited Drops. No Restocks. | Premium Indian Streetwear',
     'intru.in: premium minimalist streetwear crafted in India. Limited drops, no restocks. Oversized tees, cargo joggers, hoodies & more. Free shipping over Rs.1,999.',
     body,
-    { url: 'https://intru.in', schema, razorpayKeyId: env?.razorpayKeyId, googleClientId: env?.googleClientId }
+    { url: 'https://intru.in', schema, razorpayKeyId: opts.razorpayKeyId, googleClientId: opts.googleClientId, products, legalPages }
   );
 }

@@ -1,12 +1,31 @@
-import { STORE_CONFIG, LEGAL_PAGES, PRODUCTS } from '../data'
+import { STORE_CONFIG, type Product, type LegalPage, SEED_LEGAL_PAGES } from '../data'
 
-export function shell(title: string, desc: string, body: string, opt?: { og?: string; url?: string; schema?: string; cls?: string; razorpayKeyId?: string; googleClientId?: string }): string {
+/**
+ * Shell: the HTML wrapper for every page.
+ * NOW accepts products[] and legalPages[] as parameters — no more hardcoded PRODUCTS import.
+ */
+export function shell(
+  title: string,
+  desc: string,
+  body: string,
+  opt?: {
+    og?: string; url?: string; schema?: string; cls?: string;
+    razorpayKeyId?: string; googleClientId?: string;
+    products?: Product[];
+    legalPages?: LegalPage[];
+  }
+): string {
   const og = opt?.og || 'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=1200&h=630&fit=crop&q=80';
   const url = opt?.url || 'https://intru.in';
   const rpKey = opt?.razorpayKeyId || STORE_CONFIG.razorpayKeyId;
   const gKey = opt?.googleClientId || STORE_CONFIG.googleClientId;
-  const pm = JSON.stringify(Object.fromEntries(PRODUCTS.map(p => [p.id, { id: p.id, n: p.name, s: p.slug, p: p.price, i: p.images, sz: p.sizes }])));
+  const products = opt?.products || [];
+  const legalPages = opt?.legalPages || SEED_LEGAL_PAGES;
+
+  // Build product map for cart JS — from the DYNAMIC products array
+  const pm = JSON.stringify(Object.fromEntries(products.map(p => [p.id, { id: p.id, n: p.name, s: p.slug, p: p.price, i: p.images, sz: p.sizes }])));
   const sj = JSON.stringify({ cs: STORE_CONFIG.currencySymbol, ft: STORE_CONFIG.freeShippingThreshold, sc: STORE_CONFIG.shippingCost, rk: rpKey });
+
   return `<!DOCTYPE html><html lang="en"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>${title}</title><meta name="description" content="${desc}">
@@ -73,7 +92,6 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 .toast-ok{background:var(--bk);color:var(--wh)}
 .toast-err{background:var(--red);color:#fff}
 .toast-ok-green{background:#065f46;color:#fff}
-/* Size error shake */
 .sz-error{animation:shake .3s ease;border-color:var(--red) !important}
 @media(max-width:768px){.nlinks .nl:not(.nls){display:none}.ftri{grid-template-columns:1fr 1fr;gap:32px}.ftrbt{flex-direction:column;gap:16px;text-align:center}}
 @media(max-width:480px){.ftri{grid-template-columns:1fr}}
@@ -103,12 +121,11 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 <div class="ftrb"><h3>INTRU.IN</h3><p>${STORE_CONFIG.description}</p></div>
 <div class="ftrc"><h4>Shop</h4><a href="/#products">All Drops</a><a href="/#products">Latest Drop</a></div>
 <div class="ftrc"><h4>Help</h4><a href="/p/shipping">Shipping</a><a href="/p/returns">Returns &amp; Credit</a><a href="mailto:${STORE_CONFIG.email}">Contact</a></div>
-<div class="ftrc"><h4>Legal</h4>${LEGAL_PAGES.map(p => '<a href="/p/' + p.slug + '">' + p.title + '</a>').join('')}</div>
+<div class="ftrc"><h4>Legal</h4>${legalPages.map(p => '<a href="/p/' + p.slug + '">' + p.title + '</a>').join('')}</div>
 </div><div class="ftrbt"><span>&copy; 2026 intru.in &mdash; All sales final. Store credit only.</span>
 <div class="fsoc"><a href="https://instagram.com/${STORE_CONFIG.instagram}" target="_blank" rel="noopener"><i class="fab fa-instagram"></i></a><a href="#"><i class="fab fa-twitter"></i></a></div>
 </div></footer>
 <div class="tc" id="tc"></div>
-<!-- Google One-Tap (only loads if real client ID is set) -->
 ${gKey !== 'YOUR_GOOGLE_CLIENT_ID' ? '<script src="https://accounts.google.com/gsi/client" async defer></script><div id="g_id_onload" data-client_id="' + gKey + '" data-context="signin" data-ux_mode="popup" data-callback="handleGoogleAuth" data-auto_prompt="true"></div>' : '<!-- Google One-Tap: Set GOOGLE_CLIENT_ID env var to enable -->'}
 <script>
 /* ====== CONFIG ====== */
@@ -136,7 +153,6 @@ function addToCart(productId, size, qty){
   if(!productId||!size){toast('Please select a size','err');return false}
   var p=PM[productId];
   if(!p){toast('Product not found','err');return false}
-  // Validate size exists for this product
   if(p.sz&&p.sz.indexOf(size)===-1){toast('Invalid size selected','err');return false}
   qty=qty||1;
   var existing=cart.find(function(i){return i.p===productId&&i.s===size});
@@ -224,27 +240,24 @@ function openCartDrawer(){
   document.body.style.overflow='hidden';
 }
 
-/* ====== BUY NOW (single item immediate checkout) ====== */
+/* ====== BUY NOW ====== */
 function buyNow(productId,size){
   if(!size){toast('Please select a size first','err');return}
   var p=PM[productId];
   if(!p){toast('Product not found','err');return}
   if(p.sz&&p.sz.indexOf(size)===-1){toast('Invalid size','err');return}
-  // Replace cart with single item
   cart=[{p:productId,s:size,q:1}];
   saveCart();
-  // Go straight to checkout
   checkout();
 }
 
-/* ====== CHECKOUT → RAZORPAY ====== */
+/* ====== CHECKOUT -> RAZORPAY ====== */
 function checkout(){
   if(!cart.length){toast('Your bag is empty','err');return}
   var btn=document.getElementById('checkoutBtn');
   btn.disabled=true;
   btn.textContent='CREATING ORDER...';
 
-  // Step 1: Send cart to backend for server-side price validation + Razorpay order creation
   fetch('/api/checkout',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
@@ -256,22 +269,16 @@ function checkout(){
   .then(function(r){return r.json()})
   .then(function(data){
     if(data.error){throw new Error(data.error)}
-
-    // Step 2: Check if Razorpay is loaded and order was created
     if(!data.razorpayOrderId){
-      // Fallback: Razorpay keys not configured — show total
       toast('Order total: '+fmt(data.total)+'. Configure Razorpay keys to enable payments.','err');
       btn.disabled=false;btn.textContent='PAY WITH RAZORPAY';
       return;
     }
-
     if(typeof Razorpay==='undefined'){
       toast('Payment SDK failed to load. Please refresh.','err');
       btn.disabled=false;btn.textContent='PAY WITH RAZORPAY';
       return;
     }
-
-    // Step 3: Open Razorpay Checkout popup
     var options={
       key:S.rk,
       amount:data.total*100,
@@ -299,7 +306,6 @@ function checkout(){
         }
       },
       handler:function(response){
-        // Step 4: Payment success — verify on server
         btn.textContent='VERIFYING PAYMENT...';
         fetch('/api/payment/verify',{
           method:'POST',
@@ -315,17 +321,12 @@ function checkout(){
         .then(function(r){return r.json()})
         .then(function(vd){
           if(vd.success){
-            // Payment verified — clear cart, show success
             cart=[];
             saveCart();
             toggleCart();
             toast('Payment successful! Order confirmed.','ok-green');
-            // Redirect to success or show confirmation
             setTimeout(function(){
-              if(vd.orderId){
-                // Could redirect to order confirmation page
-                toast('Order ID: '+vd.orderId,'ok');
-              }
+              if(vd.orderId){toast('Order ID: '+vd.orderId,'ok')}
             },1500);
           } else {
             toast('Payment verification failed: '+(vd.error||'Unknown error'),'err');
@@ -348,7 +349,7 @@ function checkout(){
   });
 }
 
-/* ====== TOAST NOTIFICATIONS ====== */
+/* ====== TOAST ====== */
 function toast(msg,type){
   type=type||'ok';
   var c=document.getElementById('tc');

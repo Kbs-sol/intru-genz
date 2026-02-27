@@ -1,9 +1,16 @@
 import { shell } from '../components/shell'
-import { STORE_CONFIG, PRODUCTS, type Product } from '../data'
+import { STORE_CONFIG, type Product, type LegalPage } from '../data'
 
-export function productPage(product: Product, env?: { razorpayKeyId?: string; googleClientId?: string }): string {
+export function productPage(product: Product, opts: {
+  razorpayKeyId?: string;
+  googleClientId?: string;
+  products: Product[];
+  legalPages: LegalPage[];
+}): string {
+  const products = opts.products;
+  const legalPages = opts.legalPages;
   const disc = product.comparePrice ? Math.round((1 - product.price / product.comparePrice) * 100) : 0;
-  const related = PRODUCTS.filter(p => p.id !== product.id).slice(0, 3);
+  const related = products.filter(p => p.id !== product.id).slice(0, 3);
   const schema = JSON.stringify({"@context":"https://schema.org","@type":"Product","name":product.name,"description":product.description,"image":product.images,"brand":{"@type":"Brand","name":"intru.in"},"offers":{"@type":"Offer","url":"https://intru.in/product/"+product.slug,"priceCurrency":"INR","price":product.price,"availability":product.inStock?"https://schema.org/InStock":"https://schema.org/OutOfStock"},"aggregateRating":{"@type":"AggregateRating","ratingValue":"4.8","reviewCount":"47"}});
   const pj = JSON.stringify({id:product.id,s:product.slug,n:product.name,p:product.price,i:product.images,sz:product.sizes});
 
@@ -145,7 +152,7 @@ ${product.sizes.map(s=>'<button class="szbtn" data-sz="'+s+'" onclick="selSz(thi
 
 <section class="relsec"><div class="shdr"><p class="sover">You May Also Like</p><h2 class="stitle">Complete the Look</h2></div>
 <div class="relgrid">
-${related.map(p=>{const d=p.comparePrice?Math.round((1-p.price/p.comparePrice)*100):0;return '<a href="/product/'+p.slug+'" class="pcard"><div class="pcimg"><img src="'+p.images[0]+'" alt="intru.in '+p.name+'" loading="lazy" width="400" height="533"><img class="ih" src="'+p.images[1]+'" alt="'+p.name+'" loading="lazy" width="400" height="533" style="width:100%;height:100%;object-fit:cover">'+(d>0?'<span class="pcbadge">Save '+d+'%</span>':'')+'</div><div class="pcinfo"><h3 class="pcname">'+p.name+'</h3><p class="pctag">'+p.tagline+'</p><div class="pcprice"><span class="cur">'+STORE_CONFIG.currencySymbol+p.price.toLocaleString('en-IN')+'</span>'+(p.comparePrice?' <span class="cmp">'+STORE_CONFIG.currencySymbol+p.comparePrice.toLocaleString('en-IN')+'</span>':'')+'</div></div></a>'}).join('')}
+${related.map(p=>{const d=p.comparePrice?Math.round((1-p.price/p.comparePrice)*100):0;return '<a href="/product/'+p.slug+'" class="pcard"><div class="pcimg"><img src="'+p.images[0]+'" alt="intru.in '+p.name+'" loading="lazy" width="400" height="533">'+(p.images[1]?'<img class="ih" src="'+p.images[1]+'" alt="'+p.name+'" loading="lazy" width="400" height="533" style="width:100%;height:100%;object-fit:cover">':'')+(d>0?'<span class="pcbadge">Save '+d+'%</span>':'')+'</div><div class="pcinfo"><h3 class="pcname">'+p.name+'</h3><p class="pctag">'+p.tagline+'</p><div class="pcprice"><span class="cur">'+STORE_CONFIG.currencySymbol+p.price.toLocaleString('en-IN')+'</span>'+(p.comparePrice?' <span class="cmp">'+STORE_CONFIG.currencySymbol+p.comparePrice.toLocaleString('en-IN')+'</span>':'')+'</div></div></a>'}).join('')}
 </div></section>
 
 <div class="lb" id="lb" onclick="closeLB()">
@@ -158,30 +165,25 @@ ${related.map(p=>{const d=p.comparePrice?Math.round((1-p.price/p.comparePrice)*1
 
 <script>
 var P=${pj};
-var selectedSize=null; /* null = no size selected yet */
+var selectedSize=null;
 var carSlide=0;
 var lbIdx=0;
 
-/* ====== SIZE SELECTION WITH VALIDATION ====== */
 function selSz(btn){
   document.querySelectorAll('.szbtn').forEach(function(b){b.classList.remove('sel')});
   btn.classList.add('sel');
   selectedSize=btn.dataset.sz;
-  // Clear error state
   document.getElementById('szHint').classList.remove('show');
   document.querySelectorAll('.szbtn').forEach(function(b){b.classList.remove('sz-error')});
 }
 
 function requireSize(){
   if(!selectedSize){
-    // Show error hint
     document.getElementById('szHint').classList.add('show');
-    // Shake the size buttons
     document.querySelectorAll('.szbtn').forEach(function(b){
       b.classList.add('sz-error');
       setTimeout(function(){b.classList.remove('sz-error')},400);
     });
-    // Scroll size selector into view
     document.getElementById('szopt').scrollIntoView({behavior:'smooth',block:'center'});
     toast('Please select a size','err');
     return false;
@@ -189,19 +191,16 @@ function requireSize(){
   return true;
 }
 
-/* ====== ADD TO CART (with size validation) ====== */
 function handleATC(){
   if(!requireSize())return;
   addToCart(P.id, selectedSize, 1);
 }
 
-/* ====== BUY NOW (with size validation → immediate Razorpay) ====== */
 function handleBuyNow(){
   if(!requireSize())return;
   buyNow(P.id, selectedSize);
 }
 
-/* ====== IMAGE CAROUSEL (mobile) ====== */
 function updCar(){
   var t=document.getElementById('gtrk');
   if(t)t.style.transform='translateX(-'+carSlide*100+'%)';
@@ -211,7 +210,6 @@ function cNext(){carSlide=(carSlide+1)%P.i.length;updCar()}
 function cPrev(){carSlide=(carSlide-1+P.i.length)%P.i.length;updCar()}
 function goSlide(i){carSlide=i;updCar()}
 
-/* Touch swipe */
 var touchX=0;
 var carEl=document.getElementById('car');
 if(carEl){
@@ -219,7 +217,6 @@ if(carEl){
   carEl.addEventListener('touchend',function(e){var d=touchX-e.changedTouches[0].clientX;if(Math.abs(d)>50){d>0?cNext():cPrev()}},{passive:true});
 }
 
-/* ====== LIGHTBOX ====== */
 function openLB(i){lbIdx=i;updLB();document.getElementById('lb').classList.add('open');document.body.style.overflow='hidden'}
 function closeLB(){document.getElementById('lb').classList.remove('open');document.body.style.overflow=''}
 function updLB(){document.getElementById('lbi').src=P.i[lbIdx];document.getElementById('lbi').alt='intru.in '+P.n+' - View '+(lbIdx+1);document.getElementById('lbcnt').textContent=(lbIdx+1)+' / '+P.i.length}
@@ -232,7 +229,6 @@ document.addEventListener('keydown',function(e){
   if(e.key==='ArrowLeft')lbPrev();
 });
 
-/* ====== ACCORDION ====== */
 function togDet(b){b.classList.toggle('opn');b.nextElementSibling.classList.toggle('opn')}
 </script>`;
 
@@ -240,6 +236,6 @@ function togDet(b){b.classList.toggle('opn');b.nextElementSibling.classList.togg
     product.name + ' — INTRU.IN | ' + STORE_CONFIG.currencySymbol + product.price.toLocaleString('en-IN'),
     product.description.substring(0,155) + '...',
     body,
-    { og: product.images[0], url: 'https://intru.in/product/' + product.slug, schema, razorpayKeyId: env?.razorpayKeyId, googleClientId: env?.googleClientId }
+    { og: product.images[0], url: 'https://intru.in/product/' + product.slug, schema, razorpayKeyId: opts.razorpayKeyId, googleClientId: opts.googleClientId, products, legalPages }
   );
 }

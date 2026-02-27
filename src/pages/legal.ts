@@ -1,7 +1,15 @@
 import { shell } from '../components/shell'
-import { STORE_CONFIG, LEGAL_PAGES, type LegalPage } from '../data'
+import { STORE_CONFIG, type LegalPage, type Product } from '../data'
 
-export function legalPage(page: LegalPage, env?: { razorpayKeyId?: string; googleClientId?: string }): string {
+export function legalPage(page: LegalPage, opts: {
+  razorpayKeyId?: string;
+  googleClientId?: string;
+  products: Product[];
+  legalPages: LegalPage[];
+}): string {
+  const legalPages = opts.legalPages;
+  const products = opts.products;
+
   const schema = JSON.stringify({
     "@context": "https://schema.org",
     "@type": "WebPage",
@@ -37,7 +45,7 @@ export function legalPage(page: LegalPage, env?: { razorpayKeyId?: string; googl
 <p class="lgup">Last updated: ${new Date(page.updatedAt).toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
 <div class="lgbdy">${page.content}</div>
 <div class="lgnav">
-${LEGAL_PAGES.map(p => '<a href="/p/' + p.slug + '"' + (p.slug === page.slug ? ' class="cur"' : '') + '>' + p.title + '</a>').join('')}
+${legalPages.map(p => '<a href="/p/' + p.slug + '"' + (p.slug === page.slug ? ' class="cur"' : '') + '>' + p.title + '</a>').join('')}
 </div>
 </div>`;
 
@@ -45,6 +53,6 @@ ${LEGAL_PAGES.map(p => '<a href="/p/' + p.slug + '"' + (p.slug === page.slug ? '
     page.title + ' — INTRU.IN',
     page.title + ' for intru.in — India\'s premium minimalist streetwear brand. Limited drops, no restocks.',
     body,
-    { url: 'https://intru.in/p/' + page.slug, schema, razorpayKeyId: env?.razorpayKeyId, googleClientId: env?.googleClientId }
+    { url: 'https://intru.in/p/' + page.slug, schema, razorpayKeyId: opts.razorpayKeyId, googleClientId: opts.googleClientId, products, legalPages }
   );
 }

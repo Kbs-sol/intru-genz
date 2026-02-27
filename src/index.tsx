@@ -1,14 +1,17 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
-import { PRODUCTS, LEGAL_PAGES, STORE_CONFIG, type Env, createRazorpayOrder, hmacSHA256, supabaseFetch } from './data'
+import {
+  STORE_CONFIG, SEED_PRODUCTS, SEED_LEGAL_PAGES,
+  type Env, type Product,
+  createRazorpayOrder, hmacSHA256, supabaseFetch,
+  fetchProducts, fetchProductBySlug, fetchProductById, fetchLegalPages,
+} from './data'
 import { homePage } from './pages/home'
 import { productPage } from './pages/product'
 import { legalPage } from './pages/legal'
 import { adminPage } from './pages/admin'
 
-type Bindings = Env & {
-  [key: string]: string;
-}
+type Bindings = Env & { [key: string]: string }
 
 const app = new Hono<{ Bindings: Bindings }>()
 
@@ -19,99 +22,134 @@ function getEnv(env: Bindings, key: keyof Env, fallback?: string): string {
   return (env as any)[key] || fallback || '';
 }
 
-// ============ PAGE ROUTES ============
+// ============ PAGE ROUTES (all async — data comes from Supabase) ============
 
-app.get('/', (c) => {
+app.get('/', async (c) => {
+  const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+  const sbSvc = getEnv(c.env, 'SUPABASE_SERVICE_KEY');
+  const sbAnon = getEnv(c.env, 'SUPABASE_ANON_KEY');
+  const { products } = await fetchProducts(sbUrl, sbSvc, sbAnon);
+  const { pages: legalPages } = await fetchLegalPages(sbUrl, sbSvc, sbAnon);
   return c.html(homePage({
     razorpayKeyId: getEnv(c.env, 'RAZORPAY_KEY_ID', STORE_CONFIG.razorpayKeyId),
     googleClientId: getEnv(c.env, 'GOOGLE_CLIENT_ID', STORE_CONFIG.googleClientId),
+    products,
+    legalPages,
   }))
 })
 
-app.get('/product/:slug', (c) => {
+app.get('/product/:slug', async (c) => {
   const slug = c.req.param('slug')
-  const product = PRODUCTS.find(p => p.slug === slug)
+  const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+  const sbSvc = getEnv(c.env, 'SUPABASE_SERVICE_KEY');
+  const sbAnon = getEnv(c.env, 'SUPABASE_ANON_KEY');
+  const key = sbSvc || sbAnon;
+  const product = await fetchProductBySlug(sbUrl, key, slug);
   if (!product) {
     return c.html(`<html><head><meta http-equiv="refresh" content="0;url=/"></head></html>`, 404)
   }
+  const { products } = await fetchProducts(sbUrl, sbSvc, sbAnon);
+  const { pages: legalPages } = await fetchLegalPages(sbUrl, sbSvc, sbAnon);
   return c.html(productPage(product, {
     razorpayKeyId: getEnv(c.env, 'RAZORPAY_KEY_ID', STORE_CONFIG.razorpayKeyId),
     googleClientId: getEnv(c.env, 'GOOGLE_CLIENT_ID', STORE_CONFIG.googleClientId),
+    products,
+    legalPages,
   }))
 })
 
-app.get('/p/:slug', (c) => {
+app.get('/p/:slug', async (c) => {
   const slug = c.req.param('slug')
-  const page = LEGAL_PAGES.find(p => p.slug === slug)
+  const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+  const sbSvc = getEnv(c.env, 'SUPABASE_SERVICE_KEY');
+  const sbAnon = getEnv(c.env, 'SUPABASE_ANON_KEY');
+  const { pages: legalPages } = await fetchLegalPages(sbUrl, sbSvc, sbAnon);
+  const page = legalPages.find(p => p.slug === slug)
   if (!page) {
     return c.html(`<html><head><meta http-equiv="refresh" content="0;url=/"></head></html>`, 404)
   }
+  const { products } = await fetchProducts(sbUrl, sbSvc, sbAnon);
   return c.html(legalPage(page, {
     razorpayKeyId: getEnv(c.env, 'RAZORPAY_KEY_ID', STORE_CONFIG.razorpayKeyId),
     googleClientId: getEnv(c.env, 'GOOGLE_CLIENT_ID', STORE_CONFIG.googleClientId),
+    products,
+    legalPages,
   }))
 })
 
-app.get('/admin', (c) => {
+app.get('/admin', async (c) => {
+  const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+  const sbSvc = getEnv(c.env, 'SUPABASE_SERVICE_KEY');
+  const sbAnon = getEnv(c.env, 'SUPABASE_ANON_KEY');
+  const { products } = await fetchProducts(sbUrl, sbSvc, sbAnon);
+  const { pages: legalPages } = await fetchLegalPages(sbUrl, sbSvc, sbAnon);
   return c.html(adminPage({
     razorpayKeyId: getEnv(c.env, 'RAZORPAY_KEY_ID', STORE_CONFIG.razorpayKeyId),
     googleClientId: getEnv(c.env, 'GOOGLE_CLIENT_ID', STORE_CONFIG.googleClientId),
+    products,
+    legalPages,
   }))
 })
 
-// ============ API ROUTES ============
+// ============ API: Health ============
 
-// Health check
 app.get('/api/health', (c) => {
-  const hasRazorpay = !!getEnv(c.env, 'RAZORPAY_KEY_ID');
-  const hasSupabase = !!getEnv(c.env, 'SUPABASE_URL');
   return c.json({
     status: 'ok',
     store: STORE_CONFIG.name,
     timestamp: new Date().toISOString(),
     services: {
-      razorpay: hasRazorpay ? 'connected' : 'not configured',
-      supabase: hasSupabase ? 'connected' : 'not configured',
+      razorpay: getEnv(c.env, 'RAZORPAY_KEY_ID') ? 'connected' : 'not configured',
+      supabase: getEnv(c.env, 'SUPABASE_URL') ? 'connected' : 'not configured',
     }
   })
 })
 
-// Get products
-app.get('/api/products', async (c) => {
-  const supabaseUrl = getEnv(c.env, 'SUPABASE_URL');
-  const supabaseKey = getEnv(c.env, 'SUPABASE_ANON_KEY');
+// ============ API: Debug DB (hidden endpoint) ============
 
-  // If Supabase is configured, fetch from DB
-  if (supabaseUrl && supabaseKey) {
-    try {
-      const res = await supabaseFetch(supabaseUrl, supabaseKey, 'products?select=*&order=created_at.asc');
-      if (res.ok) {
-        const products = await res.json();
-        return c.json({ products, source: 'supabase' });
+app.get('/api/debug-db', async (c) => {
+  const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+  const sbSvc = getEnv(c.env, 'SUPABASE_SERVICE_KEY');
+  const sbAnon = getEnv(c.env, 'SUPABASE_ANON_KEY');
+  try {
+    const { products, source } = await fetchProducts(sbUrl, sbSvc, sbAnon);
+    return c.json({
+      connection: source === 'static' ? 'no_supabase' : 'success',
+      count: products.length,
+      source,
+      products: products.map(p => ({ id: p.id, name: p.name, price: p.price, images: p.images.length })),
+      env: {
+        SUPABASE_URL: sbUrl ? 'set' : 'missing',
+        SUPABASE_SERVICE_KEY: sbSvc ? 'set' : 'missing',
+        SUPABASE_ANON_KEY: sbAnon ? 'set' : 'missing',
       }
-    } catch (e) { /* fallthrough to static data */ }
+    })
+  } catch (e: any) {
+    return c.json({ connection: 'error', error: e.message }, 500)
   }
-
-  // Fallback: static product data
-  return c.json({
-    products: PRODUCTS.map(p => ({
-      id: p.id, slug: p.slug, name: p.name, price: p.price,
-      comparePrice: p.comparePrice, images: p.images, sizes: p.sizes,
-      category: p.category, inStock: p.inStock,
-    })),
-    source: 'static'
-  })
 })
 
-// Get single product
-app.get('/api/products/:id', (c) => {
+// ============ API: Products (dynamic from Supabase) ============
+
+app.get('/api/products', async (c) => {
+  const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+  const sbSvc = getEnv(c.env, 'SUPABASE_SERVICE_KEY');
+  const sbAnon = getEnv(c.env, 'SUPABASE_ANON_KEY');
+  const { products, source } = await fetchProducts(sbUrl, sbSvc, sbAnon);
+  return c.json({ products, source })
+})
+
+app.get('/api/products/:id', async (c) => {
   const id = c.req.param('id')
-  const product = PRODUCTS.find(p => p.id === id || p.slug === id)
+  const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+  const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY') || getEnv(c.env, 'SUPABASE_ANON_KEY');
+  const product = await fetchProductById(sbUrl, sbKey, id);
   if (!product) return c.json({ error: 'Product not found' }, 404)
   return c.json({ product })
 })
 
-// ============ CHECKOUT: Server-side price validation + Razorpay order creation ============
+// ============ CHECKOUT: DB-validated prices + Razorpay order creation ============
+
 app.post('/api/checkout', async (c) => {
   try {
     const body = await c.req.json()
@@ -122,12 +160,18 @@ app.post('/api/checkout', async (c) => {
       return c.json({ error: 'No items in cart' }, 400)
     }
 
-    // Step 1: Server-side price validation (NEVER trust client prices)
+    const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+    const sbSvc = getEnv(c.env, 'SUPABASE_SERVICE_KEY');
+    const sbAnon = getEnv(c.env, 'SUPABASE_ANON_KEY');
+    const sbKey = sbSvc || sbAnon;
+
+    // Step 1: Server-side price validation from DATABASE (never trust client)
     let subtotal = 0
     const validatedItems: any[] = []
 
     for (const item of items) {
-      const product = PRODUCTS.find(p => p.id === item.productId)
+      // Fetch live product from Supabase (falls back to SEED_PRODUCTS)
+      const product = await fetchProductById(sbUrl, sbKey, item.productId);
       if (!product) {
         return c.json({ error: `Product ${item.productId} not found` }, 400)
       }
@@ -155,7 +199,7 @@ app.post('/api/checkout', async (c) => {
     const shipping = subtotal >= STORE_CONFIG.freeShippingThreshold ? 0 : STORE_CONFIG.shippingCost
     const total = subtotal + shipping
 
-    // Step 2: Create Razorpay order (if keys are configured)
+    // Step 2: Create Razorpay order
     const rzpKeyId = getEnv(c.env, 'RAZORPAY_KEY_ID');
     const rzpKeySecret = getEnv(c.env, 'RAZORPAY_KEY_SECRET');
 
@@ -167,26 +211,23 @@ app.post('/api/checkout', async (c) => {
         const rzpOrder = await createRazorpayOrder(rzpKeyId, rzpKeySecret, total, receipt);
         razorpayOrderId = rzpOrder.id;
 
-        // Step 3: Store pending order in Supabase (if configured)
-        const supabaseUrl = getEnv(c.env, 'SUPABASE_URL');
-        const supabaseKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY') || getEnv(c.env, 'SUPABASE_ANON_KEY');
-
-        if (supabaseUrl && supabaseKey) {
+        // Step 3: Store pending order in Supabase
+        if (sbUrl && sbKey) {
           try {
-            await supabaseFetch(supabaseUrl, supabaseKey, 'orders', {
+            await supabaseFetch(sbUrl, sbKey, 'orders', {
               method: 'POST',
               body: JSON.stringify({
                 razorpay_order_id: razorpayOrderId,
                 items: validatedItems,
-                subtotal,
-                shipping,
-                total,
+                subtotal, shipping, total,
                 customer_email: userEmail,
                 status: 'pending',
                 created_at: new Date().toISOString(),
               }),
             });
-          } catch (e) { /* Order stored in Razorpay, Supabase insert is best-effort */ }
+          } catch (e) {
+            console.error('Failed to store order in Supabase:', e);
+          }
         }
       } catch (e: any) {
         return c.json({ error: 'Payment gateway error: ' + (e.message || 'Failed to create order') }, 500)
@@ -196,9 +237,7 @@ app.post('/api/checkout', async (c) => {
     return c.json({
       success: true,
       items: validatedItems,
-      subtotal,
-      shipping,
-      total,
+      subtotal, shipping, total,
       currency: 'INR',
       razorpayOrderId,
       storeCredit: 0,
@@ -208,41 +247,36 @@ app.post('/api/checkout', async (c) => {
   }
 })
 
-// ============ PAYMENT VERIFICATION (Razorpay signature validation + order confirmation) ============
+// ============ PAYMENT VERIFICATION ============
+
 app.post('/api/payment/verify', async (c) => {
   try {
     const body = await c.req.json()
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, items, userEmail } = body
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = body
 
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
       return c.json({ error: 'Missing payment details' }, 400)
     }
 
     const rzpKeySecret = getEnv(c.env, 'RAZORPAY_KEY_SECRET');
-
     if (!rzpKeySecret) {
       return c.json({ error: 'Payment verification not configured' }, 500)
     }
 
-    // Step 1: HMAC-SHA256 signature verification
-    // Razorpay signature = HMAC_SHA256(order_id + "|" + payment_id, key_secret)
     const expectedSignature = await hmacSHA256(rzpKeySecret, razorpay_order_id + '|' + razorpay_payment_id);
 
     if (expectedSignature !== razorpay_signature) {
-      // CRITICAL: Signature mismatch — potential tamper attempt
       console.error('Payment signature mismatch', { razorpay_order_id, razorpay_payment_id });
       return c.json({ error: 'Payment verification failed. Signature mismatch.' }, 400)
     }
 
-    // Step 2: Signature valid — update order in Supabase
-    const supabaseUrl = getEnv(c.env, 'SUPABASE_URL');
-    const supabaseKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY') || getEnv(c.env, 'SUPABASE_ANON_KEY');
-    let orderId = razorpay_order_id;
+    // Update order in Supabase
+    const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+    const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY') || getEnv(c.env, 'SUPABASE_ANON_KEY');
 
-    if (supabaseUrl && supabaseKey) {
+    if (sbUrl && sbKey) {
       try {
-        // Update order status to 'paid'
-        await supabaseFetch(supabaseUrl, supabaseKey, `orders?razorpay_order_id=eq.${razorpay_order_id}`, {
+        await supabaseFetch(sbUrl, sbKey, `orders?razorpay_order_id=eq.${razorpay_order_id}`, {
           method: 'PATCH',
           body: JSON.stringify({
             status: 'paid',
@@ -252,14 +286,13 @@ app.post('/api/payment/verify', async (c) => {
           }),
         });
       } catch (e) {
-        // Best-effort — payment is confirmed by Razorpay regardless
         console.error('Failed to update order in Supabase:', e);
       }
     }
 
     return c.json({
       success: true,
-      orderId,
+      orderId: razorpay_order_id,
       razorpayPaymentId: razorpay_payment_id,
       message: 'Payment verified and order confirmed.',
     })
@@ -268,7 +301,8 @@ app.post('/api/payment/verify', async (c) => {
   }
 })
 
-// ============ RAZORPAY WEBHOOK (server-to-server, no user interaction) ============
+// ============ RAZORPAY WEBHOOK ============
+
 app.post('/api/webhooks/razorpay', async (c) => {
   try {
     const rawBody = await c.req.text();
@@ -279,7 +313,6 @@ app.post('/api/webhooks/razorpay', async (c) => {
       return c.json({ error: 'Webhook not configured' }, 500);
     }
 
-    // Verify webhook signature
     const expectedSig = await hmacSHA256(webhookSecret, rawBody);
     if (expectedSig !== receivedSignature) {
       return c.json({ error: 'Invalid webhook signature' }, 400);
@@ -288,13 +321,13 @@ app.post('/api/webhooks/razorpay', async (c) => {
     const event = JSON.parse(rawBody);
     const eventType = event.event;
 
-    const supabaseUrl = getEnv(c.env, 'SUPABASE_URL');
-    const supabaseKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY') || getEnv(c.env, 'SUPABASE_ANON_KEY');
+    const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+    const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY') || getEnv(c.env, 'SUPABASE_ANON_KEY');
 
-    if (eventType === 'payment.captured' && supabaseUrl && supabaseKey) {
+    if (eventType === 'payment.captured' && sbUrl && sbKey) {
       const payment = event.payload?.payment?.entity;
       if (payment?.order_id) {
-        await supabaseFetch(supabaseUrl, supabaseKey, `orders?razorpay_order_id=eq.${payment.order_id}`, {
+        await supabaseFetch(sbUrl, sbKey, `orders?razorpay_order_id=eq.${payment.order_id}`, {
           method: 'PATCH',
           body: JSON.stringify({
             status: 'paid',
@@ -305,10 +338,10 @@ app.post('/api/webhooks/razorpay', async (c) => {
       }
     }
 
-    if (eventType === 'payment.failed' && supabaseUrl && supabaseKey) {
+    if (eventType === 'payment.failed' && sbUrl && sbKey) {
       const payment = event.payload?.payment?.entity;
       if (payment?.order_id) {
-        await supabaseFetch(supabaseUrl, supabaseKey, `orders?razorpay_order_id=eq.${payment.order_id}`, {
+        await supabaseFetch(sbUrl, sbKey, `orders?razorpay_order_id=eq.${payment.order_id}`, {
           method: 'PATCH',
           body: JSON.stringify({
             status: 'payment_failed',
@@ -332,7 +365,6 @@ app.post('/api/auth/google', async (c) => {
     const { credential } = body
     if (!credential) return c.json({ error: 'No credential' }, 400)
 
-    // Decode Google JWT (header.payload.signature)
     const parts = credential.split('.');
     if (parts.length !== 3) return c.json({ error: 'Invalid token' }, 400);
 
@@ -340,22 +372,17 @@ app.post('/api/auth/google', async (c) => {
       const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
       const { email, name, picture, sub } = payload;
 
-      // In production: verify token with Google's tokeninfo endpoint
-      // const verify = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${credential}`);
-      // if (!verify.ok) return c.json({ error: 'Token verification failed' }, 401);
+      const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+      const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY') || getEnv(c.env, 'SUPABASE_ANON_KEY');
 
-      // Upsert user in Supabase
-      const supabaseUrl = getEnv(c.env, 'SUPABASE_URL');
-      const supabaseKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY') || getEnv(c.env, 'SUPABASE_ANON_KEY');
-
-      if (supabaseUrl && supabaseKey) {
+      if (sbUrl && sbKey) {
         try {
-          await supabaseFetch(supabaseUrl, supabaseKey, 'users', {
+          await supabaseFetch(sbUrl, sbKey, 'users', {
             method: 'POST',
             headers: { 'Prefer': 'resolution=merge-duplicates' } as any,
             body: JSON.stringify({ email, name, picture, google_id: sub, last_login: new Date().toISOString() }),
           });
-        } catch (e) { /* best effort */ }
+        } catch (e) { console.error('User upsert error:', e); }
       }
 
       return c.json({ success: true, user: { email, name, picture } })
@@ -372,13 +399,13 @@ app.post('/api/auth/magic-link', async (c) => {
     const { email } = await c.req.json()
     if (!email || !email.includes('@')) return c.json({ error: 'Valid email required' }, 400)
 
-    const supabaseUrl = getEnv(c.env, 'SUPABASE_URL');
-    const supabaseKey = getEnv(c.env, 'SUPABASE_ANON_KEY');
+    const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+    const sbKey = getEnv(c.env, 'SUPABASE_ANON_KEY');
 
-    if (supabaseUrl && supabaseKey) {
-      const res = await fetch(`${supabaseUrl}/auth/v1/magiclink`, {
+    if (sbUrl && sbKey) {
+      const res = await fetch(`${sbUrl}/auth/v1/magiclink`, {
         method: 'POST',
-        headers: { 'apikey': supabaseKey, 'Content-Type': 'application/json' },
+        headers: { 'apikey': sbKey, 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
       });
       if (res.ok) return c.json({ success: true, message: 'Magic link sent to ' + email });
@@ -402,70 +429,97 @@ app.post('/api/admin/auth', async (c) => {
   } catch { return c.json({ error: 'Auth failed' }, 500) }
 })
 
-// Admin: get orders from Supabase
-app.get('/api/admin/orders', async (c) => {
-  const supabaseUrl = getEnv(c.env, 'SUPABASE_URL');
-  const supabaseKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY') || getEnv(c.env, 'SUPABASE_ANON_KEY');
+// ============ ADMIN API ============
 
-  if (supabaseUrl && supabaseKey) {
+// Admin: get orders
+app.get('/api/admin/orders', async (c) => {
+  const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+  const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY') || getEnv(c.env, 'SUPABASE_ANON_KEY');
+
+  if (sbUrl && sbKey) {
     try {
-      const res = await supabaseFetch(supabaseUrl, supabaseKey, 'orders?select=*&order=created_at.desc&limit=50');
+      const res = await supabaseFetch(sbUrl, sbKey, 'orders?select=*&order=created_at.desc&limit=50');
       if (res.ok) {
         const orders = await res.json();
         return c.json({ orders, source: 'supabase' });
       }
-    } catch (e) { /* fallthrough */ }
+      console.error('Orders fetch failed:', res.status, await res.text());
+    } catch (e) { console.error('Orders fetch error:', e); }
   }
   return c.json({ orders: [], source: 'none', message: 'Connect Supabase to see live orders' });
 })
 
-// Admin: update order status
+// Admin: update order
 app.patch('/api/admin/orders/:id', async (c) => {
   const orderId = c.req.param('id');
   const body = await c.req.json();
-  const supabaseUrl = getEnv(c.env, 'SUPABASE_URL');
-  const supabaseKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY') || getEnv(c.env, 'SUPABASE_ANON_KEY');
+  const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+  const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY') || getEnv(c.env, 'SUPABASE_ANON_KEY');
 
-  if (supabaseUrl && supabaseKey) {
-    const res = await supabaseFetch(supabaseUrl, supabaseKey, `orders?id=eq.${orderId}`, {
+  if (sbUrl && sbKey) {
+    const res = await supabaseFetch(sbUrl, sbKey, `orders?id=eq.${orderId}`, {
       method: 'PATCH',
       body: JSON.stringify(body),
     });
     if (res.ok) return c.json({ success: true });
-    return c.json({ error: 'Update failed' }, 500);
+    const errText = await res.text();
+    console.error('Order update failed:', res.status, errText);
+    return c.json({ error: 'Update failed: ' + errText }, 500);
   }
   return c.json({ error: 'Supabase not configured' }, 500);
 })
 
-// Admin: update product
+// Admin: update product (upsert-friendly)
 app.patch('/api/admin/products/:id', async (c) => {
   const productId = c.req.param('id');
   const body = await c.req.json();
-  const supabaseUrl = getEnv(c.env, 'SUPABASE_URL');
-  const supabaseKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY') || getEnv(c.env, 'SUPABASE_ANON_KEY');
+  const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+  const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY') || getEnv(c.env, 'SUPABASE_ANON_KEY');
 
-  if (supabaseUrl && supabaseKey) {
-    const res = await supabaseFetch(supabaseUrl, supabaseKey, `products?id=eq.${productId}`, {
+  if (sbUrl && sbKey) {
+    const res = await supabaseFetch(sbUrl, sbKey, `products?id=eq.${productId}`, {
       method: 'PATCH',
       body: JSON.stringify(body),
     });
     if (res.ok) return c.json({ success: true });
-    return c.json({ error: 'Update failed' }, 500);
+    const errText = await res.text();
+    console.error('Product update failed:', res.status, errText);
+    return c.json({ error: 'Update failed: ' + errText }, 500);
   }
   return c.json({ error: 'Supabase not configured' }, 500);
 })
 
-// Store credit check
+// Admin: update legal page
+app.patch('/api/admin/legal/:slug', async (c) => {
+  const slug = c.req.param('slug');
+  const body = await c.req.json();
+  const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+  const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY') || getEnv(c.env, 'SUPABASE_ANON_KEY');
+
+  if (sbUrl && sbKey) {
+    const res = await supabaseFetch(sbUrl, sbKey, `legal_pages?slug=eq.${slug}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    });
+    if (res.ok) return c.json({ success: true });
+    const errText = await res.text();
+    console.error('Legal update failed:', res.status, errText);
+    return c.json({ error: 'Update failed: ' + errText }, 500);
+  }
+  return c.json({ error: 'Supabase not configured' }, 500);
+})
+
+// Store credit
 app.post('/api/store-credit', async (c) => {
   try {
     const { email } = await c.req.json()
     if (!email) return c.json({ error: 'Email required' }, 400)
 
-    const supabaseUrl = getEnv(c.env, 'SUPABASE_URL');
-    const supabaseKey = getEnv(c.env, 'SUPABASE_ANON_KEY');
+    const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+    const sbKey = getEnv(c.env, 'SUPABASE_ANON_KEY');
 
-    if (supabaseUrl && supabaseKey) {
-      const res = await supabaseFetch(supabaseUrl, supabaseKey, `store_credits?email=eq.${email}&select=amount`);
+    if (sbUrl && sbKey) {
+      const res = await supabaseFetch(sbUrl, sbKey, `store_credits?email=eq.${email}&select=amount`);
       if (res.ok) {
         const credits = await res.json() as any[];
         const balance = credits.reduce((sum: number, c: any) => sum + (c.amount || 0), 0);
