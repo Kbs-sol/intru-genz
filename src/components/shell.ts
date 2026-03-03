@@ -34,8 +34,24 @@ export function shell(
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>${title}</title><meta name="description" content="${desc}">
 <meta name="robots" content="index,follow"><link rel="canonical" href="${url}">
-<meta property="og:type" content="website"><meta property="og:title" content="${title}"><meta property="og:description" content="${desc}"><meta property="og:image" content="${og}"><meta property="og:url" content="${url}"><meta property="og:site_name" content="intru.in">
-<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${title}"><meta name="twitter:description" content="${desc}"><meta name="twitter:image" content="${og}">
+<meta property="og:type" content="website"><meta property="og:title" content="${title}"><meta property="og:description" content="${desc}"><meta property="og:image" content="${og}"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:url" content="${url}"><meta property="og:site_name" content="intru.in">
+<meta name="twitter:card" content="summary_large_image"><meta name="twitter:site" content="@intru_in"><meta name="twitter:title" content="${title}"><meta name="twitter:description" content="${desc}"><meta name="twitter:image" content="${og}">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "intru.in",
+  "url": "https://intru.in",
+  "logo": "https://intru.in/logo.png",
+  "description": "${STORE_CONFIG.description}",
+  "address": {
+    "@type": "PostalAddress",
+    "addressLocality": "Hyderabad",
+    "addressRegion": "Telangana",
+    "addressCountry": "IN"
+  }
+}
+</script>
 ${opt?.schema ? '<script type="application/ld+json">' + opt.schema + '</script>' : ''}
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Archivo+Black&display=swap" rel="stylesheet">
@@ -54,10 +70,11 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
 .anim{animation:fadeIn .6s var(--ease) forwards;opacity:0}
 .d1{animation-delay:.1s}.d2{animation-delay:.2s}.d3{animation-delay:.3s}.d4{animation-delay:.4s}
-.nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(250,250,250,.88);backdrop-filter:blur(20px) saturate(180%);border-bottom:1px solid var(--g100);transition:all .3s}
-.nav.scrolled{background:rgba(250,250,250,.96);box-shadow:0 1px 24px rgba(0,0,0,.06)}
-.navi{max-width:1280px;margin:0 auto;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 24px;height:64px}
-.logo{font-family:var(--head);font-size:20px;letter-spacing:-.03em;text-transform:uppercase;grid-column:2}.logo span{font-family:var(--sans);font-weight:400;opacity:.4;text-transform:none;font-size:16px}
+.glass{background:rgba(250,250,250,.72);backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%)}
+.nav{position:fixed;top:0;left:0;right:0;z-index:100;border-bottom:1px solid rgba(0,0,0,.06);transition:all .4s var(--eo);height:72px;display:flex;align-items:center}
+.nav.scrolled{height:64px;box-shadow:0 1px 32px rgba(0,0,0,.04);background:rgba(255,255,255,.94)}
+.navi{max-width:1440px;margin:0 auto;width:100%;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 32px}
+.logo{font-family:var(--head);font-size:22px;letter-spacing:-.04em;text-transform:uppercase;grid-column:2;display:flex;align-items:center}.logo span{font-family:var(--sans);font-weight:400;opacity:.4;text-transform:none;font-size:16px}
 .nlinks{display:flex;align-items:center;gap:20px;justify-content:flex-start;grid-column:1}
 .nactions{display:flex;align-items:center;gap:16px;justify-content:flex-end;grid-column:3}
 .nbtn{background:none;border:none;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--g500);transition:color .2s;padding:8px 0;position:relative}
@@ -65,10 +82,10 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 .ncart{position:relative;background:none;border:none;font-size:18px;color:var(--bk);padding:8px;margin-bottom:-2px}
 .cbadge{position:absolute;top:0;right:0;background:var(--bk);color:var(--wh);font-size:9px;font-weight:700;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;transform:scale(0);transition:transform .3s var(--eo)}.cbadge.vis{transform:scale(1)}
 .covl{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);opacity:0;pointer-events:none;transition:opacity .3s}.covl.open{opacity:1;pointer-events:all}
-.cdrw{position:fixed;top:0;right:0;bottom:0;z-index:201;width:420px;max-width:92vw;background:var(--wh);transform:translateX(100%);transition:transform .4s var(--eo);display:flex;flex-direction:column;box-shadow:-10px 0 40px rgba(0,0,0,.12)}.cdrw.open{transform:translateX(0)}
-.chdr{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--g100)}
-.chdr h3{font-family:var(--head);font-size:14px;letter-spacing:2px;text-transform:uppercase}
-.ccls{background:none;border:none;font-size:20px;color:var(--g400);padding:4px}.ccls:hover{color:var(--bk)}
+.cdrw{position:fixed;top:0;right:0;bottom:0;z-index:201;width:440px;max-width:100vw;background:rgba(255,255,255,.8);backdrop-filter:blur(32px);transform:translateX(100%);transition:transform .5s var(--eo);display:flex;flex-direction:column;box-shadow:-20px 0 60px rgba(0,0,0,.15)}.cdrw.open{transform:translateX(0)}
+.chdr{display:flex;align-items:center;justify-content:space-between;padding:24px 32px;border-bottom:1px solid rgba(0,0,0,.04)}
+.chdr h3{font-family:var(--head);font-size:13px;letter-spacing:3px;text-transform:uppercase}
+.ccls{background:none;border:none;font-size:20px;color:var(--g400);padding:8px;transition:color .2s}.ccls:hover{color:var(--bk)}
 .cbdy{flex:1;overflow-y:auto;padding:16px 24px}
 .cemp{text-align:center;padding:60px 0;color:var(--g400)}.cemp i{font-size:40px;margin-bottom:16px;display:block}
 .citm{display:flex;gap:16px;padding:16px 0;border-bottom:1px solid var(--g100)}
@@ -97,28 +114,24 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 /* Silent Identity Overlay */
 .id-ovl{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:24px}
 .id-ovl.open{display:flex}
-.id-box{background:var(--wh);max-width:440px;width:100%;padding:36px;position:relative;animation:scaleIn .3s var(--eo)}
-.id-box h3{font-family:var(--head);font-size:20px;text-transform:uppercase;letter-spacing:-.02em;margin-bottom:6px}
-.id-box p{font-size:13px;color:var(--g400);margin-bottom:20px;line-height:1.6}
-.id-inp{width:100%;padding:14px 16px;border:1.5px solid var(--g200);font-size:14px;font-family:inherit;outline:none;margin-bottom:10px;transition:border-color .2s}.id-inp:focus{border-color:var(--bk)}
-.id-btn{width:100%;padding:16px;background:var(--bk);color:var(--wh);border:none;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;transition:all .2s;margin-top:6px}.id-btn:hover{background:var(--g600)}.id-btn:disabled{background:var(--g300)}
-.id-or{text-align:center;font-size:11px;color:var(--g400);margin:14px 0;letter-spacing:1px;text-transform:uppercase}
-.id-gcta{width:100%;padding:14px;background:var(--wh);border:1.5px solid var(--g200);font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px;transition:all .2s;border-radius:0}.id-gcta:hover{border-color:var(--bk)}
-.id-gcta img{width:18px;height:18px}
-.id-close{position:absolute;top:16px;right:16px;background:none;border:none;font-size:20px;color:var(--g400);padding:4px;cursor:pointer}.id-close:hover{color:var(--bk)}
-/* COD Address Form (inline in cart footer) */
-.cod-form{display:none;margin-top:12px}
-.cod-form.show{display:block}
-.cod-form input{width:100%;padding:12px 14px;border:1.5px solid var(--g200);font-size:13px;font-family:inherit;outline:none;margin-bottom:8px;transition:border-color .2s}.cod-form input:focus{border-color:var(--bk)}
-.cod-row{display:flex;gap:8px}
-.cod-row input{flex:1}
-.ftr{background:var(--bk);color:var(--wh);padding:64px 24px 32px}
-.ftri{max-width:1280px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:48px}
-.ftrb h3{font-family:var(--head);font-size:20px;margin-bottom:12px;letter-spacing:-.02em;text-transform:uppercase}.ftrb p{color:var(--g300);font-size:13px;line-height:1.7;max-width:300px}
-.ftrc h4{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2.5px;margin-bottom:16px;color:var(--g300)}
-.ftrc a{display:block;color:var(--g400);font-size:13px;padding:4px 0;transition:color .2s}.ftrc a:hover{color:var(--wh)}
-.ftrbt{max-width:1280px;margin:48px auto 0;padding-top:24px;border-top:1px solid rgba(255,255,255,.1);display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--g400)}
-.fsoc{display:flex;gap:16px}.fsoc a{color:var(--g400);font-size:18px;transition:color .2s}.fsoc a:hover{color:var(--wh)}
+.id-box{background:var(--wh);max-width:440px;width:100%;padding:48px 36px;position:relative;animation:scaleIn .3s var(--eo);border-radius:2px;box-shadow:0 32px 64px rgba(0,0,0,.2)}
+.id-box h3{font-family:var(--head);font-size:24px;text-transform:uppercase;letter-spacing:-.04em;margin-bottom:8px}
+.id-box p{font-size:14px;color:var(--g400);margin-bottom:24px;line-height:1.6}
+.id-inp{width:100%;padding:16px 20px;border:1.5px solid var(--g100);background:var(--g50);font-size:14px;font-family:inherit;outline:none;margin-bottom:12px;transition:all .2s}.id-inp:focus{border-color:var(--bk);background:var(--wh)}
+.id-btn{width:100%;padding:18px;background:var(--bk);color:var(--wh);border:none;font-size:11px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;transition:all .3s;margin-top:6px}.id-btn:hover{background:var(--g600);transform:translateY(-1px)}
+.id-or{text-align:center;font-size:10px;font-weight:700;color:var(--g300);margin:20px 0;letter-spacing:2px;text-transform:uppercase}
+.id-gcta{width:100%;padding:16px;background:var(--wh);border:1.5px solid var(--g100);font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:12px;transition:all .3s;border-radius:0}.id-gcta:hover{border-color:var(--bk);background:var(--g50)}
+.id-gcta img{width:20px;height:20px}
+.id-close{position:absolute;top:20px;right:20px;background:none;border:none;font-size:24px;color:var(--g300);padding:4px;cursor:pointer;transition:color .2s}.id-close:hover{color:var(--bk)}
+.trust-badge{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;color:var(--green);background:#f0fdf4;padding:6px 12px;border-radius:4px;margin:16px 0}
+.pay-icons{display:flex;gap:12px;justify-content:center;margin-top:16px;opacity:.6;filter:grayscale(1)}
+.ftr{background:var(--bk);color:var(--wh);padding:80px 24px 40px}
+.ftri{max-width:1440px;margin:0 auto;display:grid;grid-template-columns:1.5fr .8fr .8fr .8fr;gap:64px}
+.ftrb h3{font-family:var(--head);font-size:24px;margin-bottom:16px;letter-spacing:-.04em;text-transform:uppercase}.ftrb p{color:var(--g400);font-size:14px;line-height:1.7;max-width:320px}
+.ftrc h4{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:3px;margin-bottom:20px;color:var(--g200)}
+.ftrc a{display:block;color:var(--g400);font-size:14px;padding:6px 0;transition:all .2s}.ftrc a:hover{color:var(--wh);transform:translateX(4px)}
+.ftrbt{max-width:1440px;margin:64px auto 0;padding-top:32px;border-top:1px solid rgba(240,240,240,.08);display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--g500)}
+.fsoc{display:flex;gap:20px}.fsoc a{color:var(--g400);font-size:20px;transition:all .3s}.fsoc a:hover{color:var(--wh);transform:translateY(-3px)}
 .tc{position:fixed;bottom:24px;right:24px;z-index:300;display:flex;flex-direction:column;gap:8px}
 .toast{padding:12px 20px;border-radius:6px;font-size:12px;font-weight:600;animation:slideUp .3s var(--eo);box-shadow:0 4px 20px rgba(0,0,0,.3);letter-spacing:.5px}
 .toast-ok{background:var(--bk);color:var(--wh)}
@@ -129,15 +142,15 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 @media(max-width:480px){.ftri{grid-template-columns:1fr}}
 </style></head>
 <body class="${opt?.cls || ''}">
-<nav class="nav" id="nb"><div class="navi">
+<nav class="nav glass" id="nb"><div class="navi">
 <div class="nlinks">
-  <a href="/" class="nl">Shop</a>
-  <a href="/collections" class="nl">Collections</a>
+  <a href="/" class="nbtn">Shop</a>
+  <a href="/collections" class="nbtn">Collections</a>
 </div>
 <a href="/" class="logo"><svg viewBox="0 0 110 32" width="110" height="32" xmlns="http://www.w3.org/2000/svg" aria-label="intru.in"><text x="0" y="25" font-family="'Archivo Black',sans-serif" font-size="28" font-weight="900" fill="#0a0a0a" letter-spacing="-1">INTRU</text><text x="88" y="25" font-family="'Space Grotesk',sans-serif" font-size="16" font-weight="400" fill="#0a0a0a" opacity=".4">.in</text></svg></a>
 <div class="nactions">
   <button class="nbtn" onclick="openIdentifyOrOrders()" id="navAccountBtn">Login</button>
-  <button class="ncart" onclick="toggleCart()" aria-label="Cart"><i class="fas fa-shopping-bag"></i><span class="cbadge" id="cb">0</span></button>
+  <button class="ncart" onclick="toggleCart()" aria-label="Cart Bag"><i class="fas fa-shopping-bag"></i><span class="cbadge" id="cb">0</span></button>
 </div></div></nav>
 <div class="covl" id="co" onclick="toggleCart()"></div>
 <div class="cdrw" id="cd">
@@ -147,8 +160,9 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 <div class="cst"><span>Subtotal</span><span id="csub">${STORE_CONFIG.currencySymbol}0</span></div>
 <div class="csh"><span>Shipping</span><span id="cshp">Calculated</span></div>
 <div class="ctl"><span>Total</span><span id="ctot">${STORE_CONFIG.currencySymbol}0</span></div>
+<div style="text-align:center"><span class="trust-badge"><i class="fas fa-shield-halved"></i> 100% Secure Checkout</span></div>
 <!-- Payment Mode Selector (only when NOT magic checkout) -->
-<div class="cmode" id="cmode" style="display:none;margin-top:14px">
+<div class="cmode" id="cmode" style="display:none;margin-top:8px">
 <div class="cmode-opt prepaid act" onclick="setPayMode('prepaid')" id="cm_prepaid">
 <span class="cmode-badge" style="background:#dcfce7;color:#166534">&#9889; SAVE Rs.99 / FREE SHIPPING</span>
 <span class="cmode-label">Prepaid</span>
@@ -171,7 +185,7 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 <input class="cod-inp" id="cod_state" type="text" placeholder="State">
 </div>
 </div>
-<button class="ccbtn" id="checkoutBtn" onclick="checkout()">Checkout</button>
+<button class="ccbtn" id="checkoutBtn" onclick="checkout()">Place Your Order <i class="fas fa-arrow-right" style="margin-left:8px;font-size:10px"></i></button>
 <p class="cpolicy">By placing an order, you agree to the intru.in <a href="/p/terms">Terms of Service</a> and our <a href="/p/returns">Store-Credit-only Refund Policy</a>.</p>
 </div></div>
 
@@ -211,8 +225,16 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 <div class="ftrc"><h4>Shop</h4><a href="/#products">All Drops</a><a href="/collections">Collections</a><a href="/about">About</a></div>
 <div class="ftrc"><h4>Help</h4><a href="/p/shipping">Shipping</a><a href="/p/returns">Returns &amp; Credit</a><a href="mailto:shop@intru.in">Contact</a></div>
 <div class="ftrc"><h4>Legal</h4>${legalPages.map(p => '<a href="/p/' + p.slug + '">' + p.title + '</a>').join('')}</div>
-</div><div class="ftrbt"><span>&copy; 2026 intru.in &mdash; All sales final. Store credit only.</span>
-<div class="fsoc"><a href="https://instagram.com/${STORE_CONFIG.instagram}" target="_blank" rel="noopener"><i class="fab fa-instagram"></i></a></div>
+</div>
+<div class="pay-icons">
+  <i class="fab fa-cc-visa"></i>
+  <i class="fab fa-cc-mastercard"></i>
+  <i class="fab fa-google-pay"></i>
+  <i class="fas fa-landmark"></i>
+  <i class="fas fa-money-bill-wave"></i>
+</div>
+<div class="ftrbt"><span>&copy; 2026 intru.in &mdash; Premium Indian Streetwear. All sales final.</span>
+<div class="fsoc"><a href="https://instagram.com/${STORE_CONFIG.instagram}" target="_blank" rel="noopener" aria-label="Instagram"><i class="fab fa-instagram"></i></a></div>
 </div></footer>
 <div class="tc" id="tc"></div>
 ${gKey !== 'YOUR_GOOGLE_CLIENT_ID' ? '<script src="https://accounts.google.com/gsi/client" async defer></script><div id="g_id_onload" data-client_id="' + gKey + '" data-context="signin" data-ux_mode="popup" data-callback="handleGoogleAuth" data-itp_support="true" data-auto_select="false" data-auto_prompt="false"></div>' : '<!-- Google One-Tap: Set GOOGLE_CLIENT_ID env var to enable -->'}

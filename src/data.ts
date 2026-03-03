@@ -30,7 +30,7 @@ export interface Env {
 export const STORE_CONFIG = {
   name: "intru.in",
   tagline: "Limited Drops. No Restocks.",
-  description: "Two best friends who were super picky about what they wore — tired of the same mass-produced patterns everywhere. So we launched intru.in: limited stock only, no fake drops, every piece made with love. When it's gone, it's gone.",
+  description: "Experience premium streetwear with INTRU.IN. We specialize in limited-edition oversized tees and high-quality drops that never restock. Two best friends, tired of mass-produced fashion, bringing you exclusive Indian streetwear made with love. When it's gone, it's gone.",
   currency: "INR",
   currencySymbol: "Rs.",
   freeShippingThreshold: 1999,

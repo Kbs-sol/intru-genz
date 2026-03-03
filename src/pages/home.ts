@@ -14,14 +14,15 @@ export function homePage(opts: {
   const schema = JSON.stringify({ "@context": "https://schema.org", "@type": "ItemList", "itemListElement": products.map((p, i) => ({ "@type": "ListItem", "position": i + 1, "item": { "@type": "Product", "name": p.name, "url": "https://intru.in/product/" + p.slug, "image": p.images, "offers": { "@type": "Offer", "price": p.price, "priceCurrency": "INR", "availability": "https://schema.org/InStock" } } })) });
 
   const body = `<style>
-.hero{min-height:calc(100vh - 64px);display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:80px 24px;position:relative}
-.hero-over{font-size:11px;font-weight:700;letter-spacing:5px;text-transform:uppercase;color:var(--g400);margin-bottom:20px}
-.hero-title{font-family:var(--head);font-size:clamp(40px,8vw,88px);font-weight:900;line-height:1;letter-spacing:-.05em;text-transform:uppercase;max-width:900px;margin-bottom:20px}
-.hero-sub{font-size:15px;color:var(--g400);max-width:480px;line-height:1.7;margin-bottom:40px;font-weight:400}
-.hero-cta{display:inline-flex;align-items:center;gap:12px;padding:18px 48px;background:var(--bk);color:var(--wh);font-size:12px;font-weight:700;letter-spacing:3px;text-transform:uppercase;border:none;transition:all .3s var(--ease)}
-.hero-cta:hover{background:var(--g600);transform:translateY(-2px);box-shadow:0 12px 40px rgba(0,0,0,.2)}
-.hero-scroll{position:absolute;bottom:32px;left:50%;transform:translateX(-50%);font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--g300);display:flex;flex-direction:column;align-items:center;gap:8px}
-.hero-line{width:1px;height:36px;background:linear-gradient(to bottom,var(--g300),transparent)}
+.noise{position:absolute;inset:0;opacity:.04;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")}
+.hero{min-height:92vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:120px 24px;position:relative;background:#fff;overflow:hidden}
+.hero-over{font-size:11px;font-weight:800;letter-spacing:6px;text-transform:uppercase;color:var(--bk);margin-bottom:24px;display:flex;align-items:center;gap:12px}.hero-over::before,.hero-over::after{content:'';width:40px;height:1px;background:var(--g200)}
+.hero-title{font-family:var(--head);font-size:clamp(44px,10vw,110px);font-weight:900;line-height:.9;letter-spacing:-.06em;text-transform:uppercase;max-width:1000px;margin-bottom:24px;color:var(--bk)}
+.hero-sub{font-size:16px;color:var(--g500);max-width:520px;line-height:1.7;margin-bottom:48px;font-weight:500}
+.hero-cta{display:inline-flex;align-items:center;gap:16px;padding:20px 52px;background:var(--bk);color:var(--wh);font-size:12px;font-weight:800;letter-spacing:4px;text-transform:uppercase;border:none;transition:all .4s var(--eo);box-shadow:0 24px 48px rgba(0,0,0,.15)}
+.hero-cta:hover{background:var(--g600);transform:translateY(-4px);box-shadow:0 32px 64px rgba(0,0,0,.25)}
+.hero-scroll{position:absolute;bottom:48px;left:50%;transform:translateX(-50%);font-size:10px;font-weight:800;letter-spacing:3px;text-transform:uppercase;color:var(--g300);display:flex;flex-direction:column;align-items:center;gap:12px}
+.hero-line{width:1px;height:48px;background:linear-gradient(to bottom,var(--g300),transparent)}
 .mq{overflow:hidden;padding:16px 0;background:var(--bk)}
 .mqt{display:flex;gap:40px;white-space:nowrap;animation:marquee 25s linear infinite}
 .mqi{font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--wh);opacity:.5;flex-shrink:0}
@@ -40,8 +41,9 @@ export function homePage(opts: {
 .pcimg{position:relative;aspect-ratio:3/4;overflow:hidden;border-radius:8px;background:var(--g50)}
 .pcimg img{width:100%;height:100%;object-fit:cover;transition:transform .6s var(--ease)}
 .pcard:hover .pcimg img{transform:scale(1.06)}
-.pcimg .ih{position:absolute;inset:0;opacity:0;transition:opacity .4s}.pcard:hover .pcimg .ih{opacity:1}
-.pcbadge{position:absolute;top:10px;left:10px;background:var(--bk);color:var(--wh);font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:5px 10px;border-radius:3px}
+.pcimg .ih{position:absolute;inset:0;opacity:0;transition:opacity .6s var(--eo)}.pcard:hover .pcimg .ih{opacity:1}
+.pcbadge{position:absolute;top:12px;left:12px;background:var(--bk);color:var(--wh);font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;padding:6px 12px;border-radius:2px;z-index:2}
+.limited-badge{position:absolute;top:12px;right:12px;background:rgba(255,255,255,.9);color:var(--bk);font-size:8px;font-weight:800;letter-spacing:1px;text-transform:uppercase;padding:4px 8px;border-radius:2px;backdrop-filter:blur(4px);z-index:2}
 .pcinfo{padding:14px 2px 0}
 .pcname{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
 .pctag{font-size:12px;color:var(--g400);margin-bottom:6px}
@@ -74,11 +76,13 @@ export function homePage(opts: {
 </style>
 
 <section class="hero">
-<p class="hero-over anim">Est. 2025 &mdash; India</p>
+<div class="noise"></div>
+<p class="hero-over anim">Est. 2025 &mdash; Premium Indian Streetwear</p>
 <h1 class="hero-title anim d1">LIMITED DROPS.<br>NO RESTOCKS.</h1>
 <p class="hero-sub anim d2">${STORE_CONFIG.description}</p>
-<a href="#products" class="hero-cta anim d3">Shop the Drop <i class="fas fa-arrow-right"></i></a>
-<div class="hero-scroll"><span>Scroll</span><div class="hero-line"></div></div>
+<div class="anim d3" style="margin-bottom:32px;font-size:10px;font-weight:800;letter-spacing:4px;text-transform:uppercase;color:var(--green)">⚡ 100% Cotton &bull; Oversized Fit &bull; Made in India</div>
+<a href="#products" class="hero-cta anim d4">Discover the Drop <i class="fas fa-arrow-right"></i></a>
+<div class="hero-scroll"><span>Explore Collection</span><div class="hero-line"></div></div>
 </section>
 
     <div class="mq"><div class="mqt">
@@ -98,9 +102,10 @@ ${products.map((p, i) => {
     const d = p.comparePrice ? Math.round((1 - p.price / p.comparePrice) * 100) : 0;
     return `<a href="/product/${p.slug}" class="pcard anim d${(i % 4) + 1}">
 <div class="pcimg">
-<img src="${p.images[0]}" alt="intru.in ${p.name} - View 1" loading="${i < 3 ? 'eager' : 'lazy'}" width="400" height="533">
-${p.images[1] ? '<img class="ih" src="' + p.images[1] + '" alt="intru.in ' + p.name + ' - View 2" loading="lazy" width="400" height="533" style="width:100%;height:100%;object-fit:cover">' : ''}
+<img src="${p.images[0]}" alt="INTRU.IN ${p.name} - Premium Streetwear ${p.category}" loading="${i < 4 ? 'eager' : 'lazy'}" width="400" height="533">
+${p.images[1] ? '<img class="ih" src="' + p.images[1] + '" alt="INTRU.IN ' + p.name + ' - Exclusive Drop Detail" loading="lazy" width="400" height="533" style="width:100%;height:100%;object-fit:cover">' : ''}
 ${d > 0 ? '<span class="pcbadge">Save ' + d + '%</span>' : ''}
+<span class="limited-badge">Exclusive Drop</span>
 </div>
 <div class="pcinfo">
 <h3 class="pcname">${p.name}</h3>
@@ -180,8 +185,8 @@ function subscribeEmail(form){
 </script>`;
 
   return shell(
-    'INTRU.IN — Exclusive Streetwear India | Limited Edition Fashion | Authentic Boutique Clothing',
-    'intru.in: exclusive streetwear India. Limited edition fashion, authentic boutique clothing by two best friends. T-shirts, shirts & more. Free shipping over Rs.1,999.',
+    'INTRU.IN — Premium Streetwear India | Oversized Tees & Limited Edition Fashion',
+    'Discover INTRU.IN: India\\\'s premier destination for limited-edition streetwear. Shop oversized tees, exclusive drops, and premium basics. No restocks, ever. Free delivery on all prepaid orders.',
     body,
     { url: 'https://intru.in', schema, razorpayKeyId: opts.razorpayKeyId, googleClientId: opts.googleClientId, products, legalPages, useMagicCheckout: opts.useMagicCheckout }
   );
