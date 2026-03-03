@@ -100,12 +100,22 @@ ${Array(4).fill('<span class="mqi">Limited Stock Only</span><span class="mqi mqd
 <div class="pgrid">
 ${products.map((p, i) => {
     const d = p.comparePrice ? Math.round((1 - p.price / p.comparePrice) * 100) : 0;
+    const sizes = p.sizes || ['S', 'M', 'L', 'XL'];
     return `<a href="/product/${p.slug}" class="pcard anim d${(i % 4) + 1}">
 <div class="pcimg">
 <img src="${p.images[0]}" alt="INTRU.IN ${p.name} - Premium Streetwear ${p.category}" loading="${i < 4 ? 'eager' : 'lazy'}" width="400" height="533">
 ${p.images[1] ? '<img class="ih" src="' + p.images[1] + '" alt="INTRU.IN ' + p.name + ' - Exclusive Drop Detail" loading="lazy" width="400" height="533" style="width:100%;height:100%;object-fit:cover">' : ''}
 ${d > 0 ? '<span class="pcbadge">Save ' + d + '%</span>' : ''}
 <span class="limited-badge">Exclusive Drop</span>
+<div class="pcard-actions">
+  <div class="pcsizes">
+    ${sizes.map(sz => `<div class="pcsz" data-pid="${p.id}" data-sz="${sz}" onclick="selectQuickSize(event,'${p.id}','${sz}')">${sz}</div>`).join('')}
+  </div>
+  <div class="pcbtns">
+    <button class="pc-atc" onclick="handleQuickAction(event,'atc','${p.id}')">Add to Bag</button>
+    <button class="pc-bn" onclick="handleQuickAction(event,'bn','${p.id}')">Buy Now</button>
+  </div>
+</div>
 </div>
 <div class="pcinfo">
 <h3 class="pcname">${p.name}</h3>
@@ -132,10 +142,16 @@ ${d > 0 ? '<span class="sv">' + d + '% OFF</span>' : ''}
 </section>
 
 <section class="igsec" id="igSection">
-<p class="sover">Follow Us</p>
-<h3 style="font-family:var(--head);font-size:24px;text-transform:uppercase;letter-spacing:-.02em;margin-bottom:28px">@${STORE_CONFIG.instagram}</h3>
+<p class="sover">Join the Drop</p>
+<h3 style="font-family:var(--head);font-size:32px;text-transform:uppercase;letter-spacing:-.04em;margin-bottom:32px;color:var(--bk)">Official Feed</h3>
 <div class="iggrid" id="igHomeGrid">
-${products.slice(0, 5).map((p, i) => '<a href="https://instagram.com/' + STORE_CONFIG.instagram + '" target="_blank" rel="noopener" class="igit"><img src="' + p.images[i % p.images.length] + '" alt="intru.in Instagram" loading="lazy" width="300" height="300"></a>').join('')}
+<!-- Default premium visuals -->
+<a href="https://instagram.com/${STORE_CONFIG.instagram}" target="_blank" rel="noopener" class="igit"><img src="https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?w=600&h=600&fit=crop&q=80" alt="intru.in Lifestyle" loading="lazy"></a>
+<a href="https://instagram.com/${STORE_CONFIG.instagram}" target="_blank" rel="noopener" class="igit"><img src="https://images.unsplash.com/photo-1543076447-215ad9ba6923?w=600&h=600&fit=crop&q=80" alt="intru.in Aesthetic" loading="lazy"></a>
+<a href="https://instagram.com/${STORE_CONFIG.instagram}" target="_blank" rel="noopener" class="igit"><img src="https://images.unsplash.com/photo-1556306535-0f09a537f0a3?w=600&h=600&fit=crop&q=80" alt="intru.in Detail" loading="lazy"></a>
+<a href="https://instagram.com/${STORE_CONFIG.instagram}" target="_blank" rel="noopener" class="igit"><img src="https://images.unsplash.com/photo-1512436991641-6745cdb1723f?w=600&h=600&fit=crop&q=80" alt="intru.in Streetwear" loading="lazy"></a>
+<a href="https://instagram.com/${STORE_CONFIG.instagram}" target="_blank" rel="noopener" class="igit"><img src="https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=600&h=600&fit=crop&q=80" alt="intru.in Basics" loading="lazy"></a>
+<a href="https://instagram.com/${STORE_CONFIG.instagram}" target="_blank" rel="noopener" class="igit"><img src="https://images.unsplash.com/photo-1529374255404-311a2a4f1fd9?w=600&h=600&fit=crop&q=80" alt="intru.in Culture" loading="lazy"></a>
 </div></section>
 
 <section class="nlsec" id="newsletter">

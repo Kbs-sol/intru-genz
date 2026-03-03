@@ -81,6 +81,16 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 .nbtn:hover{color:var(--bk)}
 .ncart{position:relative;background:none;border:none;font-size:18px;color:var(--bk);padding:8px;margin-bottom:-2px}
 .cbadge{position:absolute;top:0;right:0;background:var(--bk);color:var(--wh);font-size:9px;font-weight:700;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;transform:scale(0);transition:transform .3s var(--eo)}.cbadge.vis{transform:scale(1)}
+/* Quick Action System */
+.pcard-actions{position:absolute;bottom:0;left:0;right:0;background:rgba(255,255,255,.94);backdrop-filter:blur(12px);padding:16px;transform:translateY(100%);transition:transform .4s var(--eo);display:flex;flex-direction:column;gap:12px;z-index:10}
+.pcard:hover .pcard-actions{transform:translateY(0)}
+.pcsizes{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+.pcsz{width:32px;height:32px;border:1px solid var(--g200);border-radius:2px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s}.pcsz:hover{border-color:var(--bk);background:var(--g50)}
+.pcsz.act{background:var(--bk);color:var(--wh);border-color:var(--bk)}
+.pcbtns{display:flex;gap:8px}
+.pcbtns button{flex:1;padding:12px;font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;border:none;transition:all .2s}
+.pc-atc{background:var(--wh);color:var(--bk);border:1px solid var(--bk) !important}.pc-atc:hover{background:var(--g50)}
+.pc-bn{background:var(--bk);color:var(--wh)}.pc-bn:hover{background:var(--g600)}
 .covl{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);opacity:0;pointer-events:none;transition:opacity .3s}.covl.open{opacity:1;pointer-events:all}
 .cdrw{position:fixed;top:0;right:0;bottom:0;z-index:201;width:440px;max-width:100vw;background:rgba(255,255,255,.8);backdrop-filter:blur(32px);transform:translateX(100%);transition:transform .5s var(--eo);display:flex;flex-direction:column;box-shadow:-20px 0 60px rgba(0,0,0,.15)}.cdrw.open{transform:translateX(0)}
 .chdr{display:flex;align-items:center;justify-content:space-between;padding:24px 32px;border-bottom:1px solid rgba(0,0,0,.04)}
@@ -457,6 +467,24 @@ function addToCart(productId,size,qty){
   if(existing){if(existing.q+qty>10){toast('Max 10 per item','err');return false}existing.q+=qty}
   else{cart.push({p:productId,s:size,q:qty})}
   saveCart();toast(p.n+' ('+size+') added to bag','ok');openCartDrawer();return true;
+}
+
+/* Quick Action Helpers [AG] */
+var cardSizes={}; 
+function selectQuickSize(e,productId,size){
+  e.preventDefault();e.stopPropagation();
+  cardSizes[productId]=size;
+  /* Update UI for all cards of this product */
+  document.querySelectorAll('.pcsz[data-pid="'+productId+'"]').forEach(function(el){
+    el.classList.toggle('act',el.dataset.sz===size);
+  });
+}
+function handleQuickAction(e,type,productId){
+  e.preventDefault();e.stopPropagation();
+  var size=cardSizes[productId];
+  if(!size){toast('Please select a size','err');return}
+  if(type==='atc'){addToCart(productId,size)}
+  else if(type==='bn'){buyNow(productId,size)}
 }
 
 function removeFromCart(productId,size){cart=cart.filter(function(i){return!(i.p===productId&&i.s===size)});saveCart()}

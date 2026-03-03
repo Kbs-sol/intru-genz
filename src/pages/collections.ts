@@ -84,11 +84,21 @@ ${categories.map(cat => '<button class="cf-btn" onclick="filterCat(\'' + cat + '
 <div class="pgrid" id="pgrid">
 ${products.map((p, i) => {
     const d = p.comparePrice ? Math.round((1 - p.price / p.comparePrice) * 100) : 0;
+    const sizes = p.sizes || ['S', 'M', 'L', 'XL'];
     return `<a href="/product/${p.slug}" class="pcard anim d${(i % 4) + 1}" data-cat="${p.category}">
 <div class="pcimg">
-<img src="${p.images[0]}" alt="intru.in ${p.name}" loading="${i < 3 ? 'eager' : 'lazy'}" width="400" height="533">
+<img src="${p.images[0]}" alt="INTRU.IN ${p.name}" loading="${i < 3 ? 'eager' : 'lazy'}" width="400" height="533">
 ${p.images[1] ? '<img class="ih" src="' + p.images[1] + '" alt="' + p.name + '" loading="lazy" width="400" height="533" style="width:100%;height:100%;object-fit:cover">' : ''}
 ${d > 0 ? '<span class="pcbadge">Save ' + d + '%</span>' : ''}
+<div class="pcard-actions">
+  <div class="pcsizes">
+    ${sizes.map(sz => `<div class="pcsz" data-pid="${p.id}" data-sz="${sz}" onclick="selectQuickSize(event,'${p.id}','${sz}')">${sz}</div>`).join('')}
+  </div>
+  <div class="pcbtns">
+    <button class="pc-atc" onclick="handleQuickAction(event,'atc','${p.id}')">Add to Bag</button>
+    <button class="pc-bn" onclick="handleQuickAction(event,'bn','${p.id}')">Buy Now</button>
+  </div>
+</div>
 </div>
 <div class="pcinfo">
 <h3 class="pcname">${p.name}</h3>
