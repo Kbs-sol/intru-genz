@@ -1,120 +1,134 @@
-# intru.in — Premium Indian Streetwear
+# intru.in — Exclusive Streetwear Platform
 
-> Limited Drops. No Restocks. Store Credit Only.
+## Project Overview
+- **Name**: intru.in
+- **Goal**: High-conversion streetwear e-commerce with frictionless checkout
+- **Stack**: Hono + TypeScript + Cloudflare Pages + Supabase + Razorpay + Resend
 
-## Live URLs
-
-| Environment | URL |
-|---|---|
-| **Production** | https://intru-in.pages.dev |
-| **GitHub** | https://github.com/Kbs-sol/intru-genz |
-| **Debug DB** | https://intru-in.pages.dev/api/debug-db |
-| **Admin** | https://intru-in.pages.dev/admin |
+## URLs
+- **Production**: https://intru-in.pages.dev
+- **GitHub**: https://github.com/Kbs-sol/intru-genz
+- **Admin**: Hidden — enter Konami Code (↑↑↓↓←→←→BA) on any page
 
 ## Architecture
 
-```
-Browser → Cloudflare Pages (Edge)
-             ↓
-        Hono Framework (src/index.tsx)
-             ↓
-    ┌────────┴────────┐
-    │                 │
- Supabase          Razorpay
- (Products,        (Order creation,
-  Orders,           Payment verify,
-  Legal,            Webhook handler)
-  Users,
-  Store Credits)
-```
+### Silent Identity (No Login Pages)
+- Guests can browse, add to cart, and reach checkout freely
+- At checkout, a "Identify Yourself" overlay asks for email OR Google sign-in
+- New users are silently created in `public.users`; existing users are linked
+- Google One-Tap auto-prompt appears on all pages (when `GOOGLE_CLIENT_ID` is set)
+- No `/login` or `/register` routes — identity is captured only when needed
 
-### Data Flow (v2 — Supabase-first)
+### Hybrid Checkout (Admin-Toggleable)
+**Option A — Manual COD Mode (default, `USE_MAGIC_CHECKOUT = false`):**
+- **Prepaid**: Green badge "⚡ SAVE ₹99 / FREE SHIPPING" → Razorpay standard checkout
+- **COD**: Gray badge "Standard Delivery" + ₹99 convenience fee → inline address form
+- Payment mode selector visible in cart drawer
 
-Every page and API route fetches data from **Supabase in real-time**:
+**Option B — Razorpay Magic Mode (`USE_MAGIC_CHECKOUT = true`):**
+- Single "Checkout" button → Razorpay Magic Checkout handles everything
+- Payment mode selector hidden; Razorpay manages address/COD/1-click
 
-1. **Page routes** (`/`, `/product/:slug`, `/p/:slug`, `/admin`) — `async` handlers that call `fetchProducts()` and `fetchLegalPages()` from Supabase before rendering
-2. **Cart engine** — `shell.ts` receives `products[]` parameter (no more hardcoded `PRODUCTS` import)
-3. **Checkout** — `/api/checkout` validates prices by fetching each product from Supabase DB
-4. **Auto-seed** — if Supabase products table is empty, `SEED_PRODUCTS` from `data.ts` are auto-inserted
-5. **Fallback** — if Supabase is not configured, static `SEED_PRODUCTS` are used (no crash)
+### Resend Email Notifications
+- **Prepaid success** → "Drop Secured" email to customer
+- **COD success** → "COD Received" email to customer (mentions verification call)
+- **COD success** → "NEW COD ALERT" email to manager (name, phone, full address, items, total)
+- Emails triggered server-side; requires `RESEND_API_KEY` in Cloudflare secrets
 
-### Files Changed (v2)
+## Supabase Schema (v5)
 
-| File | Change |
-|---|---|
-| `src/data.ts` | Removed `PRODUCTS`/`LEGAL_PAGES` exports. Added `SEED_PRODUCTS`, `SEED_LEGAL_PAGES`, `fetchProducts()`, `fetchProductBySlug()`, `fetchProductById()`, `fetchLegalPages()` with auto-seed |
-| `src/index.tsx` | All page routes now `async`. Checkout validates from DB. Added `/api/debug-db`, `/api/admin/legal/:slug` |
-| `src/components/shell.ts` | Accepts `products[]` and `legalPages[]` params instead of importing `PRODUCTS` |
-| `src/pages/home.ts` | Accepts `{ products, legalPages }` — renders from dynamic data |
-| `src/pages/product.ts` | Accepts `{ products, legalPages }` — related items from DB |
-| `src/pages/legal.ts` | Accepts `{ products, legalPages }` — nav links from DB |
-| `src/pages/admin.ts` | Live CRUD: orders from API, products save via PATCH, legal save via PATCH |
-| `supabase/schema.sql` | Fixed RLS (`true` for anon SELECT), added orders INSERT policy, `ON CONFLICT DO UPDATE` seed |
+| Table | Purpose |
+|-------|---------|
+| `users` | Synced from Supabase Auth; stores email, name, picture, auth_provider |
+| `products` | Product catalog (id, slug, name, price, images, sizes, category) |
+| `orders` | Full order data including structured COD address fields, payment_method, cod_fee |
+| `store_credits` | Store credit ledger |
+| `legal_pages` | Dynamic legal content (terms, returns, privacy, shipping) |
+| `size_chart` | Size measurements (XS-XXL, chest/length in inches) |
+| `subscribers` | "Notify Me" email signups |
+| `store_settings` | Admin toggles (USE_MAGIC_CHECKOUT, MANAGER_EMAIL, COD_FEE) |
+| `instagram_feed` | Admin-managed Instagram feed images |
 
-## API Endpoints
+**Run `supabase/schema.sql` in Supabase SQL Editor** to create/migrate all tables.
 
-| Method | Path | Description |
-|---|---|---|
-| GET | `/api/health` | Service health + connection status |
-| GET | `/api/debug-db` | **Hidden** — DB connection test, product count, env status |
-| GET | `/api/products` | All products (source: supabase/seed/static) |
-| GET | `/api/products/:id` | Single product by ID |
-| POST | `/api/checkout` | Cart → server-validated → Razorpay order |
-| POST | `/api/payment/verify` | HMAC-SHA256 signature verification |
-| POST | `/api/webhooks/razorpay` | Server-to-server webhook handler |
-| POST | `/api/auth/google` | Google One-Tap JWT decode + Supabase upsert |
-| POST | `/api/auth/magic-link` | Supabase magic link |
-| POST | `/api/admin/auth` | Admin password check |
-| GET | `/api/admin/orders` | Latest 50 orders from Supabase |
-| PATCH | `/api/admin/orders/:id` | Update order status |
-| PATCH | `/api/admin/products/:id` | Update product (name, price, images, stock) |
-| PATCH | `/api/admin/legal/:slug` | Update legal page content |
-| POST | `/api/store-credit` | Check store credit balance |
+## Admin Panel (Konami-protected)
 
-## Products (p1-p6)
+| Tab | Features |
+|-----|----------|
+| **Orders** | COD rows highlighted yellow, customer name/phone/email, payment method badge, "Copy for Shiprocket" button |
+| **Products** | Image URL editor (4 slots), price/compare-price, in-stock toggle |
+| **Legal** | HTML editor with live preview for all legal pages |
+| **Size Chart** | Full CRUD for chest/length measurements |
+| **IG Feed** | Add/edit/delete Instagram feed images |
+| **Settings** | Payment mode toggle (Manual COD ↔ Razorpay Magic), manager email, COD fee |
 
-| ID | Name | Price | Compare | Sizes | Category |
-|---|---|---|---|---|---|
-| p1 | Essential Oversized Tee | Rs.1,299 | Rs.1,799 | S,M,L,XL,XXL | Tops |
-| p2 | Midnight Cargo Joggers | Rs.1,999 | Rs.2,499 | S,M,L,XL,XXL | Bottoms |
-| p3 | Structured Minimal Hoodie | Rs.2,499 | Rs.3,199 | S,M,L,XL | Tops |
-| p4 | Everyday Slim Chinos | Rs.1,799 | — | 28,30,32,34,36 | Bottoms |
-| p5 | Graphic Art Tee Vol. 1 | Rs.1,499 | — | S,M,L,XL,XXL | Tops |
-| p6 | Monochrome Zip Jacket | Rs.2,999 | Rs.3,999 | S,M,L,XL | Outerwear |
+## Environment Variables (Cloudflare Secrets)
 
-## Setup
-
-### 1. Supabase
-1. Create a Supabase project
-2. Run `supabase/schema.sql` in SQL Editor
-3. Set secrets:
 ```bash
+# Required
 npx wrangler pages secret put SUPABASE_URL --project-name intru-in
 npx wrangler pages secret put SUPABASE_ANON_KEY --project-name intru-in
 npx wrangler pages secret put SUPABASE_SERVICE_KEY --project-name intru-in
-```
-
-### 2. Razorpay
-1. Get keys from https://dashboard.razorpay.com/app/keys
-2. Set secrets:
-```bash
 npx wrangler pages secret put RAZORPAY_KEY_ID --project-name intru-in
 npx wrangler pages secret put RAZORPAY_KEY_SECRET --project-name intru-in
+npx wrangler pages secret put ADMIN_PASSWORD --project-name intru-in
+
+# Optional but recommended
+npx wrangler pages secret put GOOGLE_CLIENT_ID --project-name intru-in
+npx wrangler pages secret put RESEND_API_KEY --project-name intru-in
+npx wrangler pages secret put RAZORPAY_WEBHOOK_SECRET --project-name intru-in
 ```
 
-### 3. Deploy
-```bash
-npm run build && npx wrangler pages deploy dist --project-name intru-in
-```
+## Razorpay Webhook Setup
 
-### 4. Update product images
-Run the updated `supabase/schema.sql` in SQL Editor — it uses `ON CONFLICT DO UPDATE` to replace Unsplash URLs with intru.in CDN URLs.
+1. Go to Razorpay Dashboard → Webhooks
+2. Add webhook URL: `https://intru-in.pages.dev/api/webhooks/razorpay`
+3. Select events: `order.created`, `payment.captured`, `payment.failed`
+4. Set webhook secret and add to Cloudflare secrets as `RAZORPAY_WEBHOOK_SECRET`
 
-## Tech Stack
-- **Runtime**: Cloudflare Pages (Edge)
-- **Framework**: Hono
-- **Database**: Supabase (PostgreSQL + REST API)
-- **Payments**: Razorpay
-- **Auth**: Google One-Tap + Magic Link
-- **Build**: Vite
-- **Styling**: Custom CSS (B&W streetwear aesthetic)
+## Supabase Auth Setup
+
+1. **Google**: Enable Google provider in Supabase Dashboard → Auth → Providers
+2. **Email/Magic Link**: Enable Email provider with "Enable Email Confirmations" OFF for frictionless flow
+3. Set redirect URLs to `https://intru-in.pages.dev`
+
+## Resend Setup
+
+1. Create account at resend.com
+2. Add and verify domain `intru.in` for sending emails
+3. Create API key and add to Cloudflare as `RESEND_API_KEY`
+4. Emails sent from `noreply@intru.in`
+
+## API Endpoints
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| GET | `/api/health` | Health check (shows connected services) |
+| GET | `/api/products` | List all products |
+| GET | `/api/products/:id` | Single product |
+| GET | `/api/size-chart` | Size chart data |
+| GET | `/api/instagram-feed` | Instagram feed images |
+| POST | `/api/checkout` | Create prepaid/magic checkout order |
+| POST | `/api/checkout/cod` | Create COD order with address |
+| POST | `/api/payment/verify` | Verify Razorpay payment signature |
+| POST | `/api/webhooks/razorpay` | Razorpay webhook handler |
+| POST | `/api/auth/identify` | Silent Identity — upsert user by email |
+| POST | `/api/auth/google` | Google One-Tap authentication |
+| POST | `/api/subscribe` | Newsletter subscription |
+| POST | `/api/admin/auth` | Admin authentication |
+| GET | `/api/admin/orders` | List orders (admin) |
+| PATCH | `/api/admin/orders/:id` | Update order status |
+| PATCH | `/api/admin/products/:id` | Update product |
+| GET/PUT | `/api/admin/settings/:key` | Store settings CRUD |
+| POST/PATCH/DELETE | `/api/admin/instagram-feed` | IG feed CRUD |
+
+## Design
+- **Typography**: Archivo Black (headings), Space Grotesk (body)
+- **Colors**: High-contrast B&W (#0a0a0a / #fafafa)
+- **Logo**: SVG inline "INTRU.in"
+- **Footer**: Registered office Bangalore, KA; Grievance officer shop@intru.in
+
+## Deployment
+- **Platform**: Cloudflare Pages
+- **Status**: ✅ Active
+- **Last Updated**: 2026-03-03
