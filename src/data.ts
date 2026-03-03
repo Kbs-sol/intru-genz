@@ -164,7 +164,7 @@ export const SEED_LEGAL_PAGES: LegalPage[] = [
 <h2>2. Store Credit Only — No Cash Refunds</h2>
 <p>Approved returns receive <strong>Store Credit at 1:1 value with INR</strong>. Store Credit can be used for any future drop, never expires, and is non-transferable. Cash refunds are not available under any circumstances.</p>
 <h2>3. 36-Hour Defect Claim Window</h2>
-<p>Customers must raise a claim within <strong>36 hours of receiving the order</strong>. To file a claim, email <a href="mailto:returns@intru.in">returns@intru.in</a> with:</p>
+<p>Customers must raise a claim within <strong>36 hours of receiving the order</strong>. To file a claim, email <a href="mailto:shop@intru.in">shop@intru.in</a> with:</p>
 <ul><li>Your order number</li><li>Clear photographs of the defect or issue</li><li>A brief description of the problem</li></ul>
 <h2>4. Eligible Claims</h2>
 <p><strong>Store Credit approved for:</strong> Manufacturing defects, wrong item received, significantly damaged product during transit.</p>
@@ -174,7 +174,7 @@ export const SEED_LEGAL_PAGES: LegalPage[] = [
 <h2>6. Grievance Redressal</h2>
 <p>If you are unsatisfied with the resolution of your claim, you may escalate to our Nodal Officer at <a href="mailto:shop@intru.in">shop@intru.in</a>. All escalations are acknowledged within 48 hours and resolved within 30 days.</p>
 <h2>7. Contact</h2>
-<p>For all return queries: <a href="mailto:returns@intru.in">returns@intru.in</a></p>`,
+<p>For all return queries: <a href="mailto:shop@intru.in">shop@intru.in</a></p>`,
     updatedAt: "2026-02-27"
   },
   {
@@ -414,7 +414,7 @@ export async function emailAdminPaymentAlert(resendApiKey: string, paymentData: 
       'Authorization': `Bearer ${resendApiKey}`
     },
     body: JSON.stringify({
-      from: 'intru.in <noreply@intru.in>',
+      from: 'intru.in <noreply@order.intru.in>',
       to: adminEmail,
       subject: `💰 Payment Received: ₹${amount}`,
       html: `
