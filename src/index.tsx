@@ -95,7 +95,31 @@ app.get('/api/health', (c) => {
     }
   });
 })
-
+// This fixes the 404 error you saw
+app.get('/api/auth/google-redirect', (c) => {
+  return c.html(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Authenticating...</title>
+        <style>body{background:#000;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;}</style>
+      </head>
+      <body>
+        <div>Securing your session...</div>
+        <script>
+          // Google sends the token after the # (fragment)
+          const hash = window.location.hash;
+          if (hash) {
+            // Redirect back to home with the token so Supabase can read it
+            window.location.href = '/' + hash;
+          } else {
+            window.location.href = '/?error=no_token';
+          }
+        </script>
+      </body>
+    </html>
+  `);
+});
 // ============ API: Products ============
 
 app.get('/api/products', async (c) => {
