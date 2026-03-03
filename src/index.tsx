@@ -162,6 +162,44 @@ app.get('/api/auth/google-redirect', (c) => {
   return c.redirect('/auth/google/callback' + (c.req.url.includes('#') ? '' : ''), 302);
 })
 
+// ============ COD ORDER CONFIRMATION PAGE [AG] ============
+
+app.get('/confirm-order/:id', async (c) => {
+  const id = c.req.param('id');
+  const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+  const sbSvc = getEnv(c.env, 'SUPABASE_SERVICE_KEY');
+
+  if (sbUrl && sbSvc) {
+    try {
+      // Update status to 'placed' only if it was 'pending'
+      await supabaseFetch(sbUrl, sbSvc, `orders?id=eq.${id}&status=eq.pending`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: 'placed', updated_at: new Date().toISOString() }),
+      });
+    } catch (e) { console.error('Confirmation error:', e); }
+  }
+
+  return c.html(`<!DOCTYPE html><html><head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>Order Confirmed — intru.in</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&family=Archivo+Black&display=swap" rel="stylesheet">
+    <style>
+      body{font-family:'Space Grotesk',sans-serif;background:#fafafa;color:#0a0a0a;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:24px}
+      .ost-pending{background:#fef3c7;color:#92400e;border:1px solid #fcd34d}.ost-paid{background:#d1fae5;color:#065f46;border:1px solid #34d399}.ost-placed{background:#dbeafe;color:#1e40af;border:1px solid #60a5fa}.ost-shipped{background:#e0e7ff;color:#3730a3}.ost-delivered{background:#dcfce7;color:#166534}.ost-payment_failed{background:#fee2e2;color:#991b1b}.ost-cancelled{background:#f5f5f5;color:#737373}
+      .card{max-width:400px;width:100%;text-align:center;background:#fff;padding:48px 32px;border:1px solid #eee;border-radius:12px}
+      .icon{width:56px;height:56px;border:2px solid #0a0a0a;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 24px}
+      h1{font-family:'Archivo Black',sans-serif;font-size:24px;text-transform:uppercase;letter-spacing:1px;margin:0 0 12px}
+      p{font-size:15px;color:#666;line-height:1.6;margin:0 0 32px}
+      .btn{display:block;width:100%;padding:16px;background:#0a0a0a;color:#fff;text-decoration:none;font-weight:700;letter-spacing:2px;text-transform:uppercase;font-size:12px;border-radius:6px}
+    </style></head>
+    <body><div class="card">
+      <div class="icon">✓</div>
+      <h1>ORDER VERIFIED</h1>
+      <p>Thank you. Your order has been successfully confirmed and moved to our fulfillment queue.</p>
+      <a href="/" class="btn">Back to Store</a>
+    </div></body></html>`);
+});
+
 // ============ API: Health ============
 
 app.get('/api/health', (c) => {
@@ -242,7 +280,7 @@ app.post('/api/checkout', async (c) => {
 
     if (rzpKeyId && rzpKeySecret) {
       try {
-        const receipt = 'intru_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 7);
+        const receipt = 'IN-' + Date.now().toString(36).toUpperCase().slice(-4) + Math.random().toString(36).toUpperCase().slice(-2);
         const isMagic = paymentMethod === 'magic';
 
         if (isMagic) {
@@ -1028,6 +1066,95 @@ app.post('/api/store-credit', async (c) => {
     return c.json({ email, balance: 0 });
   } catch (e: any) { return c.json({ error: e.message }, 500); }
 })
+
+// ============ CUSTOMER: MY ORDERS [AG] ============
+
+app.get('/api/customer/orders', async (c) => {
+  const email = c.req.query('email');
+  if (!email) return c.json({ orders: [] });
+
+  const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+  const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY') || getEnv(c.env, 'SUPABASE_ANON_KEY');
+
+  if (sbUrl && sbKey) {
+    try {
+      const res = await supabaseFetch(sbUrl, sbKey, `orders?customer_email=eq.${email}&select=id,razorpay_order_id,total,status,items,created_at&order=created_at.desc`);
+      if (res.ok) {
+        const orders = await res.json();
+        return c.json({ orders });
+      }
+    } catch (e) { console.error('Error fetching customer orders:', e); }
+  }
+  return c.json({ orders: [] });
+});
+
+// ============ ADMIN: LIMITS & USAGE [AG] ============
+
+app.get('/api/admin/limits', async (c) => {
+  const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+  const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY') || getEnv(c.env, 'SUPABASE_ANON_KEY');
+
+  let rows = 0;
+  let emailsSentEst = 0;
+  let storageMb = 0;
+
+  if (sbUrl && sbKey) {
+    try {
+      // Estimate rows from orders + products + subscribers
+      const ordersRes = await supabaseFetch(sbUrl, sbKey, 'orders?select=id', { method: 'HEAD', headers: { 'Prefer': 'count=exact' } as any });
+      const orderCount = parseInt(ordersRes.headers.get('content-range')?.split('/')?.[1] || '0');
+
+      const prodRes = await supabaseFetch(sbUrl, sbKey, 'products?select=id', { method: 'HEAD', headers: { 'Prefer': 'count=exact' } as any });
+      const prodCount = parseInt(prodRes.headers.get('content-range')?.split('/')?.[1] || '0');
+
+      const subRes = await supabaseFetch(sbUrl, sbKey, 'subscribers?select=id', { method: 'HEAD', headers: { 'Prefer': 'count=exact' } as any });
+      const subCount = parseInt(subRes.headers.get('content-range')?.split('/')?.[1] || '0');
+
+      rows = orderCount + prodCount + subCount;
+
+      // Emails: assume 2 per order + some overhead
+      emailsSentEst = orderCount * 2 + 50;
+
+      // Storage: rough estimate 1MB per order (images/logs) + assets
+      storageMb = Math.round(prodCount * 2 + (orderCount * 0.1));
+    } catch (e) { console.error('Limit tracking error:', e); }
+  }
+
+  return c.json({ rows, emailsSentEst, storageMb });
+});
+
+/* ====== Helper Functions for Webhooks [AG] ====== */
+async function verifyRazorpaySignature(body: string, signature: string, secret: string): Promise<boolean> {
+  const expected = await hmacSHA256(secret, body);
+  return expected === signature;
+}
+
+async function updateOrderStatus(env: any, orderId: string, status: string, paymentId?: string) {
+  const sbUrl = getEnv(env, 'SUPABASE_URL');
+  const sbKey = getEnv(env, 'SUPABASE_SERVICE_KEY');
+  if (sbUrl && sbKey) {
+    const payload: any = { status, updated_at: new Date().toISOString() };
+    if (paymentId) payload.razorpay_payment_id = paymentId;
+    await supabaseFetch(sbUrl, sbKey, `orders?razorpay_order_id=eq.${orderId}`, {
+      method: 'PATCH', body: JSON.stringify(payload),
+    });
+  }
+}
+
+async function emailAdminPaymentAlert(resendKey: string, payment: any) {
+  const amount = (payment.amount || 0) / 100;
+  const currency = (payment.currency || 'INR').toUpperCase();
+  const emailBody = `
+    <div style="font-family:sans-serif;padding:24px;border:1px solid #eee">
+      <h2 style="color:#16a34a">💰 NEW PAYMENT RECEIVED</h2>
+      <p>A payment of <strong>${currency} ${amount.toLocaleString('en-IN')}</strong> has been captured.</p>
+      <p>Method: ${payment.method} | Email: ${payment.email}</p>
+      <p>Order ID: ${payment.order_id}</p>
+      <p style="font-size:12px;color:#999">View in Razorpay Dashboard for details.</p>
+    </div>
+  `;
+  await sendResendEmail(resendKey, 'shop@intru.in', `💰 Payment Captured: ${currency} ${amount}`, emailBody);
+}
 
 // ============ 404 ============
 app.all('*', (c) => {

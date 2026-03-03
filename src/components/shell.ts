@@ -1,13 +1,11 @@
 import { STORE_CONFIG, type Product, type LegalPage, SEED_LEGAL_PAGES } from '../data'
 
 /**
- * Shell v6: Unified Checkout + Psychological Nudges + Google Auth Fix
- * - Buy Now & Checkout both open Hybrid Payment Selection UI
- * - Prepaid = bright green nudge "⚡ SAVE ₹99 / FREE SHIPPING"
- * - COD = gray nudge "₹99 Convenience Fee added"
- * - Google One-Tap: data-itp_support=true, data-auto_select=false, redirect fallback
- * - Only one toast per order
- * - Footer: Hyderabad, Telangana, India; all emails shop@intru.in
+ * Shell v6.1: Unified Checkout + Prepaid Free Shipping + Address Persistence [AG]
+ * - Unified Checkout: Buy Now & Checkout pull up payment selection
+ * - Prepaid: ALWAYS FREE shipping + ⚡ SAVE Rs.99 nudge
+ * - COD: Rs.99 Convenience/Shipping Fee
+ * - Address Persistence: data saved to localStorage on successful COD
  */
 export function shell(
   title: string,
@@ -58,12 +56,13 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 .d1{animation-delay:.1s}.d2{animation-delay:.2s}.d3{animation-delay:.3s}.d4{animation-delay:.4s}
 .nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(250,250,250,.88);backdrop-filter:blur(20px) saturate(180%);border-bottom:1px solid var(--g100);transition:all .3s}
 .nav.scrolled{background:rgba(250,250,250,.96);box-shadow:0 1px 24px rgba(0,0,0,.06)}
-.navi{max-width:1280px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:64px}
-.logo{font-family:var(--head);font-size:20px;letter-spacing:-.03em;text-transform:uppercase}.logo span{font-family:var(--sans);font-weight:400;opacity:.4;text-transform:none;font-size:16px}
-.nlinks{display:flex;align-items:center;gap:24px}
-.nl{font-size:12px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--g500);transition:color .2s;position:relative}
-.nl:hover{color:var(--bk)}.nl::after{content:'';position:absolute;bottom:-4px;left:0;width:0;height:1.5px;background:var(--bk);transition:width .3s var(--ease)}.nl:hover::after{width:100%}
-.ncart{position:relative;background:none;border:none;font-size:18px;color:var(--bk);padding:8px}
+.navi{max-width:1280px;margin:0 auto;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 24px;height:64px}
+.logo{font-family:var(--head);font-size:20px;letter-spacing:-.03em;text-transform:uppercase;grid-column:2}.logo span{font-family:var(--sans);font-weight:400;opacity:.4;text-transform:none;font-size:16px}
+.nlinks{display:flex;align-items:center;gap:20px;justify-content:flex-start;grid-column:1}
+.nactions{display:flex;align-items:center;gap:16px;justify-content:flex-end;grid-column:3}
+.nbtn{background:none;border:none;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--g500);transition:color .2s;padding:8px 0;position:relative}
+.nbtn:hover{color:var(--bk)}
+.ncart{position:relative;background:none;border:none;font-size:18px;color:var(--bk);padding:8px;margin-bottom:-2px}
 .cbadge{position:absolute;top:0;right:0;background:var(--bk);color:var(--wh);font-size:9px;font-weight:700;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;transform:scale(0);transition:transform .3s var(--eo)}.cbadge.vis{transform:scale(1)}
 .covl{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);opacity:0;pointer-events:none;transition:opacity .3s}.covl.open{opacity:1;pointer-events:all}
 .cdrw{position:fixed;top:0;right:0;bottom:0;z-index:201;width:420px;max-width:92vw;background:var(--wh);transform:translateX(100%);transition:transform .4s var(--eo);display:flex;flex-direction:column;box-shadow:-10px 0 40px rgba(0,0,0,.12)}.cdrw.open{transform:translateX(0)}
@@ -131,12 +130,14 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 </style></head>
 <body class="${opt?.cls || ''}">
 <nav class="nav" id="nb"><div class="navi">
-<a href="/" class="logo"><svg viewBox="0 0 110 32" width="110" height="32" xmlns="http://www.w3.org/2000/svg" aria-label="intru.in"><text x="0" y="25" font-family="'Archivo Black',sans-serif" font-size="28" font-weight="900" fill="#0a0a0a" letter-spacing="-1">INTRU</text><text x="88" y="25" font-family="'Space Grotesk',sans-serif" font-size="16" font-weight="400" fill="#0a0a0a" opacity=".4">.in</text></svg></a>
 <div class="nlinks">
-<a href="/#products" class="nl nls">Shop</a>
-<a href="/collections" class="nl">Collections</a>
-<a href="/about" class="nl">About</a>
-<button class="ncart" onclick="toggleCart()" aria-label="Cart"><i class="fas fa-shopping-bag"></i><span class="cbadge" id="cb">0</span></button>
+  <a href="/" class="nl">Shop</a>
+  <a href="/collections" class="nl">Collections</a>
+</div>
+<a href="/" class="logo"><svg viewBox="0 0 110 32" width="110" height="32" xmlns="http://www.w3.org/2000/svg" aria-label="intru.in"><text x="0" y="25" font-family="'Archivo Black',sans-serif" font-size="28" font-weight="900" fill="#0a0a0a" letter-spacing="-1">INTRU</text><text x="88" y="25" font-family="'Space Grotesk',sans-serif" font-size="16" font-weight="400" fill="#0a0a0a" opacity=".4">.in</text></svg></a>
+<div class="nactions">
+  <button class="nbtn" onclick="openIdentifyOrOrders()" id="navAccountBtn">Login</button>
+  <button class="ncart" onclick="toggleCart()" aria-label="Cart"><i class="fas fa-shopping-bag"></i><span class="cbadge" id="cb">0</span></button>
 </div></div></nav>
 <div class="covl" id="co" onclick="toggleCart()"></div>
 <div class="cdrw" id="cd">
@@ -178,16 +179,26 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 <div class="id-ovl" id="idOvl" onclick="if(event.target===this)closeIdentify()">
 <div class="id-box">
 <button class="id-close" onclick="closeIdentify()"><i class="fas fa-times"></i></button>
-<h3>Identify Yourself</h3>
-<p>Enter your email to continue checkout. We'll never spam you.</p>
-<input class="id-inp" id="id_email" type="email" placeholder="your@email.com" autocomplete="email">
-<button class="id-btn" id="idBtn" onclick="submitIdentity()">Continue to Checkout</button>
-<div class="id-or">or</div>
-<button class="id-gcta" id="idGoogleBtn" onclick="triggerGoogleIdentify()">
-<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="G">
-Continue with Google
-</button>
-<p style="font-size:10px;color:var(--g400);text-align:center;margin-top:14px;line-height:1.5">No account needed. We just need your email for order updates.<br>Support: <a href="mailto:shop@intru.in" style="text-decoration:underline">shop@intru.in</a></p>
+<div id="idLoginView">
+  <h3>Identify Yourself</h3>
+  <p>Enter your email to view your orders and checkout faster. ✌️</p>
+  <input class="id-inp" id="id_email" type="email" placeholder="your@email.com" autocomplete="email">
+  <button class="id-btn" id="idBtn" onclick="submitIdentity()">Continue</button>
+  <div class="id-or">or</div>
+  <button class="id-gcta" id="idGoogleBtn" onclick="triggerGoogleIdentify()">
+    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="G">
+    Continue with Google
+  </button>
+</div>
+<div id="idOrdersView" style="display:none">
+  <h3>My Orders</h3>
+  <p id="idOrdersEmail" style="margin-bottom:12px;font-weight:600"></p>
+  <div id="idOrdersList" style="max-height:400px;overflow-y:auto;border-top:1px solid var(--g100)">
+    <div style="padding:40px 0;text-align:center;color:var(--g400)"><i class="fas fa-circle-notch fa-spin"></i> Loading orders...</div>
+  </div>
+  <button class="id-btn" style="background:var(--wh);color:var(--bk);border:1px solid var(--g200);margin-top:20px" onclick="logoutCustomer()">Logout</button>
+</div>
+<p style="font-size:10px;color:var(--g400);text-align:center;margin-top:14px;line-height:1.5">No account needed. We use your email to secure your drops.<br>Support: <a href="mailto:shop@intru.in" style="text-decoration:underline">shop@intru.in</a></p>
 </div>
 </div>
 
@@ -248,8 +259,97 @@ function handleGoogleAuth(r){
       toast('Welcome, '+(d.user.name||d.user.email)+'!','ok-green');
       closeIdentify();
       if(pendingCheckout){pendingCheckout=false;checkout();}
+      updateAccountBtn();
     }else{toast(d.error||'Auth failed','err')}
   }).catch(function(){toast('Auth failed','err')});
+}
+
+function triggerGoogleIdentify(){
+  /* Build Google OAuth 2.0 URL */
+  var clientId=S.googleClientId;
+  if(clientId==='YOUR_GOOGLE_CLIENT_ID'){toast('Google login not configured','err');return}
+  var redirectUri=window.location.origin+'/auth/google/callback';
+  var scope='email profile';
+  var url='https://accounts.google.com/o/oauth2/v2/auth?client_id='+clientId+'&redirect_uri='+encodeURIComponent(redirectUri)+'&response_type=token+id_token&scope='+encodeURIComponent(scope)+'&nonce='+Math.random().toString(36).substring(2);
+  /* Backup cart for restoration */
+  sessionStorage.setItem('intru_cart_backup',JSON.stringify(cart));
+  if(pendingCheckout)sessionStorage.setItem('intru_pending_checkout','1');
+  window.location.href=url;
+}
+
+function openIdentifyOrOrders(){
+  if(identifiedEmail){openOrders()}else{openIdentify()}
+}
+
+function openIdentify(){
+  document.getElementById('idLoginView').style.display='block';
+  document.getElementById('idOrdersView').style.display='none';
+  document.getElementById('idOvl').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+
+function closeIdentify(){
+  document.getElementById('idOvl').classList.remove('open');
+  document.body.style.overflow='';
+}
+
+function submitIdentity(){
+  var email=document.getElementById('id_email').value.trim();
+  if(!email||!email.includes('@')){toast('Enter a valid email','err');return}
+  identifiedEmail=email;
+  localStorage.setItem('intru_user_email',email);
+  toast('Identified as '+email,'ok');
+  updateAccountBtn();
+  if(pendingCheckout){pendingCheckout=false;checkout()}else{closeIdentify()}
+}
+
+function logoutCustomer(){
+  localStorage.removeItem('intru_user');
+  localStorage.removeItem('intru_user_email');
+  localStorage.removeItem('intru_user_name');
+  identifiedEmail='';identifiedName='';
+  toast('Logged out','ok');
+  updateAccountBtn();
+  closeIdentify();
+}
+
+function openOrders(){
+  document.getElementById('idLoginView').style.display='none';
+  document.getElementById('idOrdersView').style.display='block';
+  document.getElementById('idOrdersEmail').textContent=identifiedEmail;
+  document.getElementById('idOvl').classList.add('open');
+  document.body.style.overflow='hidden';
+  loadCustomerOrders();
+}
+
+function loadCustomerOrders(){
+  var list=document.getElementById('idOrdersList');
+  list.innerHTML='<div style="padding:40px 0;text-align:center;color:var(--g400)"><i class="fas fa-circle-notch fa-spin"></i> Loading...</div>';
+  fetch('/api/customer/orders?email='+encodeURIComponent(identifiedEmail))
+  .then(function(r){return r.json()})
+  .then(function(d){
+    var orders=d.orders||[];
+    if(!orders.length){list.innerHTML='<div style="padding:40px 0;text-align:center;color:var(--g400)">No orders found.</div>';return}
+    var h='';
+    orders.forEach(function(o){
+      var st=o.status||'pending';
+      var shortId=(o.razorpay_order_id||o.id||'').slice(-8).toUpperCase();
+      h+='<div style="padding:16px 0;border-bottom:1px solid var(--g100);display:flex;justify-content:space-between;align-items:center">'
+        +'<div><div style="font-weight:700;font-size:12px">#'+shortId+' <span style="font-weight:400;color:var(--g400);margin-left:8px">'+new Date(o.created_at).toLocaleDateString()+'</span></div>'
+        +'<div style="font-size:11px;color:var(--g400);margin-top:2px">'+(o.items||[]).length+' items • Rs.'+(o.total||0).toLocaleString('en-IN')+'</div></div>'
+        +'<div class="ostatus ost-'+st+'" style="font-size:9px">'+st+'</div>'
+        +'</div>';
+    });
+    list.innerHTML=h;
+  }).catch(function(){list.innerHTML='<div style="padding:40px 0;text-align:center;color:var(--red)">Failed to load.</div>'});
+}
+
+function updateAccountBtn(){
+  var btn=document.getElementById('navAccountBtn');
+  if(!btn)return;
+  btn.textContent=identifiedEmail?'Orders':'Login';
+  var idBtn=document.getElementById('idBtn');
+  if(idBtn)idBtn.textContent=identifiedEmail?'Continue as '+identifiedEmail.split('@')[0].toUpperCase():'Continue';
 }
 
 /* Process Google auth token (used by redirect callback page) */
@@ -347,10 +447,9 @@ function updateQty(productId,size,delta){
 
 function getCartTotals(){
   var sub=0;cart.forEach(function(i){var p=PM[i.p];if(p)sub+=p.p*i.q});
+  /* New Logic: Prepaid always FREE; COD always Rs.99 Convenience/Shipping Fee */
   var codFee=payMode==='cod'?99:0;
-  var sh=payMode==='prepaid'?0:(sub>=S.ft?0:S.sc);
-  /* Prepaid always free shipping; COD adds Rs.99 convenience fee */
-  if(payMode==='prepaid')sh=0;
+  var sh=0; 
   return{subtotal:sub,shipping:sh,codFee:codFee,total:sub+sh+codFee};
 }
 
@@ -368,7 +467,7 @@ function renderCartTotals(){
   var t=getCartTotals();
   document.getElementById('csub').textContent=fmt(t.subtotal);
   var shText=payMode==='prepaid'?'FREE':'';
-  if(payMode==='cod'){shText=t.shipping>0?fmt(t.shipping):'Free';shText+=(' + Rs.99 COD fee')}
+  if(payMode==='cod'){shText='Rs.99 Shipping/COD Fee'}
   document.getElementById('cshp').textContent=shText||'Free';
   document.getElementById('ctot').textContent=fmt(t.total);
 }
@@ -466,11 +565,19 @@ function doCodCheckout(){
   var phone=document.getElementById('cod_phone').value.trim();
   var pincode=document.getElementById('cod_pincode').value.trim();
   var addr=document.getElementById('cod_addr').value.trim();
+  var city=document.getElementById('cod_city').value.trim();
+  var state=document.getElementById('cod_state').value.trim();
   if(!name||!phone||!pincode||!addr){toast('Fill all address fields for COD','err');resetBtn();return}
   if(!/^[0-9]{10}$/.test(phone)){toast('Enter valid 10-digit phone','err');resetBtn();return}
   if(!/^[0-9]{6}$/.test(pincode)){toast('Enter valid 6-digit pincode','err');resetBtn();return}
-  var city=document.getElementById('cod_city').value.trim();
-  var state=document.getElementById('cod_state').value.trim();
+
+  /* Persistence: Save to local storage [AG] */
+  localStorage.setItem('intru_name', name);
+  localStorage.setItem('intru_phone', phone);
+  localStorage.setItem('intru_pincode', pincode);
+  localStorage.setItem('intru_addr', addr);
+  localStorage.setItem('intru_city', city);
+  localStorage.setItem('intru_state', state);
 
   fetch('/api/checkout/cod',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
     items:cart.map(function(i){return{productId:i.p,size:i.s,quantity:i.q}}),
@@ -479,7 +586,7 @@ function doCodCheckout(){
   })})
   .then(function(r){return r.json()})
   .then(function(d){
-    if(d.success){cart=[];saveCart();toggleCart();if(!orderToastFired){orderToastFired=true;toast('COD order placed! Order: '+(d.orderId||'').slice(-8).toUpperCase()+'. Check email.','ok-green')}}
+    if(d.success){cart=[];saveCart();toggleCart();renderCart();showSuccessUI(d.orderId,'cod')}
     else{toast(d.error||'COD failed','err')}
   }).catch(function(e){toast('Error: '+e.message,'err')})
   .finally(function(){resetBtn()});
@@ -504,7 +611,7 @@ function doMagicCheckout(){
         fetch('/api/payment/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
           razorpay_order_id:response.razorpay_order_id,razorpay_payment_id:response.razorpay_payment_id,razorpay_signature:response.razorpay_signature
         })}).then(function(r){return r.json()}).then(function(vd){
-          if(vd.success){cart=[];saveCart();toggleCart();if(!orderToastFired){orderToastFired=true;toast('Drop secured!','ok-green')}}
+          if(vd.success){cart=[];saveCart();toggleCart();renderCart();showSuccessUI(vd.orderId,'prepaid')}
           else{toast('Verification failed','err')}
         }).catch(function(e){toast('Error: '+e.message,'err')}).finally(function(){resetBtn()});
       }
@@ -516,6 +623,51 @@ function doMagicCheckout(){
 }
 
 function resetBtn(){var btn=document.getElementById('checkoutBtn');if(btn){btn.disabled=false;btn.textContent='CHECKOUT'}}
+
+/* ====== TIERED SUCCESS UI [AG] ====== */
+function showSuccessUI(orderId, type){
+  var ovl=document.createElement('div');
+  ovl.style='position:fixed;inset:0;z-index:999;background:rgba(10,10,10,0.95);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:24px;color:#fff;animation:fadeIn 0.5s ease both';
+  
+  var isPrepaid = type === 'prepaid';
+  var shortId = (orderId || '').toUpperCase();
+  if(!shortId.startsWith('IN-')) shortId = 'IN-' + shortId.slice(-6);
+
+  var html = '<div style="text-align:center;max-width:400px;width:100%;animation:slideUp 0.6s cubic-bezier(0.16,1,0.3,1) both">';
+  if(isPrepaid){
+    html += '<div style="width:80px;height:80px;background:#16a34a;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 24px;box-shadow:0 0 40px rgba(22,163,74,0.4)"><i class="fas fa-check" style="font-size:32px"></i></div>';
+    html += '<h2 style="font-family:Archivo Black;font-size:32px;text-transform:uppercase;letter-spacing:-1px;margin-bottom:12px">DROP SECURED</h2>';
+    html += '<p style="font-size:16px;opacity:0.8;margin-bottom:32px">Payment verified. Your pack is being prepared.</p>';
+  } else {
+    html += '<div style="width:64px;height:64px;border:2px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 24px;opacity:0.6"><i class="fas fa-envelope" style="font-size:24px"></i></div>';
+    html += '<h2 style="font-family:Archivo Black;font-size:24px;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">ORDER RECEIVED</h2>';
+    html += '<p style="font-size:14px;opacity:0.8;margin-bottom:32px;line-height:1.6">Check your email now.<br><strong style="color:#fcd34d">Verify your order</strong> to move it into production.</p>';
+  }
+  
+  html += '<div style="background:rgba(255,255,255,0.05);padding:20px;border-radius:12px;margin-bottom:32px;border:1px solid rgba(255,255,255,0.1)">';
+  html += '<div style="font-size:10px;text-transform:uppercase;letter-spacing:2px;opacity:0.5;margin-bottom:4px">Order ID</div>';
+  html += '<div style="font-family:monospace;font-size:20px;letter-spacing:1px;font-weight:700">'+shortId+'</div>';
+  html += '</div>';
+  
+  html += '<button onclick="location.reload()" style="width:100%;padding:18px;background:#fff;color:#000;border:none;font-weight:700;letter-spacing:2px;text-transform:uppercase;border-radius:8px;cursor:pointer">Continue Shopping</button>';
+  html += '</div>';
+  
+  ovl.innerHTML = html;
+  document.body.appendChild(ovl);
+  document.body.style.overflow = 'hidden';
+}
+
+function loadSavedAddress(){
+  var name = localStorage.getItem('intru_name');
+  if(name) {
+    var fields = ['name','phone','pincode','addr','city','state'];
+    fields.forEach(function(f){
+      var val = localStorage.getItem('intru_'+f);
+      var el = document.getElementById('cod_'+f);
+      if(el && val) el.value = val;
+    });
+  }
+}
 
 /* ====== TOAST ====== */
 function toast(msg,type){
@@ -529,11 +681,10 @@ window.addEventListener('scroll',function(){document.getElementById('nb').classL
 
 /* ====== INIT ====== */
 renderCart();
+updateAccountBtn();
+loadSavedAddress();
 /* If user is identified, update UI to reflect it */
-if(identifiedEmail){
-  var idBtn=document.getElementById('idBtn');
-  if(idBtn)idBtn.textContent='CONTINUE AS '+identifiedEmail.split('@')[0].toUpperCase();
-}
+ [AG]
 
 /* ====== KONAMI CODE -> /admin ====== */
 var _kseq=[38,38,40,40,37,39,37,39,66,65],_kidx=0;

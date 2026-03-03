@@ -581,37 +581,38 @@ export async function sendResendEmail(
 // ============ Email templates ============
 
 export function emailDropSecured(orderId: string, items: any[], total: number): string {
-  const itemsHtml = items.map((i: any) =>
-    `<tr><td style="padding:12px;border-bottom:1px solid #eee;font-size:14px">${i.name} (${i.size}) x${i.quantity}</td><td style="padding:12px;border-bottom:1px solid #eee;text-align:right;font-size:14px;font-weight:700">Rs.${(i.unitPrice * i.quantity).toLocaleString('en-IN')}</td></tr>`
-  ).join('');
-  return `<div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:560px;margin:0 auto;background:#fff">
-    <div style="background:#0a0a0a;padding:32px;text-align:center">
+  const shortId = orderId.toUpperCase().slice(-8);
+  return `<div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:560px;margin:0 auto;background:#fff;border:1px solid #16a34a">
+    <div style="background:#16a34a;padding:32px;text-align:center">
       <h1 style="color:#fff;font-size:24px;margin:0;letter-spacing:4px;text-transform:uppercase">DROP SECURED</h1>
     </div>
     <div style="padding:32px">
-      <p style="font-size:16px;color:#333;margin-bottom:24px">Your order is confirmed. We're getting it ready for dispatch within 36 hours.</p>
-      <table style="width:100%;border-collapse:collapse;margin-bottom:24px">
-        <thead><tr><th style="text-align:left;padding:12px;border-bottom:2px solid #0a0a0a;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#666">Item</th><th style="text-align:right;padding:12px;border-bottom:2px solid #0a0a0a;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#666">Price</th></tr></thead>
-        <tbody>${itemsHtml}</tbody>
-        <tfoot><tr><td style="padding:12px;font-weight:700;font-size:16px">Total</td><td style="padding:12px;text-align:right;font-weight:700;font-size:16px">Rs.${total.toLocaleString('en-IN')}</td></tr></tfoot>
-      </table>
-      <p style="font-size:12px;color:#999;line-height:1.6">Order ID: ${orderId}<br>Free shipping included. Track via email/SMS.</p>
-    </div>
-    <div style="background:#f5f5f5;padding:24px;text-align:center;font-size:11px;color:#999">
       <p style="margin:0">intru.in — Limited Drops. No Restocks.</p>
     </div>
   </div>`;
 }
 
 export function emailCodReceived(orderId: string, name: string, items: any[], total: number): string {
-  return `<div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:560px;margin:0 auto;background:#fff">
+  const shortId = orderId.toUpperCase().slice(-8);
+  const confirmUrl = `https://intru.in/confirm-order/${orderId}`;
+  return `<div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:560px;margin:0 auto;background:#fff;border:1px solid #eee">
     <div style="background:#0a0a0a;padding:32px;text-align:center">
-      <h1 style="color:#fff;font-size:24px;margin:0;letter-spacing:4px;text-transform:uppercase">COD ORDER RECEIVED</h1>
+      <h1 style="color:#fff;font-size:24px;margin:0;letter-spacing:4px;text-transform:uppercase">ORDER RECEIVED</h1>
     </div>
     <div style="padding:32px">
       <p style="font-size:16px;color:#333">Hi ${name || 'there'},</p>
-      <p style="font-size:14px;color:#666;line-height:1.7">Your Cash on Delivery order has been placed. Our team may call to verify before dispatch. Please keep Rs.${total.toLocaleString('en-IN')} ready at delivery.</p>
-      <p style="font-size:12px;color:#999;margin-top:24px">Order ID: ${orderId}</p>
+      <p style="font-size:14px;color:#666;line-height:1.7">We've received your Cash on Delivery order <strong>#IN-${shortId}</strong>. To prevent fake orders and start production, please confirm you are real by clicking below:</p>
+      
+      <div style="text-align:center;margin:32px 0">
+        <a href="${confirmUrl}" style="background:#0a0a0a;color:#fff;padding:18px 32px;text-decoration:none;font-weight:700;letter-spacing:2px;text-transform:uppercase;font-size:14px;border-radius:4px;display:inline-block">CONFIRM MY ORDER</a>
+      </div>
+
+      <p style="font-size:12px;color:#999;line-height:1.6;text-align:center">If the button doesn't work, copy this link: <br> ${confirmUrl}</p>
+      
+      <div style="margin-top:40px;padding-top:20px;border-top:1px solid #eee">
+        <p style="font-size:14px;color:#333;font-weight:700;margin-bottom:8px">Order Summary:</p>
+        <p style="font-size:13px;color:#666">Total: Rs.${total.toLocaleString('en-IN')} (incl. Rs.99 COD/Shipping Fee)</p>
+      </div>
     </div>
     <div style="background:#f5f5f5;padding:24px;text-align:center;font-size:11px;color:#999">
       <p style="margin:0">intru.in — Limited Drops. No Restocks.</p>

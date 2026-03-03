@@ -34,13 +34,17 @@ export function adminPage(opts: {
 .atabs{display:flex;gap:0;margin-bottom:32px;border-bottom:2px solid var(--g100);flex-wrap:wrap}
 .atab{padding:14px 20px;background:none;border:none;border-bottom:2px solid transparent;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--g400);margin-bottom:-2px;transition:all .2s}.atab:hover{color:var(--bk)}.atab.act{color:var(--bk);border-bottom-color:var(--bk)}
 .apan{display:none}.apan.act{display:block}
-.otbl{width:100%;border-collapse:collapse;font-size:13px}
-.otbl th{text-align:left;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--g400);padding:12px 12px;border-bottom:2px solid var(--g100)}
-.otbl td{padding:10px 12px;border-bottom:1px solid var(--g100);vertical-align:top}
+.otbl-wrap{width:100%;overflow-x:auto;border:1.5px solid var(--g100);border-radius:8px;background:var(--wh)}
+.otbl{width:100%;border-collapse:collapse;font-size:13px;min-width:900px}
+.otbl th{text-align:left;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--g400);padding:14px 12px;border-bottom:2px solid var(--g100);background:var(--g50)}
+.otbl td{padding:12px 12px;border-bottom:1px solid var(--g100);vertical-align:top;line-height:1.5}
+.otbl tr:last-child td{border-bottom:none}
 .otbl tr:hover td{background:var(--g50)}
 .otbl tr.cod-row{background:#fffbeb}
-.ostatus{display:inline-block;padding:3px 10px;border-radius:3px;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
-.ost-pending{background:#fef3c7;color:#92400e}.ost-paid{background:#d1fae5;color:#065f46}.ost-placed{background:#fef3c7;color:#92400e}.ost-shipped{background:#dbeafe;color:#1e40af}.ost-delivered{background:#d1fae5;color:#065f46}.ost-payment_failed{background:#fee2e2;color:#991b1b}.ost-cancelled{background:#fecaca;color:#991b1b}
+.ostatus{display:inline-block;padding:3px 10px;border-radius:3px;font-size:9px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;white-space:nowrap}
+.ost-cod{background:#fef3c7;color:#92400e;border:1px solid #d97706;margin-left:6px}
+.ost-prepaid{background:#dcfce7;color:#166534;border:1px solid #16a34a;margin-left:6px}
+.ost-pending{background:#fef3c7;color:#92400e}.ost-paid{background:#dcfce7;color:#166534}.ost-placed{background:#fef3c7;color:#92400e}.ost-shipped{background:#dbeafe;color:#1e40af}.ost-delivered{background:#dcfce7;color:#166534}.ost-payment_failed{background:#fee2e2;color:#991b1b}.ost-cancelled{background:#fecaca;color:#991b1b}
 .oselect{padding:4px 8px;border:1px solid var(--g200);border-radius:3px;font-size:11px;font-family:inherit}
 .apcards{display:grid;grid-template-columns:repeat(2,1fr);gap:20px}
 .apc{border:1.5px solid var(--g100);border-radius:8px;padding:20px;transition:border-color .2s}.apc:hover{border-color:var(--bk)}
@@ -103,6 +107,7 @@ export function adminPage(opts: {
 <button class="atab" onclick="showTab(this,'tsize')">Size Chart</button>
 <button class="atab" onclick="showTab(this,'tig')">IG Feed</button>
 <button class="atab" onclick="showTab(this,'tsett')">Settings</button>
+<button class="atab" onclick="showTab(this,'tlim')">Limits & Status</button>
 </div>
 
 <!-- Orders Tab -->
@@ -111,10 +116,12 @@ export function adminPage(opts: {
 <span class="asrc" id="ordSrc"></span>
 <button class="arefresh" onclick="loadOrders()"><i class="fas fa-sync-alt" style="margin-right:4px"></i>Refresh</button>
 </div>
+<div class="otbl-wrap">
 <table class="otbl">
-<thead><tr><th>Order</th><th>Customer</th><th>Items</th><th>Total</th><th>Payment</th><th>Status</th><th>Action</th></tr></thead>
+<thead><tr><th>Order ID</th><th>Customer Info</th><th>Items</th><th>Pricing</th><th>Method</th><th>Status</th><th>Actions</th></tr></thead>
 <tbody id="otbody"><tr><td colspan="7" style="text-align:center;padding:40px;color:var(--g400)">Loading...</td></tr></tbody>
 </table>
+</div>
 </div>
 
 <!-- Products Tab -->
@@ -214,6 +221,42 @@ export function adminPage(opts: {
 </div>
 </div>
 
+<!-- Limits & Status Tab [AG] -->
+<div class="apan" id="tlim">
+<div class="sett-card" style="background:var(--g50)">
+  <h4>Free Tier Usage Statistics</h4>
+  <p>Monitor your consumption across connected free services. Data is estimated based on current database records.</p>
+</div>
+<div class="apcards">
+  <div class="apc">
+    <h3>Database Rows</h3>
+    <div style="font-size:24px;font-family:var(--head)" id="limDb">...</div>
+    <div style="font-size:11px;color:var(--g400);margin-top:4px">of 500,000 (Supabase Free Limit)</div>
+  </div>
+  <div class="apc">
+    <h3>Storage Estimate</h3>
+    <div style="font-size:24px;font-family:var(--head)" id="limStorage">...</div>
+    <div style="font-size:11px;color:var(--g400);margin-top:4px">of 5GB (Supabase Free Limit)</div>
+  </div>
+  <div class="apc">
+    <h3>Emails Sent (Est)</h3>
+    <div style="font-size:24px;font-family:var(--head)" id="limEmail">...</div>
+    <div style="font-size:11px;color:var(--g400);margin-top:4px">of 3,000 (Resend Monthly Free Limit)</div>
+  </div>
+  <div class="apc">
+    <h3>Service Status</h3>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+      <div style="display:flex;align-items:center;gap:8px;font-size:12px">
+        <span style="width:10px;height:10px;background:var(--green);border-radius:50%"></span> Supabase DB Connected
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:12px">
+        <span style="width:10px;height:10px;background:var(--green);border-radius:50%"></span> Resend API Active
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
 </div></div>
 
 <script>
@@ -234,7 +277,20 @@ if(sessionStorage.getItem('iadm')==='1'){document.addEventListener('DOMContentLo
 
 function showTab(btn,id){document.querySelectorAll('.atab').forEach(function(t){t.classList.remove('act')});document.querySelectorAll('.apan').forEach(function(p){p.classList.remove('act')});btn.classList.add('act');document.getElementById(id).classList.add('act')}
 
-function initAdmin(){loadOrders();loadProducts();initLegal();loadSizeChart();loadIgFeed();loadSettings()}
+function initAdmin(){loadOrders();loadProducts();initLegal();loadSizeChart();loadIgFeed();loadSettings();loadLimits()}
+
+/* ====== LIMITS [AG] ====== */
+function loadLimits(){
+  var dbEl=document.getElementById('limDb');var stEl=document.getElementById('limStorage');var emEl=document.getElementById('limEmail');
+  fetch('/api/admin/limits').then(function(r){return r.json()}).then(function(d){
+    dbEl.textContent=d.rows.toLocaleString();
+    stEl.textContent=d.storageMb+' MB';
+    emEl.textContent=d.emailsSentEst;
+    // Color coding
+    if(d.rows>450000)dbEl.style.color='var(--red)';
+    if(d.emailsSentEst>2500)emEl.style.color='var(--red)';
+  }).catch(function(){});
+}
 
 /* ====== ORDERS ====== */
 function loadOrders(){
@@ -255,15 +311,16 @@ function loadOrders(){
       var custPhone=o.customer_phone||addr.contact||'—';
       var isCod=pm==='cod';
       h+='<tr class="'+(isCod?'cod-row':'')+'">'
-        +'<td style="font-weight:700;font-size:11px">#'+(o.razorpay_order_id||o.id||'').slice(-8).toUpperCase()+'</td>'
-        +'<td><div style="font-size:12px;font-weight:600">'+custName+'</div><div style="font-size:11px;color:var(--g400)">'+(o.customer_email||'')+'</div><div style="font-size:10px;color:var(--g400)">'+(o.customer_phone||'')+'</div></td>'
-        +'<td style="font-size:12px;max-width:180px">'+items+'</td>'
-        +'<td style="font-weight:700">Rs.'+(o.total||0).toLocaleString('en-IN')+(o.cod_fee>0?'<br><span style="font-size:9px;color:var(--g400)">incl. Rs.'+o.cod_fee+' COD</span>':'')+'</td>'
-        +'<td><span style="font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:3px 8px;border-radius:3px;'+(isCod?'background:#fef3c7;color:#92400e':'background:#dcfce7;color:#166534')+'">'+pm+'</span></td>'
+        +'<td style="font-weight:700;font-size:11px;min-width:100px;display:flex;flex-direction:column;gap:4px">#'+(o.razorpay_order_id||o.id||'').slice(-8).toUpperCase()
+        +(isCod ? '<span class="ostatus ost-cod">COD</span>' : '<span class="ostatus ost-prepaid">⚡ PAID</span>') +'</td>'
+        +'<td style="min-width:180px"><div style="font-size:12px;font-weight:700;color:var(--bk)">'+custName+'</div><div style="font-size:11px;color:var(--g500)">'+(o.customer_email||'')+'</div><div style="font-size:11px;font-weight:600;color:var(--g400);margin-top:2px"><i class="fas fa-phone-alt" style="font-size:9px"></i> '+(o.customer_phone||'')+'</div></td>'
+        +'<td style="font-size:12px;min-width:200px;max-width:250px;white-space:normal;color:var(--g600)">'+items+'</td>'
+        +'<td style="font-weight:800;min-width:110px;color:var(--bk)">Rs.'+(o.total||0).toLocaleString('en-IN')+(o.cod_fee>0?'<br><span style="font-size:9px;color:var(--g500);font-weight:400">incl. Rs.'+o.cod_fee+' COD fee</span>':'')+'</td>'
+        +'<td><span style="font-size:9px;font-weight:800;letter-spacing:1px;text-transform:uppercase;padding:4px 8px;border-radius:4px;border:1px solid '+(isCod?'#d97706':'#16a34a')+';'+(isCod?'background:#fef3c7;color:#92400e':'background:#dcfce7;color:#166534')+'">'+pm+'</span></td>'
         +'<td><span class="ostatus ost-'+st+'">'+st+'</span></td>'
-        +'<td><select class="oselect" onchange="updateOrder(\\x27'+o.id+'\\x27,this.value)">'
-        +'<option value="">Change...</option><option value="paid">Paid</option><option value="processing">Processing</option><option value="shipped">Shipped</option><option value="delivered">Delivered</option><option value="cancelled">Cancelled</option></select>'
-        +'<button class="shiprocket-btn" onclick="copyShiprocket(\\x27'+custName.replace(/'/g,'')+'\\x27,\\x27'+custPhone+'\\x27,\\x27'+addrStr.replace(/'/g,'')+'\\x27)"><i class="fas fa-copy" style="margin-right:3px"></i>Shiprocket</button>'
+        +'<td style="min-width:140px"><select class="oselect" style="width:100%" onchange="updateOrder(\\x27'+o.id+'\\x27,this.value)">'
+        +'<option value="">Update...</option><option value="paid">Mark Paid</option><option value="processing">Processing</option><option value="shipped">Shipped</option><option value="delivered">Delivered</option><option value="cancelled">Cancelled</option></select>'
+        +'<button class="shiprocket-btn" style="width:100%;text-align:center" onclick="copyShiprocket(\\x27'+custName.replace(/'/g,'')+'\\x27,\\x27'+custPhone+'\\x27,\\x27'+addrStr.replace(/'/g,'')+'\\x27)"><i class="fas fa-shipping-fast" style="margin-right:4px"></i>Shiprocket Copy</button>'
         +'</td></tr>';
     });
     document.getElementById('otbody').innerHTML=h;

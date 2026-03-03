@@ -11,7 +11,7 @@ export function homePage(opts: {
   const products = opts.products;
   const legalPages = opts.legalPages;
 
-  const schema = JSON.stringify({"@context":"https://schema.org","@type":"ItemList","itemListElement":products.map((p,i)=>({"@type":"ListItem","position":i+1,"item":{"@type":"Product","name":p.name,"url":"https://intru.in/product/"+p.slug,"image":p.images,"offers":{"@type":"Offer","price":p.price,"priceCurrency":"INR","availability":"https://schema.org/InStock"}}}))});
+  const schema = JSON.stringify({ "@context": "https://schema.org", "@type": "ItemList", "itemListElement": products.map((p, i) => ({ "@type": "ListItem", "position": i + 1, "item": { "@type": "Product", "name": p.name, "url": "https://intru.in/product/" + p.slug, "image": p.images, "offers": { "@type": "Offer", "price": p.price, "priceCurrency": "INR", "availability": "https://schema.org/InStock" } } })) });
 
   const body = `<style>
 .hero{min-height:calc(100vh - 64px);display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:80px 24px;position:relative}
@@ -81,9 +81,9 @@ export function homePage(opts: {
 <div class="hero-scroll"><span>Scroll</span><div class="hero-line"></div></div>
 </section>
 
-<div class="mq"><div class="mqt">
-${Array(4).fill('<span class="mqi">Limited Stock Only</span><span class="mqi mqd">/</span><span class="mqi">No Fake Drops</span><span class="mqi mqd">/</span><span class="mqi">Free Shipping Over Rs.1,999</span><span class="mqi mqd">/</span><span class="mqi">Made With Love</span><span class="mqi mqd">/</span><span class="mqi">Made in India</span><span class="mqi mqd">/</span><span class="mqi">Never Restocked</span><span class="mqi mqd">/</span>').join('')}
-</div></div>
+    <div class="mq"><div class="mqt">
+${Array(4).fill('<span class="mqi">Limited Stock Only</span><span class="mqi mqd">/</span><span class="mqi">No Fake Drops</span><span class="mqi mqd">/</span><span class="mqi" style="color:#22c55e;opacity:1">Free Delivery on Prepaid ⚡</span><span class="mqi mqd">/</span><span class="mqi">Made With Love</span><span class="mqi mqd">/</span><span class="mqi">Made in India</span><span class="mqi mqd">/</span><span class="mqi">Never Restocked</span><span class="mqi mqd">/</span>').join('')}
+    </div></div>
 
 <section class="story" id="story">
 <p class="story-over anim">Our Story</p>
@@ -95,26 +95,26 @@ ${Array(4).fill('<span class="mqi">Limited Stock Only</span><span class="mqi mqd
 <div class="shdr"><p class="sover anim">The Collection</p><h2 class="stitle anim d1">Current Drop</h2></div>
 <div class="pgrid">
 ${products.map((p, i) => {
-  const d = p.comparePrice ? Math.round((1 - p.price / p.comparePrice) * 100) : 0;
-  return `<a href="/product/${p.slug}" class="pcard anim d${(i%4)+1}">
+    const d = p.comparePrice ? Math.round((1 - p.price / p.comparePrice) * 100) : 0;
+    return `<a href="/product/${p.slug}" class="pcard anim d${(i % 4) + 1}">
 <div class="pcimg">
-<img src="${p.images[0]}" alt="intru.in ${p.name} - View 1" loading="${i<3?'eager':'lazy'}" width="400" height="533">
-${p.images[1] ? '<img class="ih" src="'+p.images[1]+'" alt="intru.in '+p.name+' - View 2" loading="lazy" width="400" height="533" style="width:100%;height:100%;object-fit:cover">' : ''}
-${d>0?'<span class="pcbadge">Save '+d+'%</span>':''}
+<img src="${p.images[0]}" alt="intru.in ${p.name} - View 1" loading="${i < 3 ? 'eager' : 'lazy'}" width="400" height="533">
+${p.images[1] ? '<img class="ih" src="' + p.images[1] + '" alt="intru.in ' + p.name + ' - View 2" loading="lazy" width="400" height="533" style="width:100%;height:100%;object-fit:cover">' : ''}
+${d > 0 ? '<span class="pcbadge">Save ' + d + '%</span>' : ''}
 </div>
 <div class="pcinfo">
 <h3 class="pcname">${p.name}</h3>
 <p class="pctag">${p.tagline}</p>
 <div class="pcprice">
 <span class="cur">${STORE_CONFIG.currencySymbol}${p.price.toLocaleString('en-IN')}</span>
-${p.comparePrice?'<span class="cmp">'+STORE_CONFIG.currencySymbol+p.comparePrice.toLocaleString('en-IN')+'</span>':''}
-${d>0?'<span class="sv">'+d+'% OFF</span>':''}
+${p.comparePrice ? '<span class="cmp">' + STORE_CONFIG.currencySymbol + p.comparePrice.toLocaleString('en-IN') + '</span>' : ''}
+${d > 0 ? '<span class="sv">' + d + '% OFF</span>' : ''}
 </div></div></a>`;
-}).join('\n')}
+  }).join('\n')}
 </div></section>
 
-<section class="feats">
-<div class="feat anim"><div class="ficon"><i class="fas fa-truck"></i></div><h4>Free Shipping</h4><p>Orders above Rs.1,999</p></div>
+    <section class="feats">
+      <div class="feat anim"><div class="ficon" style="color:#16a34a;border-color:#16a34a"><i class="fas fa-truck-fast"></i></div><h4>Free Delivery</h4><p>On all Prepaid orders</p></div>
 <div class="feat anim d1"><div class="ficon"><i class="fas fa-bolt"></i></div><h4>Fast Dispatch</h4><p>Processed within 36 hours</p></div>
 <div class="feat anim d2"><div class="ficon"><i class="fas fa-shield-alt"></i></div><h4>Secure Payment</h4><p>Razorpay protected</p></div>
 <div class="feat anim d3"><div class="ficon"><i class="fas fa-exchange-alt"></i></div><h4>Limited Drop</h4><p>36h exchange request</p></div>
@@ -130,7 +130,7 @@ ${d>0?'<span class="sv">'+d+'% OFF</span>':''}
 <p class="sover">Follow Us</p>
 <h3 style="font-family:var(--head);font-size:24px;text-transform:uppercase;letter-spacing:-.02em;margin-bottom:28px">@${STORE_CONFIG.instagram}</h3>
 <div class="iggrid" id="igHomeGrid">
-${products.slice(0,5).map((p,i)=>'<a href="https://instagram.com/'+STORE_CONFIG.instagram+'" target="_blank" rel="noopener" class="igit"><img src="'+p.images[i % p.images.length]+'" alt="intru.in Instagram" loading="lazy" width="300" height="300"></a>').join('')}
+${products.slice(0, 5).map((p, i) => '<a href="https://instagram.com/' + STORE_CONFIG.instagram + '" target="_blank" rel="noopener" class="igit"><img src="' + p.images[i % p.images.length] + '" alt="intru.in Instagram" loading="lazy" width="300" height="300"></a>').join('')}
 </div></section>
 
 <section class="nlsec" id="newsletter">
