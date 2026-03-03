@@ -4,10 +4,10 @@
 - **Name**: intru.in
 - **Goal**: High-conversion streetwear e-commerce with frictionless checkout
 - **Stack**: Hono + TypeScript + Cloudflare Pages + Supabase + Razorpay + Resend
-- **Version**: v7
+- **Version**: v8
 
 ## URLs
-- **Production**: https://intru-in.pages.dev (staging) → https://intru.in (custom domain)
+- **Production**: https://intru-genz.pages.dev (staging) → https://intru.in (custom domain pending)
 - **GitHub**: https://github.com/Kbs-sol/intru-genz
 - **Admin**: Hidden — enter Konami Code (↑↑↓↓←→←→BA) on any page
 
@@ -161,7 +161,17 @@ npx wrangler pages secret put RAZORPAY_WEBHOOK_SECRET --project-name intru-in
 ## Deployment
 - **Platform**: Cloudflare Pages
 - **Status**: ✅ Active
-- **Last Updated**: 2026-03-03
+- **Last Updated**: 2026-03-03 (v8)
+
+## Full System Documentation
+
+See **[SYSTEM_LITERACY.md](./SYSTEM_LITERACY.md)** for complete architecture reference, including:
+- All API endpoints with request/response formats
+- Database schema with column types
+- Authentication & checkout flows
+- Frontend JS architecture
+- Troubleshooting guide
+- AI assistant quick reference
 
 ## Custom Domain Setup (intru.in from GoDaddy)
 
