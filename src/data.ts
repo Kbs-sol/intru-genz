@@ -400,6 +400,97 @@ export async function hmacSHA256(key: string, data: string): Promise<string> {
   return Array.from(new Uint8Array(signature)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
+// ============ Magic Checkout line_item builder ============
+
+export interface MagicLineItem {
+  type: string;
+  sku: string;
+  variant_id: string;
+  price: number;          // paise
+  offer_price: number;    // paise (after discount)
+  tax_amount: number;
+  quantity: number;
+  name: string;
+  description: string;
+  weight: number;         // grams
+  image_url: string;
+  product_url: string;
+}
+
+export function buildMagicLineItems(
+  validatedItems: { productId: string; name: string; size: string; quantity: number; unitPrice: number; lineTotal: number; image?: string; slug?: string; description?: string }[]
+): { line_items: MagicLineItem[]; line_items_total: number } {
+  let lineItemsTotal = 0;
+  const line_items: MagicLineItem[] = validatedItems.map(item => {
+    const pricePaise = item.unitPrice * 100;
+    const totalPaise = item.lineTotal * 100;
+    lineItemsTotal += totalPaise;
+    return {
+      type: 'e-commerce',
+      sku: item.productId,
+      variant_id: `${item.productId}_${item.size}`,
+      price: pricePaise,
+      offer_price: pricePaise,  // same as price (no per-item discount)
+      tax_amount: 0,            // prices are tax-inclusive
+      quantity: item.quantity,
+      name: item.name,
+      description: item.description || item.name,
+      weight: 250,              // ~250g per garment
+      image_url: item.image || '',
+      product_url: `https://intru.in/product/${item.slug || item.productId}`,
+    };
+  });
+  return { line_items, line_items_total: lineItemsTotal };
+}
+
+/**
+ * Create a Razorpay Magic Checkout order.
+ * Sends line_items + line_items_total so Razorpay activates the Magic flow
+ * (address collection, COD intelligence, 1-click checkout).
+ */
+export async function createMagicCheckoutOrder(
+  keyId: string,
+  keySecret: string,
+  amount: number,           // INR (not paise)
+  receipt: string,
+  lineItems: MagicLineItem[],
+  lineItemsTotal: number,   // paise
+) {
+  const auth = btoa(`${keyId}:${keySecret}`);
+  const res = await fetch('https://api.razorpay.com/v1/orders', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Basic ${auth}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      amount: amount * 100,       // paise
+      currency: 'INR',
+      receipt,
+      notes: { store: 'intru.in' },
+      line_items_total: lineItemsTotal,
+      line_items: lineItems,
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Razorpay Magic Checkout order creation failed: ${err}`);
+  }
+  return res.json();
+}
+
+/** Fetch full order details (including shipping address) after payment */
+export async function fetchRazorpayOrder(keyId: string, keySecret: string, orderId: string) {
+  const auth = btoa(`${keyId}:${keySecret}`);
+  const res = await fetch(`https://api.razorpay.com/v1/orders/${orderId}`, {
+    method: 'GET',
+    headers: { 'Authorization': `Basic ${auth}` },
+  });
+  if (!res.ok) return null;
+  return res.json();
+}
+
+// Legacy helper kept for backward compatibility
 export async function createRazorpayOrder(keyId: string, keySecret: string, amount: number, receipt: string) {
   const auth = btoa(`${keyId}:${keySecret}`);
   const res = await fetch('https://api.razorpay.com/v1/orders', {
@@ -409,7 +500,7 @@ export async function createRazorpayOrder(keyId: string, keySecret: string, amou
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      amount: amount * 100, // paise
+      amount: amount * 100,
       currency: 'INR',
       receipt,
       notes: { store: 'intru.in' },

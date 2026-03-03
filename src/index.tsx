@@ -3,7 +3,8 @@ import { cors } from 'hono/cors'
 import {
   STORE_CONFIG, SEED_PRODUCTS, SEED_LEGAL_PAGES,
   type Env, type Product,
-  createRazorpayOrder, hmacSHA256, supabaseFetch,
+  createRazorpayOrder, createMagicCheckoutOrder, fetchRazorpayOrder,
+  buildMagicLineItems, hmacSHA256, supabaseFetch,
   fetchProducts, fetchProductBySlug, fetchProductById, fetchLegalPages,
 } from './data'
 import { homePage } from './pages/home'
@@ -182,13 +183,14 @@ app.get('/api/products/:id', async (c) => {
   return c.json({ product })
 })
 
-// ============ CHECKOUT: DB-validated prices + Razorpay order creation ============
+// ============ CHECKOUT: Magic Checkout — line_items + COD-ready ============
 
 app.post('/api/checkout', async (c) => {
   try {
     const body = await c.req.json()
     const items = body.items
     const userEmail = body.userEmail || ''
+    const userPhone = body.userPhone || ''
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return c.json({ error: 'No items in cart' }, 400)
@@ -204,7 +206,6 @@ app.post('/api/checkout', async (c) => {
     const validatedItems: any[] = []
 
     for (const item of items) {
-      // Fetch live product from Supabase (falls back to SEED_PRODUCTS)
       const product = await fetchProductById(sbUrl, sbKey, item.productId);
       if (!product) {
         return c.json({ error: `Product ${item.productId} not found` }, 400)
@@ -227,13 +228,16 @@ app.post('/api/checkout', async (c) => {
         quantity: qty,
         unitPrice: product.price,
         lineTotal,
+        image: product.images[0] || '',
+        slug: product.slug,
+        description: product.description,
       })
     }
 
     const shipping = subtotal >= STORE_CONFIG.freeShippingThreshold ? 0 : STORE_CONFIG.shippingCost
     const total = subtotal + shipping
 
-    // Step 2: Create Razorpay order
+    // Step 2: Create Razorpay Magic Checkout order (with line_items)
     const rzpKeyId = getEnv(c.env, 'RAZORPAY_KEY_ID');
     const rzpKeySecret = getEnv(c.env, 'RAZORPAY_KEY_SECRET');
 
@@ -242,10 +246,15 @@ app.post('/api/checkout', async (c) => {
     if (rzpKeyId && rzpKeySecret) {
       try {
         const receipt = 'intru_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 7);
-        const rzpOrder = await createRazorpayOrder(rzpKeyId, rzpKeySecret, total, receipt);
+        const { line_items, line_items_total } = buildMagicLineItems(validatedItems);
+
+        // Use Magic Checkout order creation (sends line_items so Razorpay activates Magic flow)
+        const rzpOrder = await createMagicCheckoutOrder(
+          rzpKeyId, rzpKeySecret, total, receipt, line_items, line_items_total
+        );
         razorpayOrderId = rzpOrder.id;
 
-        // Step 3: Store pending order in Supabase
+        // Step 3: Store pending order in Supabase (address comes later via webhook/callback)
         if (sbUrl && sbKey) {
           try {
             await supabaseFetch(sbUrl, sbKey, 'orders', {
@@ -256,6 +265,7 @@ app.post('/api/checkout', async (c) => {
                 subtotal, shipping, total,
                 customer_email: userEmail,
                 status: 'pending',
+                payment_method: 'pending', // will be updated by webhook (prepaid / cod)
                 created_at: new Date().toISOString(),
               }),
             });
@@ -275,13 +285,55 @@ app.post('/api/checkout', async (c) => {
       currency: 'INR',
       razorpayOrderId,
       storeCredit: 0,
+      // Pass prefill data back to frontend for Magic Checkout modal
+      prefill: { email: userEmail, contact: userPhone },
     })
   } catch (e: any) {
     return c.json({ error: e.message || 'Checkout failed' }, 500)
   }
 })
 
-// ============ PAYMENT VERIFICATION ============
+// ============ SHIPPING INFO API (Magic Checkout calls this) ============
+// Magic Checkout sends customer address here; we return serviceability + shipping fees
+// Configure this URL in Razorpay Dashboard → Magic Checkout → Shipping Setup → API
+
+app.post('/api/shipping-info', async (c) => {
+  try {
+    const body = await c.req.json();
+    // body contains: { order_id, razorpay_order_id, email, contact, addresses: [{ zipcode, state_code, country }] }
+    const addresses = body.addresses || [];
+
+    // Build shipping response for each address
+    const addressResponses = addresses.map((addr: any) => {
+      const zipcode = addr.zipcode || '';
+      // India-only shipping; simple serviceability check
+      const serviceable = addr.country === 'in' || !addr.country;
+
+      return {
+        zipcode,
+        state_code: addr.state_code || '',
+        country: addr.country || 'in',
+        shipping_methods: [
+          {
+            id: 'standard',
+            name: 'Standard Delivery',
+            description: 'Dispatched within 36 hours. Delivery in 3–7 business days.',
+            serviceable,
+            shipping_fee: 9900, // Rs.99 in paise (overridden to 0 if free shipping threshold met)
+            cod: true,
+            cod_fee: 0,  // no extra COD fee
+          }
+        ],
+      };
+    });
+
+    return c.json({ addresses: addressResponses });
+  } catch (e: any) {
+    return c.json({ addresses: [] }, 200);
+  }
+})
+
+// ============ PAYMENT VERIFICATION (post Magic Checkout) ============
 
 app.post('/api/payment/verify', async (c) => {
   try {
@@ -292,6 +344,7 @@ app.post('/api/payment/verify', async (c) => {
       return c.json({ error: 'Missing payment details' }, 400)
     }
 
+    const rzpKeyId = getEnv(c.env, 'RAZORPAY_KEY_ID');
     const rzpKeySecret = getEnv(c.env, 'RAZORPAY_KEY_SECRET');
     if (!rzpKeySecret) {
       return c.json({ error: 'Payment verification not configured' }, 500)
@@ -304,20 +357,42 @@ app.post('/api/payment/verify', async (c) => {
       return c.json({ error: 'Payment verification failed. Signature mismatch.' }, 400)
     }
 
-    // Update order in Supabase
+    // Fetch full order from Razorpay to get shipping address collected by Magic Checkout
+    let shippingAddress: any = null;
+    let customerEmail = '';
+    let customerPhone = '';
+    if (rzpKeyId && rzpKeySecret) {
+      try {
+        const rzpOrder = await fetchRazorpayOrder(rzpKeyId, rzpKeySecret, razorpay_order_id);
+        if (rzpOrder) {
+          shippingAddress = rzpOrder.customer_details?.shipping_address || null;
+          customerEmail = rzpOrder.customer_details?.email || '';
+          customerPhone = rzpOrder.customer_details?.contact || '';
+        }
+      } catch (e) {
+        console.error('Failed to fetch Razorpay order details:', e);
+      }
+    }
+
+    // Update order in Supabase (mark paid + save address from Magic Checkout)
     const sbUrl = getEnv(c.env, 'SUPABASE_URL');
     const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY') || getEnv(c.env, 'SUPABASE_ANON_KEY');
 
     if (sbUrl && sbKey) {
       try {
+        const updatePayload: any = {
+          status: 'paid',
+          payment_method: 'prepaid',
+          razorpay_payment_id,
+          razorpay_signature,
+          paid_at: new Date().toISOString(),
+        };
+        if (shippingAddress) updatePayload.shipping_address = shippingAddress;
+        if (customerEmail) updatePayload.customer_email = customerEmail;
+
         await supabaseFetch(sbUrl, sbKey, `orders?razorpay_order_id=eq.${razorpay_order_id}`, {
           method: 'PATCH',
-          body: JSON.stringify({
-            status: 'paid',
-            razorpay_payment_id,
-            razorpay_signature,
-            paid_at: new Date().toISOString(),
-          }),
+          body: JSON.stringify(updatePayload),
         });
       } catch (e) {
         console.error('Failed to update order in Supabase:', e);
@@ -335,7 +410,7 @@ app.post('/api/payment/verify', async (c) => {
   }
 })
 
-// ============ RAZORPAY WEBHOOK ============
+// ============ RAZORPAY WEBHOOK (Magic Checkout: order.created, payment.captured, payment.failed) ============
 
 app.post('/api/webhooks/razorpay', async (c) => {
   try {
@@ -357,21 +432,115 @@ app.post('/api/webhooks/razorpay', async (c) => {
 
     const sbUrl = getEnv(c.env, 'SUPABASE_URL');
     const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY') || getEnv(c.env, 'SUPABASE_ANON_KEY');
+    const rzpKeyId = getEnv(c.env, 'RAZORPAY_KEY_ID');
+    const rzpKeySecret = getEnv(c.env, 'RAZORPAY_KEY_SECRET');
 
+    // ---- order.created: COD order placed via Magic Checkout ----
+    if (eventType === 'order.created' && sbUrl && sbKey) {
+      const order = event.payload?.order?.entity;
+      if (order?.id) {
+        // Fetch full order details to get shipping address + COD info
+        let shippingAddress: any = null;
+        let customerDetails: any = null;
+        let codFee = 0;
+        let rtoRiskLevel = 'unknown';
+
+        if (rzpKeyId && rzpKeySecret) {
+          try {
+            const fullOrder = await fetchRazorpayOrder(rzpKeyId, rzpKeySecret, order.id);
+            if (fullOrder) {
+              shippingAddress = fullOrder.customer_details?.shipping_address || null;
+              customerDetails = fullOrder.customer_details || null;
+              codFee = fullOrder.cod_fee || 0;
+              // Razorpay sends rto_risk in notes or metadata for Magic Checkout
+              rtoRiskLevel = fullOrder.notes?.rto_risk_level
+                || fullOrder.rto_risk_level
+                || order.notes?.rto_risk_level
+                || 'unknown';
+            }
+          } catch (e) {
+            console.error('Failed to fetch order details for COD:', e);
+          }
+        }
+
+        // Check if order already exists (was pre-created at /api/checkout)
+        try {
+          const existingRes = await supabaseFetch(sbUrl, sbKey, `orders?razorpay_order_id=eq.${order.id}&select=id`);
+          const existing = existingRes.ok ? (await existingRes.json() as any[]) : [];
+
+          if (existing.length > 0) {
+            // Update existing order with COD details
+            await supabaseFetch(sbUrl, sbKey, `orders?razorpay_order_id=eq.${order.id}`, {
+              method: 'PATCH',
+              body: JSON.stringify({
+                status: 'placed',  // COD orders are "placed" not "paid"
+                payment_method: 'cod',
+                cod_fee: codFee,
+                rto_risk_level: rtoRiskLevel,
+                shipping_address: shippingAddress,
+                customer_email: customerDetails?.email || '',
+              }),
+            });
+          } else {
+            // Create new order row (if /api/checkout wasn't called or failed)
+            await supabaseFetch(sbUrl, sbKey, 'orders', {
+              method: 'POST',
+              body: JSON.stringify({
+                razorpay_order_id: order.id,
+                items: [],
+                subtotal: (order.amount || 0) / 100,
+                shipping: 0,
+                total: (order.amount || 0) / 100,
+                status: 'placed',
+                payment_method: 'cod',
+                cod_fee: codFee,
+                rto_risk_level: rtoRiskLevel,
+                shipping_address: shippingAddress,
+                customer_email: customerDetails?.email || '',
+                created_at: new Date().toISOString(),
+              }),
+            });
+          }
+        } catch (e) {
+          console.error('Failed to save COD order:', e);
+        }
+      }
+    }
+
+    // ---- payment.captured: Prepaid payment confirmed ----
     if (eventType === 'payment.captured' && sbUrl && sbKey) {
       const payment = event.payload?.payment?.entity;
       if (payment?.order_id) {
+        const updatePayload: any = {
+          status: 'paid',
+          payment_method: payment.method || 'prepaid',
+          razorpay_payment_id: payment.id,
+          paid_at: new Date().toISOString(),
+        };
+
+        // Fetch full order to get address if we don't have it yet
+        if (rzpKeyId && rzpKeySecret) {
+          try {
+            const fullOrder = await fetchRazorpayOrder(rzpKeyId, rzpKeySecret, payment.order_id);
+            if (fullOrder?.customer_details?.shipping_address) {
+              updatePayload.shipping_address = fullOrder.customer_details.shipping_address;
+            }
+            if (fullOrder?.customer_details?.email) {
+              updatePayload.customer_email = fullOrder.customer_details.email;
+            }
+          } catch (e) {
+            console.error('Failed to fetch order for payment.captured:', e);
+          }
+        }
+
         await supabaseFetch(sbUrl, sbKey, `orders?razorpay_order_id=eq.${payment.order_id}`, {
           method: 'PATCH',
-          body: JSON.stringify({
-            status: 'paid',
-            razorpay_payment_id: payment.id,
-            paid_at: new Date().toISOString(),
-          }),
+          body: JSON.stringify(updatePayload),
         });
       }
     }
 
+    // ---- payment.failed: Payment attempt failed ----
     if (eventType === 'payment.failed' && sbUrl && sbKey) {
       const payment = event.payload?.payment?.entity;
       if (payment?.order_id) {

@@ -156,7 +156,7 @@ CREATE TABLE IF NOT EXISTS orders (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Migration: add user_id column + CHECK constraints to existing orders table
+-- Migration: add user_id column + Magic Checkout columns + CHECK constraints to existing orders table
 DO $$
 BEGIN
   -- Add user_id column if missing
@@ -165,6 +165,30 @@ BEGIN
     WHERE table_schema = 'public' AND table_name = 'orders' AND column_name = 'user_id'
   ) THEN
     ALTER TABLE orders ADD COLUMN user_id UUID;
+  END IF;
+
+  -- Add payment_method column (Magic Checkout: 'prepaid', 'cod', 'upi', 'card', etc.)
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'orders' AND column_name = 'payment_method'
+  ) THEN
+    ALTER TABLE orders ADD COLUMN payment_method TEXT DEFAULT 'pending';
+  END IF;
+
+  -- Add cod_fee column (COD fee in paise from Magic Checkout)
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'orders' AND column_name = 'cod_fee'
+  ) THEN
+    ALTER TABLE orders ADD COLUMN cod_fee INTEGER DEFAULT 0;
+  END IF;
+
+  -- Add rto_risk_level column (Magic Checkout COD Intelligence)
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'orders' AND column_name = 'rto_risk_level'
+  ) THEN
+    ALTER TABLE orders ADD COLUMN rto_risk_level TEXT DEFAULT 'unknown';
   END IF;
 
   -- Add FK orders.user_id -> auth.users(id)
@@ -226,7 +250,7 @@ BEGIN
   ) THEN
     BEGIN
       ALTER TABLE orders ADD CONSTRAINT orders_status_check
-        CHECK (status IN ('pending', 'paid', 'payment_failed', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded'));
+        CHECK (status IN ('pending', 'placed', 'paid', 'payment_failed', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded'));
     EXCEPTION WHEN duplicate_object THEN NULL;
     END;
   END IF;

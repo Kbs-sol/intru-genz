@@ -36,8 +36,8 @@ ${opt?.schema ? '<script type="application/ld+json">' + opt.schema + '</script>'
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Archivo+Black&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.0/css/all.min.css">
-<!-- Razorpay Checkout SDK -->
-<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<!-- Razorpay Magic Checkout SDK (replaces standard checkout.js) -->
+<script src="https://checkout.razorpay.com/v1/magic-checkout.js"></script>
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 :root{--bk:#0a0a0a;--wh:#fafafa;--g50:#f5f5f5;--g100:#e8e8e8;--g200:#d4d4d4;--g300:#a3a3a3;--g400:#737373;--g500:#525252;--g600:#404040;--red:#e53e3e;--green:#16a34a;--sans:'Space Grotesk',sans-serif;--head:'Archivo Black','Space Grotesk',sans-serif;--ease:cubic-bezier(.25,.46,.45,.94);--eo:cubic-bezier(.16,1,.3,1)}
@@ -114,7 +114,7 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 <div class="cst"><span>Subtotal</span><span id="csub">${STORE_CONFIG.currencySymbol}0</span></div>
 <div class="csh"><span>Shipping</span><span id="cshp">Calculated</span></div>
 <div class="ctl"><span>Total</span><span id="ctot">${STORE_CONFIG.currencySymbol}0</span></div>
-<button class="ccbtn" id="checkoutBtn" onclick="checkout()">Pay with Razorpay</button>
+<button class="ccbtn" id="checkoutBtn" onclick="checkout()">Checkout</button>
 <p class="cpolicy">By placing an order, you agree to the intru.in <a href="/p/terms">Terms of Service</a> and our <a href="/p/returns">Store-Credit-only Refund Policy</a>.</p>
 </div></div>
 <main style="padding-top:64px">${body}</main>
@@ -241,7 +241,7 @@ function openCartDrawer(){
   document.body.style.overflow='hidden';
 }
 
-/* ====== BUY NOW ====== */
+/* ====== BUY NOW (Magic Checkout — direct to modal) ====== */
 function buyNow(productId,size){
   if(!size){toast('Please select a size first','err');return}
   var p=PM[productId];
@@ -252,19 +252,22 @@ function buyNow(productId,size){
   checkout();
 }
 
-/* ====== CHECKOUT -> RAZORPAY ====== */
+/* ====== CHECKOUT -> RAZORPAY MAGIC CHECKOUT ====== */
 function checkout(){
   if(!cart.length){toast('Your bag is empty','err');return}
   var btn=document.getElementById('checkoutBtn');
-  btn.disabled=true;
-  btn.textContent='CREATING ORDER...';
+  if(btn){btn.disabled=true;btn.textContent='CREATING ORDER...';}
+
+  var userObj={};
+  try{userObj=JSON.parse(localStorage.getItem('intru_user')||'{}');}catch(e){}
 
   fetch('/api/checkout',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({
       items:cart.map(function(i){return{productId:i.p,size:i.s,quantity:i.q}}),
-      userEmail:localStorage.getItem('intru_user_email')||''
+      userEmail:userObj.email||localStorage.getItem('intru_user_email')||'',
+      userPhone:localStorage.getItem('intru_user_phone')||''
     })
   })
   .then(function(r){return r.json()})
@@ -272,25 +275,25 @@ function checkout(){
     if(data.error){throw new Error(data.error)}
     if(!data.razorpayOrderId){
       toast('Order total: '+fmt(data.total)+'. Configure Razorpay keys to enable payments.','err');
-      btn.disabled=false;btn.textContent='PAY WITH RAZORPAY';
-      return;
+      resetBtn();return;
     }
     if(typeof Razorpay==='undefined'){
       toast('Payment SDK failed to load. Please refresh.','err');
-      btn.disabled=false;btn.textContent='PAY WITH RAZORPAY';
-      return;
+      resetBtn();return;
     }
+    /* ---- MAGIC CHECKOUT OPTIONS ---- */
     var options={
       key:S.rk,
-      amount:data.total*100,
-      currency:'INR',
-      name:'intru.in',
-      description:'Order #'+data.razorpayOrderId.slice(-8),
+      /* Magic Checkout flag — this activates the 1-click flow */
+      one_click_checkout:true,
+      /* Order created server-side with line_items (Magic order) */
       order_id:data.razorpayOrderId,
-      image:'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=100&h=100&fit=crop&q=80',
+      name:'intru.in',
+      show_coupons:false,
+      /* Prefill phone/email — Magic Checkout auto-fills address from phone */
       prefill:{
-        email:localStorage.getItem('intru_user_email')||'',
-        contact:''
+        email:data.prefill&&data.prefill.email||userObj.email||'',
+        contact:data.prefill&&data.prefill.contact||''
       },
       notes:{
         items:JSON.stringify(cart.map(function(i){return i.p+':'+i.s+'x'+i.q}))
@@ -301,53 +304,54 @@ function checkout(){
       },
       modal:{
         ondismiss:function(){
-          btn.disabled=false;
-          btn.textContent='PAY WITH RAZORPAY';
-          toast('Payment cancelled','err');
+          resetBtn();
+          toast('Checkout cancelled','err');
         }
       },
+      /* handler fires for prepaid payments (UPI/card/wallet) */
       handler:function(response){
-        btn.textContent='VERIFYING PAYMENT...';
+        if(btn)btn.textContent='VERIFYING PAYMENT...';
         fetch('/api/payment/verify',{
           method:'POST',
           headers:{'Content-Type':'application/json'},
           body:JSON.stringify({
             razorpay_order_id:response.razorpay_order_id,
             razorpay_payment_id:response.razorpay_payment_id,
-            razorpay_signature:response.razorpay_signature,
-            items:cart.map(function(i){return{productId:i.p,size:i.s,quantity:i.q}}),
-            userEmail:localStorage.getItem('intru_user_email')||''
+            razorpay_signature:response.razorpay_signature
           })
         })
         .then(function(r){return r.json()})
         .then(function(vd){
           if(vd.success){
-            cart=[];
-            saveCart();
-            toggleCart();
-            toast('Payment successful! Order confirmed.','ok-green');
-            setTimeout(function(){
-              if(vd.orderId){toast('Order ID: '+vd.orderId,'ok')}
-            },1500);
+            cart=[];saveCart();toggleCart();
+            toast('Order confirmed! Thank you.','ok-green');
+            setTimeout(function(){if(vd.orderId){toast('Order ID: '+vd.orderId,'ok')}},1500);
           } else {
-            toast('Payment verification failed: '+(vd.error||'Unknown error'),'err');
+            toast('Verification failed: '+(vd.error||'Unknown'),'err');
           }
         })
         .catch(function(e){toast('Verification error: '+e.message,'err')})
-        .finally(function(){btn.disabled=false;btn.textContent='PAY WITH RAZORPAY'});
-      }
+        .finally(function(){resetBtn()});
+      },
+      /* callback_url alternative — Magic Checkout can also redirect */
+      /* callback_url: 'https://intru.in/api/payment/verify', */
     };
     var rzp=new Razorpay(options);
     rzp.on('payment.failed',function(response){
-      toast('Payment failed: '+response.error.description,'err');
-      btn.disabled=false;btn.textContent='PAY WITH RAZORPAY';
+      toast('Payment failed: '+(response.error&&response.error.description||'Unknown error'),'err');
+      resetBtn();
     });
     rzp.open();
   })
   .catch(function(e){
     toast('Checkout error: '+e.message,'err');
-    btn.disabled=false;btn.textContent='PAY WITH RAZORPAY';
+    resetBtn();
   });
+}
+
+function resetBtn(){
+  var btn=document.getElementById('checkoutBtn');
+  if(btn){btn.disabled=false;btn.textContent='CHECKOUT';}
 }
 
 /* ====== TOAST ====== */
