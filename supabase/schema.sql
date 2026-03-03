@@ -286,6 +286,12 @@ BEGIN
   END IF;
 END $$;
 
+-- FIX: If the constraint already exists but is missing 'placed', drop and recreate
+-- Run this ONCE in Supabase SQL Editor to fix existing databases:
+-- ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_status_check;
+-- ALTER TABLE orders ADD CONSTRAINT orders_status_check
+--   CHECK (status IN ('pending','placed','paid','payment_failed','processing','shipped','delivered','cancelled','refunded'));
+
 CREATE INDEX IF NOT EXISTS idx_orders_razorpay_order_id ON orders(razorpay_order_id);
 CREATE INDEX IF NOT EXISTS idx_orders_customer_email ON orders(customer_email);
 CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);

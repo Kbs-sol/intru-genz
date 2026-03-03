@@ -342,7 +342,7 @@ app.post('/api/checkout/cod', async (c) => {
           items: validatedItems, subtotal, shipping, total,
           customer_name: userName, customer_email: userEmail,
           customer_phone: userPhone,
-          status: 'placed', payment_method: 'cod', cod_fee: codFee,
+          status: 'pending', payment_method: 'cod', cod_fee: codFee,
           shipping_address: address,
           created_at: new Date().toISOString(),
         };
@@ -549,7 +549,7 @@ app.post('/api/webhooks/razorpay', async (c) => {
           const existing = existingRes.ok ? (await existingRes.json() as any[]) : [];
 
           const updateData: any = {
-            status: 'placed', payment_method: 'cod',
+            status: 'pending', payment_method: 'cod',
             cod_fee: codFee, rto_risk_level: rtoRiskLevel,
             shipping_address: shippingAddress,
             customer_email: customerDetails?.email || '',
