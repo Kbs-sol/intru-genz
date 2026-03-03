@@ -562,7 +562,7 @@ export async function sendResendEmail(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: from || 'intru.in <noreply@intru.in>',
+        from: from || 'intru.in <noreply@order.intru.in>',
         to: Array.isArray(to) ? to : [to],
         subject,
         html,
