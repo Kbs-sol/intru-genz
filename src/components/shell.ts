@@ -94,7 +94,8 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 /* AI Stylist Widget [AG] */
 .aiw{position:fixed;bottom:24px;right:24px;z-index:100;display:flex;flex-direction:column;align-items:flex-end;gap:16px;font-family:inherit}
 .ai-btn{width:56px;height:56px;border-radius:50%;background:var(--bk);color:var(--wh);display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;box-shadow:0 8px 32px rgba(0,0,0,.2);transition:all .4s var(--eo);position:relative;overflow:hidden}.ai-btn:hover{transform:scale(1.05) translateY(-2px)}
-.ai-dot{position:absolute;top:12px;right:12px;width:10px;height:10px;background:var(--green);border-radius:50%;border:2px solid var(--bk)}
+.ai-dot{position:absolute;top:12px;right:12px;width:10px;height:10px;background:var(--green);border-radius:50%;border:2px solid var(--bk);animation:ai-pulse 2s infinite}
+@keyframes ai-pulse{0%{box-shadow:0 0 0 0 rgba(34,197,94,.7)}70%{box-shadow:0 0 0 8px rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}
 .ai-pop{position:absolute;bottom:70px;right:0;width:360px;max-width:calc(100vw - 48px);height:500px;max-height:calc(100vh - 120px);background:rgba(255,255,255,.9);backdrop-filter:blur(24px);border:1px solid rgba(0,0,0,.05);border-radius:16px;box-shadow:0 12px 60px rgba(0,0,0,.15);display:none;flex-direction:column;overflow:hidden;transform:translateY(20px);opacity:0;transition:all .4s var(--eo)}.ai-pop.open{display:flex;transform:translateY(0);opacity:1}
 .ai-hdr{padding:16px 20px;background:var(--bk);color:var(--wh);display:flex;align-items:center;justify-content:space-between}
 .ai-hdr h4{font-size:12px;font-weight:800;letter-spacing:1px;text-transform:uppercase;margin:0}
@@ -284,7 +285,7 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
     </div>
   </div>
   <div class="ai-btn" onclick="toggleAIChat()">
-    <i class="fas fa-magic"></i>
+    <i class="fas fa-tshirt"></i>
     <div class="ai-dot"></div>
   </div>
 </div>
