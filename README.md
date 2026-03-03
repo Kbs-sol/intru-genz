@@ -4,9 +4,10 @@
 - **Name**: intru.in
 - **Goal**: High-conversion streetwear e-commerce with frictionless checkout
 - **Stack**: Hono + TypeScript + Cloudflare Pages + Supabase + Razorpay + Resend
+- **Version**: v7
 
 ## URLs
-- **Production**: https://intru-in.pages.dev
+- **Production**: https://intru-in.pages.dev (staging) → https://intru.in (custom domain)
 - **GitHub**: https://github.com/Kbs-sol/intru-genz
 - **Admin**: Hidden — enter Konami Code (↑↑↓↓←→←→BA) on any page
 
@@ -19,15 +20,25 @@
 - Google One-Tap with `data-itp_support="true"`, `data-auto_select="false"`, and redirect fallback
 - No `/login` or `/register` routes — identity is captured only when needed
 
-### Unified Checkout Flow (v6)
+### Google Auth (v7 — Popup-Block Fix)
+- **One-Tap flow**: `data-itp_support="true"`, `data-auto_select="false"`, `data-auto_prompt="false"`
+- **Redirect fallback** (`doGoogleRedirect()`): uses `response_type=id_token` (JWT), redirects to `/auth/google/callback`
+- **Callback page** (`/auth/google/callback`): extracts `id_token` from URL fragment, sends to `/api/auth/google` API, saves user to localStorage, sets `intru_auth_success` sessionStorage flag, then redirects to homepage
+- **Access token fallback**: if only `access_token` received (legacy), calls Google userinfo API to get email/name
+- **Session persistence**: cart backed up to sessionStorage before redirect; restored + checkout auto-resumes after auth
+- High-contrast "Sign in with Google" button in Identity overlay
+- All auth prompts reference `shop@intru.in`
+
+### Unified Checkout Flow (v6+v7)
 **Both "Buy Now" and "Checkout from Bag" open the same Hybrid Payment Selection UI:**
 - "Buy Now" adds item to a temporary session cart and opens the cart drawer
 - Cart drawer shows the Prepaid/COD payment mode selector
 - User selects payment method, then clicks "Checkout"
+- **Session persistence**: checkout intent survives Google redirect; auto-resumes
 
 **Option A — Manual COD Mode (default, `USE_MAGIC_CHECKOUT = false`):**
 - **Prepaid**: Bright green badge "⚡ SAVE Rs.99 / FREE SHIPPING" → Razorpay standard checkout
-- **COD**: Gray badge "Rs.99 Convenience Fee added" + ₹99 fee → inline address form
+- **COD**: Gray badge "Rs.99 Convenience Fee added" + Rs.99 fee → inline address form
 - Payment mode selector visible in cart drawer
 
 **Option B — Razorpay Magic Mode (`USE_MAGIC_CHECKOUT = true`):**
@@ -45,13 +56,6 @@
 - **COD success** → "NEW COD ORDER - Action Required — [name] — Rs.[total]" email to manager
 - Emails triggered server-side; requires `RESEND_API_KEY` in Cloudflare secrets
 - Only sent when orderId exists (prevents empty email sends)
-
-### Google Auth (Popup-Block Fix)
-- `data-itp_support="true"` for ITP-aware browsers
-- `data-auto_select="false"` prevents auto-selection popup
-- `doGoogleRedirect()` fallback: if Google One-Tap popup is blocked, redirects to Google OAuth consent screen
-- High-contrast "Sign in with Google" button in Identity overlay
-- All auth prompts reference `shop@intru.in`
 
 ## Supabase Schema (v6)
 
@@ -100,7 +104,7 @@ npx wrangler pages secret put RAZORPAY_WEBHOOK_SECRET --project-name intru-in
 ## Razorpay Webhook Setup
 
 1. Go to Razorpay Dashboard → Webhooks
-2. Add webhook URL: `https://intru-in.pages.dev/api/webhooks/razorpay`
+2. Add webhook URL: `https://intru.in/api/webhooks/razorpay` (after custom domain setup)
 3. Select events: `order.created`, `payment.captured`, `payment.failed`
 4. Set webhook secret and add to Cloudflare secrets as `RAZORPAY_WEBHOOK_SECRET`
 
@@ -108,7 +112,7 @@ npx wrangler pages secret put RAZORPAY_WEBHOOK_SECRET --project-name intru-in
 
 1. **Google**: Enable Google provider in Supabase Dashboard → Auth → Providers
 2. **Email/Magic Link**: Enable Email provider with "Enable Email Confirmations" OFF for frictionless flow
-3. Set redirect URLs to `https://intru-in.pages.dev`
+3. Set redirect URLs to `https://intru.in`
 
 ## Resend Setup
 
@@ -132,6 +136,8 @@ npx wrangler pages secret put RAZORPAY_WEBHOOK_SECRET --project-name intru-in
 | POST | `/api/webhooks/razorpay` | Razorpay webhook handler |
 | POST | `/api/auth/identify` | Silent Identity — upsert user by email |
 | POST | `/api/auth/google` | Google One-Tap authentication |
+| POST | `/api/auth/google-userinfo` | Google OAuth access_token fallback |
+| GET | `/auth/google/callback` | Google OAuth redirect callback page |
 | POST | `/api/subscribe` | Newsletter subscription |
 | POST | `/api/admin/auth` | Admin authentication |
 | GET | `/api/admin/orders` | List orders (admin) |
@@ -156,3 +162,7 @@ npx wrangler pages secret put RAZORPAY_WEBHOOK_SECRET --project-name intru-in
 - **Platform**: Cloudflare Pages
 - **Status**: ✅ Active
 - **Last Updated**: 2026-03-03
+
+## Custom Domain Setup (intru.in from GoDaddy)
+
+See DOMAIN_SETUP.md for step-by-step guide.
