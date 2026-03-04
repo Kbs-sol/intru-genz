@@ -1,13 +1,13 @@
 # INTRU.IN — Full System Literacy & Architecture Reference
 **Version**: v9 | **Date**: 2026-03-04 | **Production**: https://intru-genz.pages.dev (staging for intru.in) [AG]
 
-> This document is designed to be read by humans AND used as a context prompt for AI assistants. It contains everything needed to understand, debug, fix, or extend the intru.in codebase.
+> This document is designed to be read by manager of e-commerce website AND used as a context prompt for AI assistants. It contains everything needed to understand, debug, fix, or extend the intru.in codebase.
 
 ---
 
 ## 1. PROJECT OVERVIEW
 
-**intru.in** is a limited-drop streetwear e-commerce platform built for two friends in Hyderabad, India. It sells exclusive, limited-stock clothing (T-shirts, shirts, crop tops). The core principle: "When it's gone, it's gone."
+**intru.in** is a limited-drop streetwear e-commerce platform built by two friends in Hyderabad, India. It sells exclusive, limited-stock clothing (T-shirts, shirts, crop tops). The core principle: "When it's gone, it's gone."
 
 | Attribute | Value |
 |-----------|-------|
