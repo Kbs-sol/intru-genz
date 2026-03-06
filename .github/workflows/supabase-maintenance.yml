@@ -47,16 +47,19 @@ jobs:
           BACKUP_PASS: ${{ secrets.DB_BACKUP_PASSWORD }}
         run: |
           # Zip the SQL file with a password-protected encryption
-          zip -P "$BACKUP_PASS" -r db_backup_$(date +%Y-%m-%d).zip full_backup.sql
-          rm full_backup.sql
+          zip -P "$BACKUP_PASS" -r db_backup_latest.zip full_backup.sql
           echo "Backup encrypted successfully."
 
-      - name: Commit & Push Backup
+      - name: Upload to Google Drive
+        uses: adityak74/google-drive-upload-git-action@main
+        with:
+          credentials: ${{ secrets.GDRIVE_SERVICE_ACCOUNT_JSON }}
+          filename: db_backup_latest.zip
+          folderId: ${{ secrets.GDRIVE_FOLDER_ID }}
+          name: db_backup_${{ github.run_id }}.zip # Unique name in Drive
+          overwrite: "false"
+
+      - name: Cleanup
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          mkdir -p backups
-          mv db_backup_*.zip backups/
-          git add backups/
-          git commit -m "chore: nightly database backup $(date +%Y-%m-%d) [secure]"
-          git push origin main
+          rm full_backup.sql db_backup_latest.zip
+          echo "Local temporary files cleaned up."

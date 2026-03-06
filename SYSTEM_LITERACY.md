@@ -572,16 +572,25 @@ To prevent Supabase free-tier hibernation and ensure data safety, the following 
 - **Action**: Pings the `/api/products` endpoint to trigger a database read.
 - **Benefit**: Prevents Supabase projects from pausing due to inactivity.
 
-### 2. Encrypted Daily Backups
+### 2. Encrypted Google Drive Backups
 - **Workflow**: Same as above.
-- **Action**: Performs a full `pg_dump`, compresses it into a **password-protected ZIP**, and commits it to the `/backups` directory in the repository.
-- **Benefit**: Ensures a portable, secure copy of the database exists even if the service provider is unavailable.
+- **Action**: Performs a full `pg_dump`, compresses it into a **password-protected ZIP**, and uploads it to a specified **Google Drive Folder** using a Service Account.
+- **Benefit**: Backups are stored **independently of the code repository and Supabase**, providing a user-friendly way to access and manage your data backups via the Google Drive UI.
 
 ### 3. Required GitHub Secrets
 To enable these features, you MUST add the following Secrets to your GitHub Repository:
-1. `PROD_DATABASE_URL`: The full Postgres connection string (e.g., `postgres://postgres:[PASS]@[HOST]:5432/postgres`).
-2. `DB_BACKUP_PASSWORD`: A secure password of your choice to encrypt the backup files.
-3. `SUPABASE_DB_PASSWORD`: Your Supabase database password (for `pg_dump` auth).
+1. `PROD_DATABASE_URL`: The full Postgres connection string.
+2. `DB_BACKUP_PASSWORD`: A secure password to encrypt the backup files.
+3. `SUPABASE_DB_PASSWORD`: Your Supabase database password (for `pg_dump`).
+4. `GDRIVE_SERVICE_ACCOUNT_JSON`: The full JSON content of your Google Cloud Service Account key.
+5. `GDRIVE_FOLDER_ID`: The ID of the Google Drive folder where backups should be saved (found in the folder URL).
+
+### ⚙️ How to set up Google Drive Backups:
+1. Go to [Google Cloud Console](https://console.cloud.google.com/).
+2. Create a new Project and enable the **Google Drive API**.
+3. Create a **Service Account**, generate a **JSON Key**, and copy its content into the `GDRIVE_SERVICE_ACCOUNT_JSON` secret.
+4. Go to Google Drive, create a folder for backups, and **Share** it with the service account email (found in the JSON key).
+5. Copy the Folder ID from the URL and save it as `GDRIVE_FOLDER_ID`.
 
 ---
 
