@@ -572,25 +572,31 @@ To prevent Supabase free-tier hibernation and ensure data safety, the following 
 - **Action**: Pings the `/api/products` endpoint to trigger a database read.
 - **Benefit**: Prevents Supabase projects from pausing due to inactivity.
 
-### 2. Encrypted Google Drive Backups
+### 2. Encrypted Cloudflare R2 Backups
 - **Workflow**: Same as above.
-- **Action**: Performs a full `pg_dump`, compresses it into a **password-protected ZIP**, and uploads it to a specified **Google Drive Folder** using a Service Account.
-- **Benefit**: Backups are stored **independently of the code repository and Supabase**, providing a user-friendly way to access and manage your data backups via the Google Drive UI.
+- **Action**: Performs a full `pg_dump`, compresses it into a **password-protected ZIP**, and uploads it to **Cloudflare R2** (S3-compatible storage).
+- **Benefit**: 
+    - **10GB Free Tier**: More than enough for many years of backups.
+    - **Independent**: Safely stored outside GitHub and Supabase.
+    - **Zero Cost**: Stays entirely within Cloudflare's free limits.
 
 ### 3. Required GitHub Secrets
 To enable these features, you MUST add the following Secrets to your GitHub Repository:
 1. `PROD_DATABASE_URL`: The full Postgres connection string.
 2. `DB_BACKUP_PASSWORD`: A secure password to encrypt the backup files.
 3. `SUPABASE_DB_PASSWORD`: Your Supabase database password (for `pg_dump`).
-4. `GDRIVE_SERVICE_ACCOUNT_JSON`: The full JSON content of your Google Cloud Service Account key.
-5. `GDRIVE_FOLDER_ID`: The ID of the Google Drive folder where backups should be saved (found in the folder URL).
+4. `R2_ACCESS_KEY_ID`: Your Cloudflare R2 Access Key.
+5. `R2_SECRET_ACCESS_KEY`: Your Cloudflare R2 Secret Key.
+6. `R2_BUCKET_NAME`: The name of your R2 bucket (e.g., `intru-backups`).
+7. `R2_ENDPOINT`: Your R2 S3 API endpoint (found in R2 bucket settings).
 
-### ⚙️ How to set up Google Drive Backups:
-1. Go to [Google Cloud Console](https://console.cloud.google.com/).
-2. Create a new Project and enable the **Google Drive API**.
-3. Create a **Service Account**, generate a **JSON Key**, and copy its content into the `GDRIVE_SERVICE_ACCOUNT_JSON` secret.
-4. Go to Google Drive, create a folder for backups, and **Share** it with the service account email (found in the JSON key).
-5. Copy the Folder ID from the URL and save it as `GDRIVE_FOLDER_ID`.
+### ⚙️ How to set up Cloudflare R2 Backups:
+1. Log in to [Cloudflare Dashboard](https://dash.cloudflare.com/).
+2. Go to **R2** → **Create Bucket** (name it `intru-backups`).
+3. Click **Manage R2 API Tokens** → **Create API Token**.
+4. Select **Edit** permissions, choose **TTL: Never**, and click **Create Token**.
+5. Copy the **Access Key ID** and **Secret Access Key** into GitHub Secrets.
+6. The **Endpoint** is the "S3 API" URL found on your bucket's homepage (e.g., `https://<id>.r2.cloudflarestorage.com`).
 
 ---
 
