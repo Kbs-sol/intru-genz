@@ -31,6 +31,20 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y postgresql-client zip
 
+      - name: Check Database Connectivity
+        env:
+          PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          DB_URL: ${{ secrets.PROD_DATABASE_URL }}
+        run: |
+          # Try to ping the database to verify connectivity before dumping
+          # Using -w 5 to timeout if unreachable
+          if psql "$DB_URL" -c "SELECT 1" -w 5 > /dev/null; then
+            echo "Database connection successful."
+          else
+            echo "::error::Database connection failed. Please ensure PROD_DATABASE_URL uses Port 6543 (Pooler) for IPv4 support."
+            exit 1
+          fi
+
       - name: Export Database
         env:
           PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
