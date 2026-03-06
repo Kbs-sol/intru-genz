@@ -591,12 +591,23 @@ To enable these features, you MUST add the following Secrets to your GitHub Repo
 7. `R2_ENDPOINT`: Your R2 S3 API endpoint (found in R2 bucket settings).
 
 ### ⚙️ How to set up Cloudflare R2 Backups:
-1. Log in to [Cloudflare Dashboard](https://dash.cloudflare.com/).
-2. Go to **R2** → **Create Bucket** (name it `intru-backups`).
-3. Click **Manage R2 API Tokens** → **Create API Token**.
-4. Select **Edit** permissions, choose **TTL: Never**, and click **Create Token**.
-5. Copy the **Access Key ID** and **Secret Access Key** into GitHub Secrets.
-6. The **Endpoint** is the "S3 API" URL found on your bucket's homepage (e.g., `https://<id>.r2.cloudflarestorage.com`).
+1. **Create the Bucket**:
+   - Go to [Cloudflare Dashboard](https://dash.cloudflare.com/) → **R2** → **Create Bucket**.
+   - Name it `intru-backups` and click **Create Bucket**.
+   - On the bucket page, look for the **S3 API URL** (e.g., `https://<id>.r2.cloudflarestorage.com`). This is your `R2_ENDPOINT`.
+
+2. **Generate API Keys (Access Key & Secret)**:
+   - Go back to the main **R2** page (the list of buckets).
+   - Click **Manage R2 API Tokens** on the right side.
+   - Click **Create API Token**.
+   - Set Token Name to `Backup Bot`, select **Edit** permissions, and choose **TTL: Never**.
+   - Click **Create Token**.
+
+3. **Save to GitHub Secrets**:
+   - **Access Key ID**: This is like a username. Copy it to GitHub Secret `R2_ACCESS_KEY_ID`.
+   - **Secret Access Key**: This is like a password. **You only see it once!** Copy it to GitHub Secret `R2_SECRET_ACCESS_KEY`.
+   - **Bucket Name**: `intru-backups` (save to `R2_BUCKET_NAME`).
+   - **Endpoint**: The S3 API URL from Step 1 (save to `R2_ENDPOINT`).
 
 ---
 
