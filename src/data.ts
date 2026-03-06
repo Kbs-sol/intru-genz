@@ -651,6 +651,19 @@ export async function fetchStoreSetting(sbUrl: string, sbKey: string, key: strin
   } catch { return null; }
 }
 
+export async function fetchAllStoreSettings(sbUrl: string, sbKey: string): Promise<Record<string, string>> {
+  if (!sbUrl || !sbKey) return {};
+  try {
+    const res = await supabaseFetch(sbUrl, sbKey, 'store_settings');
+    if (!res.ok) return {};
+    const rows = await res.json() as { key: string, value: string }[];
+    return rows.reduce((acc, row) => {
+      acc[row.key] = row.value;
+      return acc;
+    }, {} as Record<string, string>);
+  } catch { return {}; }
+}
+
 // ============ Image Upload helper ============
 
 /**

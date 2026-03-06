@@ -209,6 +209,15 @@ export function adminPage(opts: {
 </div>
 </div>
 <div class="sett-card">
+<h4>Size Guide Visibility</h4>
+<p>Toggle the Size Guide button ON/OFF on product pages.</p>
+<div class="sett-toggle">
+<label>OFF</label>
+<label class="switch"><input type="checkbox" id="settSizeGuide" checked onchange="saveSetting('SIZE_GUIDE_ENABLED',this.checked?'true':'false')"><span class="slider"></span></label>
+<label>ON</label>
+</div>
+</div>
+<div class="sett-card">
 <h4>Manager Email</h4>
 <p>COD alerts are sent to this email.</p>
 <div style="display:flex;gap:8px"><input class="ainp" id="settManager" style="margin:0" placeholder="shop@intru.in">
@@ -492,6 +501,8 @@ function loadSettings(){
     document.getElementById('settManager').value=s.MANAGER_EMAIL||'shop@intru.in';
     document.getElementById('settCodFee').value=s.COD_FEE||'99';
     document.getElementById('settIgFeed').checked=s.INSTAGRAM_FEED_ENABLED!=='false';
+    const settSizeGuide = document.getElementById('settSizeGuide');
+    if (settSizeGuide) settSizeGuide.checked=s.SIZE_GUIDE_ENABLED!=='false';
   }).catch(function(){});
 }
 function saveSetting(key,val){

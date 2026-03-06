@@ -7,7 +7,7 @@ import {
   buildMagicLineItems, hmacSHA256, supabaseFetch,
   fetchProducts, fetchProductBySlug, fetchProductById, fetchLegalPages,
   sendResendEmail, emailDropSecured, emailCodReceived, emailCodManagerAlert,
-  fetchStoreSetting, uploadToSupabase,
+  fetchStoreSetting, fetchAllStoreSettings, uploadToSupabase,
 } from './data'
 import { homePage } from './pages/home'
 import { productPage } from './pages/product'
@@ -15,6 +15,7 @@ import { legalPage } from './pages/legal'
 import { adminPage } from './pages/admin'
 import { collectionsPage } from './pages/collections'
 import { aboutPage } from './pages/about'
+import { stylistPage } from './pages/stylist'
 
 type Bindings = Env & { [key: string]: string }
 
@@ -34,12 +35,13 @@ async function getPageOpts(c: any) {
   const sbKey = sbSvc || sbAnon;
   const { products } = await fetchProducts(sbUrl, sbSvc, sbAnon);
   const { pages: legalPages } = await fetchLegalPages(sbUrl, sbSvc, sbAnon);
-  const useMagic = await fetchStoreSetting(sbUrl, sbKey, 'USE_MAGIC_CHECKOUT');
+  const storeSettings = await fetchAllStoreSettings(sbUrl, sbKey);
   return {
     razorpayKeyId: getEnv(c.env, 'RAZORPAY_KEY_ID', STORE_CONFIG.razorpayKeyId),
     googleClientId: getEnv(c.env, 'GOOGLE_CLIENT_ID', STORE_CONFIG.googleClientId),
     products, legalPages,
-    useMagicCheckout: useMagic === 'true',
+    useMagicCheckout: storeSettings.USE_MAGIC_CHECKOUT === 'true',
+    storeSettings,
   };
 }
 
@@ -76,6 +78,11 @@ app.get('/admin', async (c) => {
 app.get('/collections', async (c) => {
   const opts = await getPageOpts(c);
   return c.html(collectionsPage(opts));
+})
+
+app.get('/intrustylist', async (c) => {
+  const opts = await getPageOpts(c);
+  return c.html(stylistPage(opts));
 })
 
 app.get('/about', async (c) => {
@@ -1129,9 +1136,9 @@ app.post('/api/ai/chat', async (c) => {
   ]);
 
   // 2. Build Context Aware Prompt
-  const productContext = SEED_PRODUCTS.map(p => `- ${p.name} (Rs.${p.price}): ${p.tagline}. Sizes: ${p.sizes.join(',')}`).join('\n');
+  const productContext = SEED_PRODUCTS.map(p => `- ${p.name} (Rs.${p.price}): ${p.tagline}. Slug: ${p.slug}. Sizes: ${p.sizes.join(',')}`).join('\n');
   const fullSystemPrompt = (sysPrompt || `You are the official INTRU.IN AI Stylist...`)
-    + `\n\nCORE BRAND INFO:\n- Store Name: ${STORE_CONFIG.name}\n- Style: Premium Streetwear, No Restocks, Limited Drops.\n- Current Inventory:\n${productContext}\n\nRULES:\n- Be stylish, helpful, and concise.\n- Always recommend specific products from the inventory above.\n- If asked about sizes, reference our size chart (Standard Indian Fitting).`;
+    + `\n\nCORE BRAND INFO:\n- Store Name: ${STORE_CONFIG.name}\n- Style: Premium Streetwear, No Restocks, Limited Drops.\n- Current Inventory:\n${productContext}\n\nRULES:\n- Be stylish, helpful, and concise.\n- Always recommend specific products from the inventory above using the format [PRODUCT:slug].\n- STRICT RULE: You are a Stylist, NOT a developer or support agent. DO NOT answer technical questions, DO NOT accept bug reports, and DO NOT claim you can "pass it to the team".\n- If a user reports a bug or technical issue, APOLOGIZE and tell them to email shop@intru.in for technical support.`;
 
   const payload = {
     model: orModel || 'google/gemini-2.0-flash-001',

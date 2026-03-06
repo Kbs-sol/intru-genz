@@ -162,6 +162,13 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 .ccbtn{width:100%;margin-top:16px;padding:16px;background:var(--bk);color:var(--wh);border:none;font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;transition:all .3s}.ccbtn:hover{background:var(--g600);transform:translateY(-1px)}.ccbtn:disabled{background:var(--g300);cursor:not-allowed;transform:none}
 .cpolicy{font-size:10px;color:var(--g400);text-align:center;margin-top:12px;line-height:1.5}
 .cpolicy a{text-decoration:underline}
+/* High-Conversion Psychology [AG] */
+.cart-timer{background:#fff9eb;border:1px solid #ffecb3;padding:10px;margin:0 24px 16px;border-radius:6px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:11px;font-weight:700;color:#92400e;animation:pulseTimer 2s infinite}
+@keyframes pulseTimer{0%{opacity:1}50%{opacity:0.7}100%{opacity:1}}
+.cmode-opt.prepaid.act{border-color:var(--green);box-shadow:0 0 15px rgba(34,197,94,0.2);background:rgba(34,197,94,0.02)}
+.cmode-opt.cod.act{border-color:var(--red) !important;background:rgba(239,68,68,0.02)}
+.risk-calc{font-size:10px;color:var(--red);font-weight:700;margin-top:4px;display:none;animation:fadeIn 0.3s ease}
+.prepaid-perk{font-size:10px;color:var(--green);font-weight:700;margin-top:4px;display:none;animation:fadeIn 0.3s ease}
 /* Silent Identity Overlay */
 .id-ovl{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:24px}
 .id-ovl.open{display:flex}
@@ -198,6 +205,7 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 <div class="nlinks">
   <a href="/" class="nbtn">Shop</a>
   <a href="/collections" class="nbtn">Collections</a>
+  <a href="/intrustylist" class="nbtn" style="color:var(--bk);font-weight:700"><i class="fas fa-magic-wand-sparkles" style="margin-right:4px"></i>AI Stylist</a>
 </div>
 <a href="/" class="logo"><svg viewBox="0 0 100 32" width="100" height="32" xmlns="http://www.w3.org/2000/svg" aria-label="intru.in"><text x="50%" y="24" dominant-baseline="middle" text-anchor="middle" font-family="'Archivo Black',sans-serif" font-size="24" font-weight="900" fill="#0a0a0a" letter-spacing="-0.04em">INTRU</text></svg></a>
 <div class="nactions">
@@ -209,6 +217,7 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
   <div style="margin-top:40px">
     <a href="/" class="nbtn" onclick="toggleMobNav()">Shop All</a>
     <a href="/collections" class="nbtn" onclick="toggleMobNav()">Collections</a>
+    <a href="/intrustylist" class="nbtn" onclick="toggleMobNav()" style="color:var(--bk);font-weight:700">AI Stylist Pro</a>
     <a href="/about" class="nbtn" onclick="toggleMobNav()">About Us</a>
     <a href="/#contact" class="nbtn" onclick="toggleMobNav()">Contact</a>
     <button class="nbtn" onclick="toggleMobNav();openIdentifyOrOrders()" style="margin-top:20px;border:none;color:var(--bk);font-weight:700">My Account / Login</button>
@@ -218,6 +227,7 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 <div class="cdrw" id="cd">
 <div class="chdr"><h3>Your Bag</h3><button class="ccls" onclick="toggleCart()"><i class="fas fa-times"></i></button></div>
 <div class="cbdy" id="cby"><div class="cemp"><i class="fas fa-shopping-bag"></i><p>Your bag is empty</p></div></div>
+<div id="cartTimer" class="cart-timer" style="display:none"><i class="fas fa-clock"></i> <span>Cart reserved for <span id="timerClock">05:00</span> minutes</span></div>
 <div class="cftr" id="cf" style="display:none">
 <div class="cst"><span>Subtotal</span><span id="csub">${STORE_CONFIG.currencySymbol}0</span></div>
 <div class="csh"><span>Shipping</span><span id="cshp">Calculated</span></div>
@@ -229,11 +239,13 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 <span class="cmode-badge" style="background:#dcfce7;color:#166534">&#9889; SAVE Rs.99 / FREE SHIPPING</span>
 <span class="cmode-label">Prepaid</span>
 <span class="cmode-price" style="color:var(--green);font-weight:700">FREE Shipping</span>
+<div class="prepaid-perk" id="prepaidPerk" style="display:block">✓ Fast-Tracked: Priority Dispatch</div>
 </div>
 <div class="cmode-opt cod" onclick="setPayMode('cod')" id="cm_cod">
 <span class="cmode-badge" style="background:var(--g100);color:var(--g500)">Rs.99 Convenience Fee added</span>
 <span class="cmode-label">Cash on Delivery</span>
 <span class="cmode-price">+Rs.99 COD fee</span>
+<div class="risk-calc" id="riskCalc">⚠️ Calculating risk for your area...</div>
 </div>
 </div>
 <!-- COD Address Form -->
@@ -331,6 +343,7 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 ${gKey !== 'YOUR_GOOGLE_CLIENT_ID' ? '<script src="https://accounts.google.com/gsi/client" async defer></script><div id="g_id_onload" data-client_id="' + gKey + '" data-context="signin" data-ux_mode="popup" data-callback="handleGoogleAuth" data-itp_support="true" data-auto_select="false" data-auto_prompt="false"></div>' : '<!-- Google One-Tap: Set GOOGLE_CLIENT_ID env var to enable -->'}
 <script>
 /* ====== CONFIG ====== */
+window.STORE_PRODUCTS = ${JSON.stringify(opt?.products || [])};
 var S=${sj};
 var PM=${pm};
 var payMode='prepaid';
@@ -586,11 +599,54 @@ function getCartTotals(){
 
 function fmt(n){return S.cs+n.toLocaleString('en-IN')}
 
+/* ====== HIGH-CONVERSION PSYCHOLOGY [AG] ====== */
+var paySounds = {
+  prepaid: new Audio('data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YTtvT19vT19vT19vT19vT19vT19vT19vT19vT19vT19vT19vT19vT19vT19vT19vT19vT19vT19vT19vT19v'),
+  cod: new Audio('data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YTtvT19vT19vT19vT19vT19vT19vT19vT19vT19vT19vT19vT19vT19vT19vT19vT19vT19vT19vT19vT19v'),
+};
+/* Just placeholders/minimalist beeps. We'll simulate with volume=0.1 */
+paySounds.prepaid.volume = 0.1; paySounds.cod.volume = 0.05;
+
+var cartTimerInterval;
+function startCartTimer(){
+  if(cartTimerInterval) clearInterval(cartTimerInterval);
+  var duration = 300; // 5 mins
+  var display = document.getElementById('timerClock');
+  var banner = document.getElementById('cartTimer');
+  if(!banner) return;
+  banner.style.display = 'flex';
+  cartTimerInterval = setInterval(function(){
+    var mins = Math.floor(duration / 60);
+    var secs = duration % 60;
+    display.textContent = (mins < 10 ? '0' : '') + mins + ':' + (secs < 10 ? '0' : '') + secs;
+    if(--duration < 0) { clearInterval(cartTimerInterval); banner.innerHTML = '⚡ <b>OFFER EXPIRED:</b> Prices may change soon.'; }
+  }, 1000);
+}
+
 function setPayMode(mode){
+  if(mode === 'cod') {
+    var rc = document.getElementById('riskCalc');
+    if(rc){
+      rc.style.display = 'block'; rc.textContent = '⚠️ Calculating risk for your area...';
+      try { paySounds.cod.play(); } catch(e){}
+      setTimeout(function(){
+        rc.textContent = '❌ High-Risk identified. Rs.99 Fee added.';
+        applyPayMode(mode);
+      }, 400);
+      return;
+    }
+  }
+  applyPayMode(mode);
+}
+
+function applyPayMode(mode){
   payMode=mode;
+  if(mode === 'prepaid') { try { paySounds.prepaid.play(); } catch(e){} }
   document.getElementById('cm_prepaid').classList.toggle('act',mode==='prepaid');
   document.getElementById('cm_cod').classList.toggle('act',mode==='cod');
   document.getElementById('codForm').classList.toggle('show',mode==='cod');
+  var perk = document.getElementById('prepaidPerk'); if(perk) perk.style.display = mode==='prepaid'?'block':'none';
+  var risk = document.getElementById('riskCalc'); if(risk && mode==='prepaid') risk.style.display = 'none';
   renderCartTotals();
 }
 
@@ -623,7 +679,7 @@ function renderCart(){
 
 /* ====== DRAWER ENGINE ====== */
 function toggleCart(){document.getElementById('co').classList.toggle('open');document.getElementById('cd').classList.toggle('open');document.body.style.overflow=document.getElementById('cd').classList.contains('open')?'hidden':''}
-function openCartDrawer(){document.getElementById('co').classList.add('open');document.getElementById('cd').classList.add('open');document.body.style.overflow='hidden'}
+function openCartDrawer(){document.getElementById('co').classList.add('open');document.getElementById('cd').classList.add('open');document.body.style.overflow='hidden';startCartTimer();}
 function closeAllDrawers(){
   document.getElementById('co').classList.remove('open');
   document.getElementById('cd').classList.remove('open');
@@ -650,10 +706,25 @@ function toggleAIChat(){
   localStorage.setItem('ai_chat_opened', '1');
   if(p.classList.contains('open')){document.getElementById('aiInput').focus();renderAIChat()}
 }
+
+function formatMsg(txt) {
+  if (!txt) return '';
+  /* Convert [PRODUCT:slug] to card */
+  return txt.replace(/\[PRODUCT:([a-z0-9-]+)\]/g, function(match, slug) {
+    var p = window.STORE_PRODUCTS ? window.STORE_PRODUCTS.find(function(x) { return x.slug === slug; }) : null;
+    if (!p) return '<a href="/product/' + slug + '" style="color:var(--bk);font-weight:700;text-decoration:underline">View Product: ' + slug + '</a>';
+    return '<a href="/product/' + p.slug + '" style="display:block;background:var(--wh);border:1px solid rgba(0,0,0,.05);border-radius:8px;overflow:hidden;margin-top:8px;text-decoration:none;color:inherit">' +
+           '<div style="aspect-ratio:3/4;overflow:hidden;background:var(--g50)"><img src="' + p.images[0] + '" alt="' + p.name + '" style="width:100%;height:100%;object-fit:cover"></div>' +
+           '<div style="padding:10px">' +
+           '<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">' + p.name + '</div>' +
+           '<div style="font-size:12px;font-weight:700;color:var(--bk)">Rs.' + p.price.toLocaleString('en-IN') + '</div>' +
+           '</div></a>';
+  });
+}
 function renderAIChat(){
   var b=document.getElementById('aiBody');
   var h='<div class="ai-msg bot">Hi! I\\'m your INTRU Stylist. Looking for a fresh drop or need help with sizing?</div>';
-  aiMsgs.forEach(function(m){h+='<div class="ai-msg '+(m.role==='user'?'user':'bot')+'">'+m.content+'</div>'});
+  aiMsgs.forEach(function(m){h+='<div class="ai-msg '+(m.role==='user'?'user':'bot')+'">'+formatMsg(m.content)+'</div>'});
   b.innerHTML=h;b.scrollTop=b.scrollHeight;
 }
 function sendAIMessage(){

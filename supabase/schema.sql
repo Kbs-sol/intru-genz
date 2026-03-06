@@ -476,15 +476,13 @@ CREATE POLICY "Service role has full access to subscribers" ON subscribers FOR A
 
 
 -- =============================================================
--- SEED DATA: Size Chart (XS-XXL)
+-- SEED DATA: Size Chart (XS-L)
 -- =============================================================
 INSERT INTO size_chart (size_label, chest, length, sort_order) VALUES
   ('XS', 36, 26, 1),
   ('S',  38, 27, 2),
   ('M',  40, 28, 3),
-  ('L',  42, 29, 4),
-  ('XL', 44, 30, 5),
-  ('XXL', 46, 31, 6)
+  ('L',  42, 29, 4)
 ON CONFLICT (size_label) DO UPDATE SET
   chest = EXCLUDED.chest, length = EXCLUDED.length, sort_order = EXCLUDED.sort_order;
 
@@ -496,7 +494,8 @@ INSERT INTO store_settings (key, value) VALUES
   ('USE_MAGIC_CHECKOUT', 'false'),
   ('MANAGER_EMAIL', 'shop@intru.in'),
   ('COD_FEE', '99'),
-  ('INSTAGRAM_FEED_ENABLED', 'true')
+  ('INSTAGRAM_FEED_ENABLED', 'true'),
+  ('SIZE_GUIDE_ENABLED', 'true')
 ON CONFLICT (key) DO NOTHING;
 
 
@@ -508,17 +507,17 @@ INSERT INTO products (id, slug, name, tagline, description, price, compare_price
    'Playful doodle-art printed tee that radiates warmth. Crafted from premium cotton with puff-print detailing. Pre-shrunk, garment-dyed, and designed to feel like it was made just for you.',
    999, 1499, 'INR',
    '["https://intru.in/cdn/shop/files/3.png?v=1748692106&width=1946","https://intru.in/cdn/shop/files/3.png?v=1748692106&width=1000","https://intru.in/cdn/shop/files/3.png?v=1748692106&width=800","https://intru.in/cdn/shop/files/3.png?v=1748692106&width=600"]'::jsonb,
-   '["S","M","L","XL","XXL"]'::jsonb, 'T-Shirts', true, true),
+   '["XS","S","M","L"]'::jsonb, 'T-Shirts', true, true),
   ('p2', 'no-risk-porsche', 'No Risk Porsche', 'Bold edge',
    'A statement tee for those who move without hesitation. Bold graphic print, premium cotton, and a fit that commands attention. No risk, no reward.',
    999, 1499, 'INR',
    '["https://intru.in/cdn/shop/files/F51687B9-2BF2-43E0-988A-30272833B19E.jpg?v=1756359581&width=1920","https://intru.in/cdn/shop/files/F51687B9-2BF2-43E0-988A-30272833B19E.jpg?v=1756359581&width=1000","https://intru.in/cdn/shop/files/F51687B9-2BF2-43E0-988A-30272833B19E.jpg?v=1756359581&width=800","https://intru.in/cdn/shop/files/F51687B9-2BF2-43E0-988A-30272833B19E.jpg?v=1756359581&width=600"]'::jsonb,
-   '["S","M","L","XL","XXL"]'::jsonb, 'T-Shirts', true, true),
+   '["XS","S","M","L"]'::jsonb, 'T-Shirts', true, true),
   ('p3', 'orange-puff-printed-t-shirt', 'Orange Puff', 'Caffeine-core',
    'Orange puff-printed tee with a texture you can feel. Caffeine-core energy meets streetwear minimalism. Premium cotton, relaxed fit, limited run.',
    899, 1499, 'INR',
    '["https://intru.in/cdn/shop/files/1_3de916a1-a217-41ee-9b2e-9e2c3130c4d6.png?v=1748190442&width=1445","https://intru.in/cdn/shop/files/1_3de916a1-a217-41ee-9b2e-9e2c3130c4d6.png?v=1748190442&width=1000","https://intru.in/cdn/shop/files/1_3de916a1-a217-41ee-9b2e-9e2c3130c4d6.png?v=1748190442&width=800","https://intru.in/cdn/shop/files/1_3de916a1-a217-41ee-9b2e-9e2c3130c4d6.png?v=1748190442&width=600"]'::jsonb,
-   '["S","M","L","XL"]'::jsonb, 'T-Shirts', true, true),
+   '["XS","S","M","L"]'::jsonb, 'T-Shirts', true, true),
   ('p4', 'romanticise-crop-tee', 'Romanticise Crop', 'Breezy ease',
    'Cropped silhouette meets everyday comfort. Soft cotton, clean cut, and an effortless vibe. Designed over two months because we refused to rush perfection.',
    699, 999, 'INR',
@@ -528,12 +527,12 @@ INSERT INTO products (id, slug, name, tagline, description, price, compare_price
    'Cool-toned striped shirt with a structured collar and relaxed body. Premium woven fabric, mother-of-pearl buttons, and a fit that bridges casual and smart.',
    1099, 1699, 'INR',
    '["https://intru.in/cdn/shop/files/99.png?v=1748173436&width=1946","https://intru.in/cdn/shop/files/99.png?v=1748173436&width=1000","https://intru.in/cdn/shop/files/99.png?v=1748173436&width=800","https://intru.in/cdn/shop/files/99.png?v=1748173436&width=600"]'::jsonb,
-   '["S","M","L","XL","XXL"]'::jsonb, 'Shirts', true, true),
+   '["XS","S","M","L"]'::jsonb, 'Shirts', true, true),
   ('p6', 'summer-shirt', 'Summer Shirt', 'Sunshine staple',
    'Your go-to summer layer. Lightweight, breathable, and effortlessly styled. Made for golden-hour walks and spontaneous weekend plans.',
    999, 1599, 'INR',
    '["https://intru.in/cdn/shop/files/03.png?v=1756359941&width=1946","https://intru.in/cdn/shop/files/03.png?v=1756359941&width=1000","https://intru.in/cdn/shop/files/03.png?v=1756359941&width=800","https://intru.in/cdn/shop/files/03.png?v=1756359941&width=600"]'::jsonb,
-   '["S","M","L","XL"]'::jsonb, 'Shirts', true, true)
+   '["XS","S","M","L"]'::jsonb, 'Shirts', true, true)
 ON CONFLICT (id) DO UPDATE SET
   slug = EXCLUDED.slug, name = EXCLUDED.name, tagline = EXCLUDED.tagline,
   description = EXCLUDED.description, price = EXCLUDED.price,

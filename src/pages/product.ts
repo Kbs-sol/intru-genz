@@ -7,13 +7,15 @@ export function productPage(product: Product, opts: {
   products: Product[];
   legalPages: LegalPage[];
   useMagicCheckout?: boolean;
+  storeSettings?: Record<string, string>;
 }): string {
   const products = opts.products;
   const legalPages = opts.legalPages;
+  const storeSettings = opts.storeSettings || {};
   const disc = product.comparePrice ? Math.round((1 - product.price / product.comparePrice) * 100) : 0;
   const related = products.filter(p => p.id !== product.id).slice(0, 3);
-  const schema = JSON.stringify({"@context":"https://schema.org","@type":"Product","name":product.name,"description":product.description,"image":product.images,"brand":{"@type":"Brand","name":"intru.in"},"offers":{"@type":"Offer","url":"https://intru.in/product/"+product.slug,"priceCurrency":"INR","price":product.price,"availability":product.inStock?"https://schema.org/InStock":"https://schema.org/OutOfStock"},"aggregateRating":{"@type":"AggregateRating","ratingValue":"4.8","reviewCount":"43"}});
-  const pj = JSON.stringify({id:product.id,s:product.slug,n:product.name,p:product.price,i:product.images,sz:product.sizes});
+  const schema = JSON.stringify({ "@context": "https://schema.org", "@type": "Product", "name": product.name, "description": product.description, "image": product.images, "brand": { "@type": "Brand", "name": "intru.in" }, "offers": { "@type": "Offer", "url": "https://intru.in/product/" + product.slug, "priceCurrency": "INR", "price": product.price, "availability": product.inStock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock" }, "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.8", "reviewCount": "43" } });
+  const pj = JSON.stringify({ id: product.id, s: product.slug, n: product.name, p: product.price, i: product.images, sz: product.sizes });
 
   const body = `<style>
 .pdp{max-width:1280px;margin:0 auto;padding:40px 24px 80px}
@@ -101,16 +103,16 @@ export function productPage(product: Product, opts: {
 <div class="pdpl">
 <div class="gal">
 <div class="ggrid">
-${product.images.map((img,i)=>'<div class="gitem" onclick="openLB('+i+')"><img src="'+img+'" alt="intru.in '+product.name+' - View '+(i+1)+'" loading="'+(i===0?'eager':'lazy')+'" width="600" height="800"></div>').join('')}
+${product.images.map((img, i) => '<div class="gitem" onclick="openLB(' + i + ')"><img src="' + img + '" alt="intru.in ' + product.name + ' - View ' + (i + 1) + '" loading="' + (i === 0 ? 'eager' : 'lazy') + '" width="600" height="800"></div>').join('')}
 </div>
 <div class="gcar" id="car">
 <div class="gtrack" id="gtrk">
-${product.images.map((img,i)=>'<div class="gslide" onclick="openLB('+i+')"><img src="'+img+'" alt="intru.in '+product.name+' - View '+(i+1)+'" loading="'+(i===0?'eager':'lazy')+'" width="600" height="800"></div>').join('')}
+${product.images.map((img, i) => '<div class="gslide" onclick="openLB(' + i + ')"><img src="' + img + '" alt="intru.in ' + product.name + ' - View ' + (i + 1) + '" loading="' + (i === 0 ? 'eager' : 'lazy') + '" width="600" height="800"></div>').join('')}
 </div>
 <button class="gnav prv" onclick="cPrev()"><i class="fas fa-chevron-left"></i></button>
 <button class="gnav nxt" onclick="cNext()"><i class="fas fa-chevron-right"></i></button>
 <div class="gdots" id="gdots">
-${product.images.map((_,i)=>'<button class="gdot '+(i===0?'act':'')+'" onclick="goSlide('+i+')"></button>').join('')}
+${product.images.map((_, i) => '<button class="gdot ' + (i === 0 ? 'act' : '') + '" onclick="goSlide(' + i + ')"></button>').join('')}
 </div></div>
 </div>
 
@@ -121,23 +123,23 @@ ${product.images.map((_,i)=>'<button class="gdot '+(i===0?'act':'')+'" onclick="
 <div class="prating"><span class="pstars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i></span><span class="prtext">4.8 (43 reviews)</span></div>
 <div class="pprow">
 <span class="pprice">${STORE_CONFIG.currencySymbol}${product.price.toLocaleString('en-IN')}</span>
-${product.comparePrice?'<span class="pcmp">'+STORE_CONFIG.currencySymbol+product.comparePrice.toLocaleString('en-IN')+'</span>':''}
-${disc>0?'<span class="psave">'+disc+'% OFF</span>':''}
+${product.comparePrice ? '<span class="pcmp">' + STORE_CONFIG.currencySymbol + product.comparePrice.toLocaleString('en-IN') + '</span>' : ''}
+${disc > 0 ? '<span class="psave">' + disc + '% OFF</span>' : ''}
 </div>
 <div class="dispatch-badge"><i class="fas fa-rocket"></i> Fast Dispatch: Orders processed within 36 hours</div>
 <p class="pdesc">${product.description}</p>
 <hr class="pdiv">
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
 <label class="plbl" style="margin-bottom:0">Select Size <span style="color:var(--red)">*</span></label>
-<button onclick="openSizeGuide()" style="background:none;border:none;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--g400);padding:4px 0;cursor:pointer;text-decoration:underline;text-underline-offset:2px;font-family:inherit;transition:color .2s" onmouseover="this.style.color='var(--bk)'" onmouseout="this.style.color='var(--g400)'"><i class="fas fa-ruler" style="margin-right:4px"></i>Size Guide</button>
+${storeSettings.SIZE_GUIDE_ENABLED !== 'false' ? '<button onclick="openSizeGuide()" style="background:none;border:none;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--g400);padding:4px 0;cursor:pointer;text-decoration:underline;text-underline-offset:2px;font-family:inherit;transition:color .2s" onmouseover="this.style.color=\'var(--bk)\'" onmouseout="this.style.color=\'var(--g400)\'"><i class="fas fa-ruler" style="margin-right:4px"></i>Size Guide</button>' : ''}
 </div>
 <div class="szopt" id="szopt">
-${product.sizes.map(s=>'<button class="szbtn" data-sz="'+s+'" onclick="selSz(this)">'+s+'</button>').join('')}
+${product.sizes.map(s => '<button class="szbtn" data-sz="' + s + '" onclick="selSz(this)">' + s + '</button>').join('')}
 </div>
 <p class="sz-hint" id="szHint"><i class="fas fa-exclamation-circle" style="margin-right:4px"></i>Please select a size to continue</p>
 
 <!-- Size Guide Modal -->
-<div id="sgModal" style="position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:24px" onclick="if(event.target===this)closeSizeGuide()">
+${storeSettings.SIZE_GUIDE_ENABLED !== 'false' ? `<div id="sgModal" style="position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:24px" onclick="if(event.target===this)closeSizeGuide()">
 <div style="background:var(--wh);max-width:520px;width:100%;max-height:80vh;overflow-y:auto;padding:32px;position:relative;animation:scaleIn .3s var(--eo)">
 <button onclick="closeSizeGuide()" style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:20px;color:var(--g400);cursor:pointer;padding:4px"><i class="fas fa-times"></i></button>
 <h3 style="font-family:var(--head);font-size:18px;text-transform:uppercase;letter-spacing:-.02em;margin-bottom:4px">Size Guide</h3>
@@ -147,7 +149,7 @@ ${product.sizes.map(s=>'<button class="szbtn" data-sz="'+s+'" onclick="selSz(thi
 </div>
 <p style="font-size:11px;color:var(--g400);margin-top:16px;line-height:1.6"><i class="fas fa-info-circle" style="margin-right:4px"></i>Measured flat. Chest = pit to pit. Length = top of shoulder to hem. If between sizes, go with your usual.</p>
 </div>
-</div>
+</div>` : ''}
 <div class="pactions">
 <button class="atc-btn" id="atcBtn" onclick="handleATC()"><i class="fas fa-shopping-bag" style="margin-right:8px"></i>Add to Bag</button>
 <button class="bn-btn" id="bnBtn" onclick="handleBuyNow()"><i class="fas fa-bolt" style="margin-right:8px"></i>Buy Now</button>
@@ -169,7 +171,7 @@ ${product.sizes.map(s=>'<button class="szbtn" data-sz="'+s+'" onclick="selSz(thi
 
 <section class="relsec"><div class="shdr"><p class="sover">You May Also Like</p><h2 class="stitle">Complete the Look</h2></div>
 <div class="relgrid">
-${related.map(p=>{const d=p.comparePrice?Math.round((1-p.price/p.comparePrice)*100):0;return '<a href="/product/'+p.slug+'" class="pcard"><div class="pcimg"><img src="'+p.images[0]+'" alt="intru.in '+p.name+'" loading="lazy" width="400" height="533">'+(p.images[1]?'<img class="ih" src="'+p.images[1]+'" alt="'+p.name+'" loading="lazy" width="400" height="533" style="width:100%;height:100%;object-fit:cover">':'')+(d>0?'<span class="pcbadge">Save '+d+'%</span>':'')+'</div><div class="pcinfo"><h3 class="pcname">'+p.name+'</h3><p class="pctag">'+p.tagline+'</p><div class="pcprice"><span class="cur">'+STORE_CONFIG.currencySymbol+p.price.toLocaleString('en-IN')+'</span>'+(p.comparePrice?' <span class="cmp">'+STORE_CONFIG.currencySymbol+p.comparePrice.toLocaleString('en-IN')+'</span>':'')+'</div></div></a>'}).join('')}
+${related.map(p => { const d = p.comparePrice ? Math.round((1 - p.price / p.comparePrice) * 100) : 0; return '<a href="/product/' + p.slug + '" class="pcard"><div class="pcimg"><img src="' + p.images[0] + '" alt="intru.in ' + p.name + '" loading="lazy" width="400" height="533">' + (p.images[1] ? '<img class="ih" src="' + p.images[1] + '" alt="' + p.name + '" loading="lazy" width="400" height="533" style="width:100%;height:100%;object-fit:cover">' : '') + (d > 0 ? '<span class="pcbadge">Save ' + d + '%</span>' : '') + '</div><div class="pcinfo"><h3 class="pcname">' + p.name + '</h3><p class="pctag">' + p.tagline + '</p><div class="pcprice"><span class="cur">' + STORE_CONFIG.currencySymbol + p.price.toLocaleString('en-IN') + '</span>' + (p.comparePrice ? ' <span class="cmp">' + STORE_CONFIG.currencySymbol + p.comparePrice.toLocaleString('en-IN') + '</span>' : '') + '</div></div></a>' }).join('')}
 </div></section>
 
 <div class="lb" id="lb" onclick="closeLB()">
@@ -277,7 +279,7 @@ function closeSizeGuide(){document.getElementById('sgModal').style.display='none
 
   return shell(
     product.name + ' — INTRU.IN | ' + STORE_CONFIG.currencySymbol + product.price.toLocaleString('en-IN'),
-    product.description.substring(0,155) + '...',
+    product.description.substring(0, 155) + '...',
     body,
     { og: product.images[0], url: 'https://intru.in/product/' + product.slug, schema, razorpayKeyId: opts.razorpayKeyId, googleClientId: opts.googleClientId, products, legalPages, useMagicCheckout: opts.useMagicCheckout }
   );
