@@ -38,9 +38,10 @@ jobs:
           PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
           PGDATABASE: ${{ secrets.DB_NAME }}
           PGPORT: 6543
+          PGCONNECT_TIMEOUT: 5
         run: |
           # Try to ping the database using environment variables (Clean Slate Method)
-          if psql -c "SELECT 1" -w 5 > /dev/null; then
+          if psql -c "SELECT 1" > /dev/null; then
             echo "Database connection successful."
           else
             echo "::error::Database connection failed. Please ensure DB_HOST, DB_USER, and SUPABASE_DB_PASSWORD are correct (Port 6543)."
