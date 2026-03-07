@@ -203,68 +203,24 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 .toast-ok-green{background:#065f46;color:#fff}
 .sz-error{animation:shake .3s ease;border-color:var(--red) !important}
 /* Maintenance modal & banner */
-.mnt-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:9998;display:flex;align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
-.mnt-modal{background:var(--wh);max-width:460px;width:100%;padding:48px 36px;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,.4);animation:scaleIn .3s var(--eo)}
-.mnt-modal h2{font-family:var(--head);font-size:24px;text-transform:uppercase;letter-spacing:-.04em;margin-bottom:12px}
-.mnt-modal p{font-size:14px;color:var(--g500);line-height:1.65;margin-bottom:24px}
-.mnt-chk-wrap{display:flex;align-items:flex-start;gap:10px;text-align:left;padding:16px;background:var(--g50);border:1.5px solid var(--g100);margin-bottom:20px}
-.mnt-chk-wrap input[type=checkbox]{margin-top:2px;width:16px;height:16px;flex-shrink:0;accent-color:var(--bk)}
-.mnt-chk-wrap label{font-size:12px;color:var(--g600);line-height:1.5}
-.mnt-agree-btn{width:100%;padding:18px;background:var(--bk);color:var(--wh);border:none;font-size:10px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;transition:all .3s;opacity:.45;cursor:default}
-.mnt-agree-btn.ready{opacity:1;cursor:pointer}.mnt-agree-btn.ready:hover{background:var(--g600)}
-.mnt-banner{width:100%;background:var(--bk);color:var(--wh);font-size:12px;font-weight:600;display:none;align-items:center;justify-content:center;gap:8px;padding:10px 48px;position:relative;z-index:200;line-height:1.4}
-.mnt-banner a{color:#d4d4d4;font-weight:700;text-decoration:underline}
-.mnt-banner-close{position:absolute;right:16px;background:none;border:none;color:#737373;font-size:18px;cursor:pointer;display:flex;align-items:center;padding:4px;transition:color .2s}.mnt-banner-close:hover{color:var(--wh)}
+.mnt-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9998;display:flex;align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.mnt-modal{background:var(--wh);max-width:440px;width:100%;padding:48px 40px;text-align:center;box-shadow:0 32px 64px rgba(0,0,0,.4);animation:scaleIn .3s var(--eo);border-radius:2px}
+.mnt-modal h3{font-family:var(--head);font-size:24px;text-transform:uppercase;letter-spacing:-.04em;margin-bottom:12px}
+.mnt-modal p{font-size:14px;color:var(--g500);line-height:1.7;margin-bottom:24px}
+.mnt-chk-wrap{display:flex;align-items:flex-start;gap:12px;text-align:left;padding:20px;background:var(--g50);border:1.5px solid var(--g100);margin-bottom:24px;border-radius:4px}
+.mnt-chk-wrap input[type=checkbox]{margin-top:2px;width:18px;height:18px;flex-shrink:0;accent-color:var(--bk);cursor:pointer}
+.mnt-chk-wrap label{font-size:12px;color:var(--g600);line-height:1.6;cursor:pointer;font-weight:500}
+.mnt-agree-btn{width:100%;padding:20px;background:var(--bk);color:var(--wh);border:none;font-size:11px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;transition:all .3s;opacity:.4;cursor:default}
+.mnt-agree-btn.ready{opacity:1;cursor:pointer}.mnt-agree-btn.ready:hover{background:var(--g600);transform:translateY(-1px)}
+.mnt-banner{width:100%;background:var(--bk);color:var(--wh);font-size:11px;font-weight:700;display:none;align-items:center;justify-content:center;gap:12px;padding:12px 24px;position:fixed;top:0;left:0;right:0;z-index:90;letter-spacing:1px;text-transform:uppercase}
+.mnt-banner strong{color:#fff;text-decoration:underline}
+.mnt-banner-close{position:absolute;right:12px;background:none;border:none;color:var(--g400);font-size:22px;cursor:pointer;display:flex;align-items:center;padding:4px;transition:color .2s}.mnt-banner-close:hover{color:var(--wh)}
+@media(max-width:768px){.mnt-banner{font-size:9px;padding:12px 40px 12px 16px;text-align:left;justify-content:flex-start}}
 @media(max-width:768px){.nlinks .nl:not(.nls){display:none}.ftri{grid-template-columns:1fr 1fr;gap:32px}.ftrbt{flex-direction:column;gap:16px;text-align:center}}
 @media(max-width:480px){.ftri{grid-template-columns:1fr}}
 </style>
-<script>
-window.__MAINTENANCE__ = { mode: '${mcMode}', message: '${mcMsg.replace(/'/g, '\\\'')}', eta: '${mcEta}' };
-</script>
 </head>
 <body class="${opt?.cls || ''}">
-${mcMode === 'soft' ? `
-<div class="mnt-modal-overlay" id="mntModal" style="display:none">
-  <div class="mnt-modal">
-    <h2>&#x1F6A7; Site Maintenance</h2>
-    <p>${mcMsg || "We're actively working on this site. You may experience missing images or minor bugs."}<br><br>By continuing, you agree to report any issues to <a href="mailto:shop@intru.in">shop@intru.in</a>.</p>
-    <div class="mnt-chk-wrap">
-      <input type="checkbox" id="mntChk" onchange="document.getElementById('mntAckBtn').classList.toggle('ready',this.checked)">
-      <label for="mntChk">I understand the site is under active maintenance. I may encounter bugs, but I can still browse and make purchases.</label>
-    </div>
-    <button class="mnt-agree-btn" id="mntAckBtn" onclick="mntAcknowledge()">I Understand — Let Me Browse</button>
-  </div>
-</div>
-<div class="mnt-banner" id="mntBanner">
-  <span>&#x1F6A7; Site under maintenance — report bugs to <a href="mailto:shop@intru.in">shop@intru.in</a></span>
-  <button class="mnt-banner-close" onclick="mntDismissBanner()" aria-label="Dismiss">&times;</button>
-</div>
-<script>
-(function(){
-  var ack=sessionStorage.getItem('intru_maintenance_ack');
-  var dismissed=sessionStorage.getItem('intru_banner_dismissed');
-  if(!ack){
-    document.getElementById('mntModal').style.display='flex';
-    document.body.style.overflow='hidden';
-  } else if(!dismissed){
-    document.getElementById('mntBanner').style.display='flex';
-  }
-})();
-function mntAcknowledge(){
-  if(!document.getElementById('mntChk').checked) return;
-  sessionStorage.setItem('intru_maintenance_ack','1');
-  document.getElementById('mntModal').style.display='none';
-  document.body.style.overflow='';
-  if(!sessionStorage.getItem('intru_banner_dismissed')){
-    document.getElementById('mntBanner').style.display='flex';
-  }
-}
-function mntDismissBanner(){
-  sessionStorage.setItem('intru_banner_dismissed','1');
-  document.getElementById('mntBanner').style.display='none';
-}
-</script>
-` : ''}
 <nav class="nav glass" id="nb"><div class="navi">
 <button class="menu-btn" onclick="toggleMobNav()" aria-label="Menu"><i class="fas fa-bars"></i></button>
 <div class="nlinks">

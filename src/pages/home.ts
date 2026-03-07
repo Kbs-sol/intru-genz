@@ -7,6 +7,8 @@ export function homePage(opts: {
   products: Product[];
   legalPages: LegalPage[];
   useMagicCheckout?: boolean;
+  maintenanceConfig?: { mode?: string; message?: string; eta?: string };
+  storeSettings?: Record<string, string>;
 }): string {
   const products = opts.products;
   const legalPages = opts.legalPages;
@@ -214,6 +216,6 @@ function subscribeEmail(form){
     'INTRU.IN — Premium Streetwear India | Oversized Tees & Limited Edition Fashion',
     'Discover INTRU.IN: India\\\'s premier destination for limited-edition streetwear. Shop oversized tees, exclusive drops, and premium basics. No restocks, ever. Free delivery on all prepaid orders.',
     body,
-    { url: 'https://intru.in', schema, razorpayKeyId: opts.razorpayKeyId, googleClientId: opts.googleClientId, products, legalPages, useMagicCheckout: opts.useMagicCheckout }
+    { url: 'https://intru.in', schema, razorpayKeyId: opts.razorpayKeyId, googleClientId: opts.googleClientId, products, legalPages, useMagicCheckout: !!opts.useMagicCheckout, maintenanceConfig: opts.maintenanceConfig, storeSettings: opts.storeSettings }
   );
 }
