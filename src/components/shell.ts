@@ -17,6 +17,7 @@ export function shell(
     products?: Product[];
     legalPages?: LegalPage[];
     useMagicCheckout?: boolean;
+    maintenance?: { enabled?: boolean; type?: string };
   }
 ): string {
   const og = opt?.og || 'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=1200&h=630&fit=crop&q=80';
@@ -26,6 +27,7 @@ export function shell(
   const products = opt?.products || [];
   const legalPages = opt?.legalPages || SEED_LEGAL_PAGES;
   const useMagic = opt?.useMagicCheckout || false;
+  const mBanner = opt?.maintenance || { enabled: false, type: 'skippable' };
 
   const pm = JSON.stringify(Object.fromEntries(products.map(p => [p.id, { id: p.id, n: p.name, s: p.slug, p: p.price, i: p.images, sz: p.sizes }])));
   const sj = JSON.stringify({ cs: STORE_CONFIG.currencySymbol, ft: STORE_CONFIG.freeShippingThreshold, sc: STORE_CONFIG.shippingCost, rk: rpKey, magic: useMagic });
@@ -196,10 +198,31 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 .toast-err{background:var(--red);color:#fff}
 .toast-ok-green{background:#065f46;color:#fff}
 .sz-error{animation:shake .3s ease;border-color:var(--red) !important}
-@media(max-width:768px){.nlinks .nl:not(.nls){display:none}.ftri{grid-template-columns:1fr 1fr;gap:32px}.ftrbt{flex-direction:column;gap:16px;text-align:center}}
+.m-banner{position:fixed;top:0;left:0;right:0;height:36px;background:var(--bk);color:var(--wh);text-align:center;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:12px;z-index:9000}
+.m-banner a{color:var(--wh);text-decoration:underline;font-weight:800}
+.m-banner button{background:none;border:none;color:var(--g400);font-size:14px;cursor:pointer;position:absolute;right:16px}
+.m-banner button:hover{color:var(--wh)}
+body.has-m-banner .nav,body.has-m-banner .mob-nav{top:36px !important}
+body.has-m-banner{padding-top:36px !important}
+@media(max-width:768px){.nlinks .nl:not(.nls){display:none}.ftri{grid-template-columns:1fr 1fr;gap:32px}.ftrbt{flex-direction:column;gap:16px;text-align:center}
+.m-banner{font-size:10px;height:48px;padding:0 30px} body.has-m-banner .nav,body.has-m-banner .mob-nav{top:48px !important} body.has-m-banner{padding-top:48px !important}}
 @media(max-width:480px){.ftri{grid-template-columns:1fr}}
-</style></head>
+</style>
+<script>
+  var m_skip = sessionStorage.getItem('mSkip');
+  var m_enabled = ${mBanner.enabled === true ? 'true' : 'false'};
+  var m_show = m_enabled && !(m_skip && '${mBanner.type}' === 'skippable');
+</script>
+</head>
 <body class="${opt?.cls || ''}">
+<script>if(m_show) document.body.classList.add('has-m-banner');</script>
+${mBanner.enabled ? `
+<div class="m-banner" id="mbanner" style="display:none">
+  <span>Site is under maintenance (Updating Images). You can still order products. To report anything, <a href="mailto:shop@intru.in">email us</a>.</span>
+  ${mBanner.type === 'skippable' ? `<button onclick="document.getElementById('mbanner').style.display='none';document.body.classList.remove('has-m-banner');sessionStorage.setItem('mSkip','1')"><i class="fas fa-times"></i></button>` : ''}
+</div>
+<script>if(m_show) document.getElementById('mbanner').style.display='flex';</script>
+` : ''}
 <nav class="nav glass" id="nb"><div class="navi">
 <button class="menu-btn" onclick="toggleMobNav()" aria-label="Menu"><i class="fas fa-bars"></i></button>
 <div class="nlinks">

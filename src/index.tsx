@@ -41,6 +41,10 @@ async function getPageOpts(c: any) {
     googleClientId: getEnv(c.env, 'GOOGLE_CLIENT_ID', STORE_CONFIG.googleClientId),
     products, legalPages,
     useMagicCheckout: storeSettings.USE_MAGIC_CHECKOUT === 'true',
+    maintenance: {
+      enabled: storeSettings.MAINTENANCE_BANNER_ENABLED === 'true',
+      type: storeSettings.MAINTENANCE_BANNER_TYPE || 'skippable'
+    },
     storeSettings,
   };
 }
