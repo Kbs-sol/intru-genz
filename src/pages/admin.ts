@@ -234,41 +234,46 @@ export function adminPage(opts: {
 
 <!-- Maintenance Tab -->
 <div class="apan" id="tmaint">
-<div class="sett-card" style="background:var(--g50)">
-  <h4>&#x1F6A7; Maintenance Mode</h4>
-  <p>Control site-wide maintenance behaviour. Changes take effect immediately on the live site.</p>
-</div>
-<div class="sett-card">
-  <h4>Maintenance Mode</h4>
-  <p><strong>Off</strong> &mdash; normal operation.<br><strong>Soft</strong> &mdash; users see an acknowledgement modal on first visit, then a persistent banner. They can still browse and order.<br><strong>Full</strong> &mdash; all pages redirect to a standalone maintenance page. Only /admin and /api/* are accessible.</p>
-  <select class="ainp" id="settMaintMode" style="margin:0;max-width:300px" onchange="saveSetting('MAINTENANCE_MODE',this.value)">
-    <option value="off">Off (Normal operation)</option>
-    <option value="soft">Soft (Acknowledgement + Banner)</option>
-    <option value="full">Full (Site locked, maintenance page)</option>
-  </select>
-</div>
-<div class="sett-card">
-  <h4>Maintenance Message</h4>
-  <p>Shown in the modal (soft mode) and on the maintenance page (full mode).</p>
-  <div style="display:flex;gap:8px"><input class="ainp" id="settMaintMsg" style="margin:0" placeholder="We're making some improvements. Back soon!">
-  <button class="asave" onclick="saveSetting('MAINTENANCE_MESSAGE',document.getElementById('settMaintMsg').value)">Save</button></div>
-</div>
-<div class="sett-card">
-  <h4>Estimated Return Time <span style="font-weight:400;font-size:11px;color:var(--g400)">(optional)</span></h4>
-  <p>E.g. &ldquo;March 10, 2026&rdquo;. Leave empty to hide. Shown only in full mode.</p>
-  <div style="display:flex;gap:8px"><input class="ainp" id="settMaintEta" style="margin:0" placeholder="March 10, 2026">
-  <button class="asave" onclick="saveSetting('MAINTENANCE_ETA',document.getElementById('settMaintEta').value)">Save</button></div>
-</div>
-<div class="sett-card">
-  <h4>Live Preview</h4>
-  <p style="margin-bottom:8px">Modal preview (Soft mode):</p>
-  <div style="border:1.5px solid var(--g100);border-radius:6px;padding:24px;background:#f8f8f8;max-width:420px">
-    <strong style="font-size:13px;font-family:var(--head);text-transform:uppercase;letter-spacing:-.03em">&#x1F6A7; Site Maintenance</strong>
-    <p style="font-size:12px;color:var(--g500);margin:8px 0 12px">Your message will appear here.</p>
-    <div style="background:var(--g50);border:1.5px solid var(--g100);padding:10px 12px;font-size:11px;color:var(--g600);margin-bottom:12px">&#9744; I understand the site is under active maintenance...</div>
-    <div style="background:var(--bk);color:var(--wh);text-align:center;padding:10px;font-size:10px;font-weight:700;letter-spacing:2px;opacity:.5">I UNDERSTAND &mdash; LET ME BROWSE</div>
+  <div class="sett-card" style="background:var(--g50)">
+    <h4>&#x1F6A7; Site Maintenance Control</h4>
+    <p>Manage how maintenance mode behaves for your customers. Changes are applied instantly.</p>
   </div>
-</div>
+
+  <div class="sett-card">
+    <h4>Maintenance Mode</h4>
+    <p><strong>Off</strong> &mdash; site works normally.<br><strong>Soft</strong> &mdash; users see an agreement modal + top banner.<br><strong>Full</strong> &mdash; site is locked with a dedicated maintenance page.</p>
+    <select class="ainp" id="settMaintMode" style="margin:0;max-width:300px">
+      <option value="off">Off (Normal)</option>
+      <option value="soft">Soft (Acknowledge + Banner)</option>
+      <option value="full">Full (Locked Page)</option>
+    </select>
+  </div>
+
+  <div class="sett-card">
+    <h4>Maintenance Message</h4>
+    <p>The main message shown to users in both soft and full modes.</p>
+    <textarea class="ainp" id="settMaintMsg" style="margin:0;min-height:80px;padding:12px" placeholder="We're making improvements. Back soon!"></textarea>
+  </div>
+
+  <div class="sett-card">
+    <h4>Estimated Return (ETA)</h4>
+    <p>Optional text shown in full mode (e.g. "March 10, 2026").</p>
+    <input type="text" class="ainp" id="settMaintEta" style="margin:0" placeholder="e.g. March 10, 2026">
+  </div>
+
+  <div style="margin-top:24px">
+    <button class="abtn" id="maintenance-save-btn" onclick="saveMaintenanceConfig()" style="max-width:240px">Save Maintenance Settings</button>
+  </div>
+
+  <div class="sett-card" style="margin-top:40px;opacity:0.75">
+    <h4>Preview (Soft Mode Modal)</h4>
+    <div style="border:1.5px solid var(--g100);border-radius:6px;padding:24px;background:#f8f8f8;max-width:400px;text-align:center">
+      <strong style="font-size:14px;font-family:var(--head);text-transform:uppercase;letter-spacing:-.03em">&#x1F6A7; Site Maintenance</strong>
+      <p style="font-size:12px;color:var(--g500);margin:8px 0 16px;line-height:1.5">Your message will appear here. Users must agree to report bugs before browsing.</p>
+      <div style="background:var(--wh);border:1px solid var(--g200);padding:10px;font-size:10px;color:var(--g400);margin-bottom:12px;text-align:left">&#9744; I understand the site is under active maintenance...</div>
+      <div style="background:var(--bk);color:var(--wh);padding:10px;font-size:9px;font-weight:700;letter-spacing:1px;opacity:0.5">I UNDERSTAND — LET ME BROWSE</div>
+    </div>
+  </div>
 </div>
 
 <!-- AI Stylist Tab [AG] -->
@@ -363,7 +368,8 @@ if(sessionStorage.getItem('iadm')==='1'){document.addEventListener('DOMContentLo
 
 function showTab(btn,id){document.querySelectorAll('.atab').forEach(function(t){t.classList.remove('act')});document.querySelectorAll('.apan').forEach(function(p){p.classList.remove('act')});btn.classList.add('act');document.getElementById(id).classList.add('act')}
 
-function initAdmin(){loadOrders();loadProducts();initLegal();loadSizeChart();loadIgFeed();loadSettings();loadLimits();loadAIConfig()}
+function initAdmin(){getAdminSettings();loadOrders();loadProducts();initLegal();loadSizeChart();loadIgFeed();loadLimits();loadAIConfig()}
+function getAdminSettings(){loadSettings()}
 
 /* ====== LIMITS [AG] ====== */
 function loadLimits(){
@@ -581,6 +587,23 @@ function saveAIConfig(){
     fetch('/api/admin/settings/'+encodeURIComponent(k),{method:'PUT',headers:{'Content-Type':'application/json','x-admin-token':sessionStorage.getItem('iadm_t')},body:JSON.stringify({value:vals[i]})})
     .then(function(r){return r.json()}).then(function(d){
       if(d.success){count++;if(count===keys.length)toast('AI Configuration Saved','ok-green')}
+    });
+  });
+}
+function saveMaintenanceConfig(){
+  var mode = document.getElementById('settMaintMode').value;
+  var msg = document.getElementById('settMaintMsg').value;
+  var eta = document.getElementById('settMaintEta').value;
+  var keys = ['MAINTENANCE_MODE', 'MAINTENANCE_MESSAGE', 'MAINTENANCE_ETA'];
+  var vals = [mode, msg, eta];
+  var count = 0;
+  keys.forEach(function(k, i){
+    fetch('/api/admin/settings/'+encodeURIComponent(k), {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'x-admin-token': sessionStorage.getItem('iadm_t') },
+      body: JSON.stringify({ value: vals[i] })
+    }).then(function(r){ return r.json() }).then(function(d){
+      if(d.success){ count++; if(count === keys.length) toast('Maintenance Settings Saved', 'ok-green'); }
     });
   });
 }
