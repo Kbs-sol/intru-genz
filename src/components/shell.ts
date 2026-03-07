@@ -236,8 +236,8 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 <!-- Soft Maintenance Banner [AG] -->
 <div id="mntBanner" style="${mcMode === 'soft' ? 'display:flex;' : 'display:none;'}background:var(--bk);color:var(--wh);font-family:var(--sans);font-size:13px;align-items:center;justify-content:space-between;padding:12px 24px;width:100%;margin-top:72px;z-index:90;position:relative">
   <div style="display:flex;align-items:center;gap:12px">
-    <span style="font-size:18px">&#x1F6A7;</span>
-    <span><strong>Under Maintenance</strong> &mdash; ${mcMsg.length > 80 ? mcMsg.substring(0, 80) + '...' : mcMsg}</span>
+    <span style="font-size:18px">🛠️</span>
+    <span><strong>Upgrading</strong> &mdash; ${mcMsg.length > 80 ? mcMsg.substring(0, 80) + '...' : mcMsg}</span>
   </div>
   <button onclick="mntDismissBanner()" aria-label="Dismiss banner" style="background:none;border:none;color:var(--g400);font-size:24px;cursor:pointer;padding:4px 8px;display:flex;align-items:center;transition:color .2s" onmouseover="this.style.color='var(--wh)'" onmouseout="this.style.color='var(--g400)'">&times;</button>
 </div>
@@ -322,11 +322,11 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 <!-- Soft Maintenance Modal [AG] -->
 <div class="id-ovl${mcMode === 'soft' ? ' open' : ''}" id="mntOvl" style="z-index:9999">
   <div class="id-box">
-    <h3 style="margin-bottom:12px;display:flex;align-items:center;gap:10px"><span style="font-size:24px">&#x1F6A7;</span> Site Under Maintenance</h3>
+    <h3 style="margin-bottom:12px;display:flex;align-items:center;gap:10px"><span style="font-size:24px">🔒</span> Upgrading the Wardrobe</h3>
     <p style="font-size:14px;color:var(--bk);margin-bottom:16px;line-height:1.6">${mcMsg}</p>
-    ${mcEta ? `<p style="font-size:12px;font-weight:700;color:var(--g400);margin-bottom:16px;text-transform:uppercase;letter-spacing:1px">Expected back: ${mcEta}</p>` : ''}
-    <p style="font-size:11px;color:var(--g400);line-height:1.5;margin-bottom:24px">You may encounter bugs. Please report them to <a href="mailto:shop@intru.in" style="font-weight:700;color:var(--bk);text-decoration:underline">shop@intru.in</a></p>
-    <button class="id-btn" onclick="mntAcknowledge()" style="width:100%">I Understand, Let Me Browse</button>
+    ${mcEta ? `<p style="font-size:12px;font-weight:700;color:var(--g400);margin-bottom:16px;text-transform:uppercase;letter-spacing:1px">Dropping again: ${mcEta}</p>` : ''}
+    <p style="font-size:11px;color:var(--g400);line-height:1.5;margin-bottom:24px">You might experience some lag while we ship improvements. Please report any bugs to <a href="mailto:shop@intru.in" style="font-weight:700;color:var(--bk);text-decoration:underline">shop@intru.in</a></p>
+    <button class="id-btn" onclick="mntAcknowledge()" style="width:100%">I Understand, Let Me Cop</button>
   </div>
 </div>
 <script>
@@ -1001,15 +1001,22 @@ loadSavedAddress();
 function mntAcknowledge() {
   sessionStorage.setItem('intru_maintenance_ack', '1');
   var ovl = document.getElementById('mntOvl');
-  if (ovl) ovl.classList.remove('open');
+  if (ovl) {
+    ovl.classList.remove('open');
+    ovl.style.setProperty('display', 'none', 'important');
+  }
   document.body.style.overflow = '';
+  document.body.style.removeProperty('overflow');
+  document.body.style.overflow = 'auto';
+  
   var b = document.getElementById('mntBanner');
   if (b) b.style.display = 'flex';
 }
+
 function mntDismissBanner() {
   sessionStorage.setItem('intru_banner_dismissed', '1');
   var b = document.getElementById('mntBanner');
-  if (b) b.style.display = 'none';
+  if (b) b.style.setProperty('display', 'none', 'important');
 }
 
 /* ====== KONAMI CODE -> /admin ====== */

@@ -55,7 +55,7 @@ async function getPageOpts(c: any) {
 function fullMaintenancePage(message: string, eta: string): string {
   return `<!DOCTYPE html><html lang="en"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Under Maintenance — intru.in</title>
+<title>Locked — intru.in</title>
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Archivo+Black&display=swap" rel="stylesheet">
@@ -72,10 +72,10 @@ p{font-size:16px;color:#a3a3a3;line-height:1.6;margin-bottom:24px}
 </style></head><body>
 <div class="wrap">
   <div class="logo">INTRU</div>
-  <div class="icon">🔧</div>
-  <h1>Under Maintenance</h1>
+  <div class="icon">🔒</div>
+  <h1>Upgrading the Wardrobe</h1>
   <p>${message}</p>
-  ${eta ? `<div class="eta">Estimated Return: ${eta}</div>` : ''}
+  ${eta ? `<div class="eta">Dropping again: ${eta}</div>` : ''}
   <p class="contact">Urgent? <a href="mailto:shop@intru.in">shop@intru.in</a></p>
 </div>
 </body></html>`;
