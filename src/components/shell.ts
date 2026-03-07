@@ -382,9 +382,12 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 <div class="tc" id="tc"></div>
 ${gKey !== 'YOUR_GOOGLE_CLIENT_ID' ? '<script src="https://accounts.google.com/gsi/client" async defer></script><div id="g_id_onload" data-client_id="' + gKey + '" data-context="signin" data-ux_mode="popup" data-callback="handleGoogleAuth" data-itp_support="true" data-auto_select="false" data-auto_prompt="false"></div>' : '<!-- Google One-Tap: Set GOOGLE_CLIENT_ID env var to enable -->'}
 <script>
+/* ====== MAINTENANCE INJECTION [AG] — isolated to survive any other script errors ====== */
+window.__MAINTENANCE__ = ${JSON.stringify(mc)};
+</script>
+<script>
 /* ====== CONFIG ====== */
 window.STORE_PRODUCTS = ${JSON.stringify(opt?.products || [])};
-window.__MAINTENANCE__ = ${JSON.stringify(mc)};
 var S=${sj};
 var PM=${pm};
 var payMode='prepaid';
@@ -987,15 +990,13 @@ loadSavedAddress();
   if (window.__MAINTENANCE__ && window.__MAINTENANCE__.mode === 'soft') {
     var ack = sessionStorage.getItem('intru_maintenance_ack');
     if (!ack) {
-      document.getElementById('mntOvl').classList.add('open');
-      document.body.style.overflow = 'hidden';
+      var ovl = document.getElementById('mntOvl');
+      if (ovl) { ovl.classList.add('open'); document.body.style.overflow = 'hidden'; }
     } else {
       var dismissed = sessionStorage.getItem('intru_banner_dismissed');
       if (!dismissed) {
         var b = document.getElementById('mntBanner');
-        if (b) {
-          b.style.display = 'flex';
-        }
+        if (b) b.style.display = 'flex';
       }
     }
   }
