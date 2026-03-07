@@ -656,7 +656,26 @@ export async function fetchAllStoreSettings(sbUrl: string, sbKey: string): Promi
   try {
     const res = await supabaseFetch(sbUrl, sbKey, 'store_settings');
     if (!res.ok) return {};
-    const rows = await res.json() as { key: string, value: string }[];
+    let rows = await res.json() as { key: string, value: string }[];
+
+    const keys = rows.map(r => r.key);
+    const mKeys = ['MAINTENANCE_MODE', 'MAINTENANCE_MESSAGE', 'MAINTENANCE_ETA'];
+    if (mKeys.some(k => !keys.includes(k))) {
+      const seed = [
+        { key: 'MAINTENANCE_MODE', value: 'off' },
+        { key: 'MAINTENANCE_MESSAGE', value: 'We are making improvements. Back soon!' },
+        { key: 'MAINTENANCE_ETA', value: '' }
+      ].filter(s => !keys.includes(s.key));
+      try {
+        await supabaseFetch(sbUrl, sbKey, 'store_settings', {
+          method: 'POST',
+          headers: { 'Prefer': 'resolution=merge-duplicates' } as any,
+          body: JSON.stringify(seed)
+        });
+        seed.forEach(s => rows.push({ key: s.key, value: s.value }));
+      } catch (e) { console.error('Maintenance seed error:', e); }
+    }
+
     return rows.reduce((acc, row) => {
       acc[row.key] = row.value;
       return acc;

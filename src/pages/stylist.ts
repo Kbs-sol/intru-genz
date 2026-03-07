@@ -2,14 +2,15 @@ import { shell } from '../components/shell'
 import { STORE_CONFIG, type Product, type LegalPage } from '../data'
 
 export function stylistPage(opts: {
-    razorpayKeyId?: string;
-    googleClientId?: string;
-    products: Product[];
-    legalPages: LegalPage[];
-    useMagicCheckout?: boolean;
-    storeSettings?: Record<string, string>;
+  razorpayKeyId?: string;
+  googleClientId?: string;
+  products: Product[];
+  legalPages: LegalPage[];
+  useMagicCheckout?: boolean;
+  maintenanceConfig?: { mode?: string; message?: string; eta?: string };
+  storeSettings?: Record<string, string>;
 }): string {
-    const body = `
+  const body = `
 <style>
   .stylist-container {
     max-width: 800px;
@@ -242,10 +243,10 @@ export function stylistPage(opts: {
 </script>
 `;
 
-    return shell(
-        'AI Stylist — INTRU.IN',
-        'Get personalized streetwear recommendations and styling tips from our AI Assistant.',
-        body,
-        opts
-    );
+  return shell(
+    'AI Stylist — INTRU.IN',
+    'Get personalized streetwear recommendations and styling tips from our AI Assistant.',
+    body,
+    { ...opts, useMagicCheckout: !!opts.useMagicCheckout }
+  );
 }

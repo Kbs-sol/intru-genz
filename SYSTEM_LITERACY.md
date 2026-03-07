@@ -1,5 +1,5 @@
 # INTRU.IN — Full System Literacy & Architecture Reference
-**Version**: v10 | **Date**: 2026-03-06 | **Production**: https://intru-genz.pages.dev (staging for intru.in) [AG]
+**Version**: v11 | **Date**: 2026-03-07 | **Production**: https://intru-genz.pages.dev (staging for intru.in) [AG]
 
 > This document is designed to be read by manager of e-commerce website AND used as a context prompt for AI assistants. It contains everything needed to understand, debug, fix, or extend the intru.in codebase.
 
@@ -430,6 +430,7 @@ RESEND_API_KEY=re_xxx
 5. **IG Feed**: Toggle feed on/off, manage images with sort order
 6. **Settings**: Toggle Magic Checkout, set manager email, set COD fee
 7. **Image Upload [AG]**: Direct upload to Supabase `Products` bucket with filename sanitization and auto-fill for empty image slots.
+8. **Maintenance [AG v11]**: Interactive control over Server-Rendered Maintenance UI (Soft/Full/Off).
 
 ---
 
@@ -470,6 +471,18 @@ RESEND_API_KEY=re_xxx
 ### Issue: AI Assistant Discoverability [AG]
 **Root Cause**: Visitors missed the AI bot button.
 **Fix**: Added automated CTA bubble ("Ask my AI Stylist"), modern magic icon, and premium shimmer pulse in `shell.ts`.
+
+### Issue: AI Stylist Greeting Syntax Error [AG v11]
+**Root Cause**: Unescaped single quote in `'Hi! I'm your...'` broke the script block.
+**Fix**: Correctly escaped as `'Hi! I\\'m your...'`.
+
+### Issue: Maintenance UI JS Race Conditions [AG v11]
+**Root Cause**: Initial display relied on `DOMContentLoaded` causing a "flash" or failure.
+**Fix**: Implemented Server-Side visibility logic in `shell.ts` and isolated core maintenance functions in an early script tag.
+
+### Issue: Konami Code Precision [AG v11]
+**Root Cause**: Legacy `keyCode` was unreliable; sequence reset on modifier keys (like Shift).
+**Fix**: Migrated to `e.key`, added `e.repeat` protection, and added a whitelist for modifier keys to prevent accidental resets during capital 'b' and 'a'.
 
 ---
 

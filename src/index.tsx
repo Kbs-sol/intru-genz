@@ -37,18 +37,73 @@ async function getPageOpts(c: any) {
   const { products } = await fetchProducts(sbUrl, sbSvc, sbAnon);
   const { pages: legalPages } = await fetchLegalPages(sbUrl, sbSvc, sbAnon);
   const storeSettings = await fetchAllStoreSettings(sbUrl, sbKey);
+  const mMode = storeSettings.MAINTENANCE_MODE || 'off';
   return {
     razorpayKeyId: getEnv(c.env, 'RAZORPAY_KEY_ID', STORE_CONFIG.razorpayKeyId),
     googleClientId: getEnv(c.env, 'GOOGLE_CLIENT_ID', STORE_CONFIG.googleClientId),
     products, legalPages,
     useMagicCheckout: storeSettings.USE_MAGIC_CHECKOUT === 'true',
-    maintenance: {
-      enabled: storeSettings.MAINTENANCE_BANNER_ENABLED === 'true',
-      type: storeSettings.MAINTENANCE_BANNER_TYPE || 'skippable'
+    maintenanceConfig: {
+      mode: mMode,
+      message: storeSettings.MAINTENANCE_MESSAGE || "We're making some improvements. Back soon!",
+      eta: storeSettings.MAINTENANCE_ETA || ''
     },
     storeSettings,
   };
 }
+
+// Helper: generate standalone full-maintenance HTML
+function fullMaintenancePage(message: string, eta: string): string {
+  return `<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Locked — intru.in</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Archivo+Black&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0a;color:#fafafa;font-family:'Space Grotesk',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px}
+.wrap{max-width:480px}
+.logo{font-family:'Archivo Black',sans-serif;font-size:36px;letter-spacing:-.04em;text-transform:uppercase;margin-bottom:48px;opacity:.9}
+.icon{font-size:48px;margin-bottom:24px;opacity:.5}
+h1{font-family:'Archivo Black',sans-serif;font-size:28px;text-transform:uppercase;letter-spacing:-.03em;margin-bottom:16px}
+p{font-size:16px;color:#a3a3a3;line-height:1.6;margin-bottom:24px}
+.eta{display:inline-block;padding:8px 20px;border:1px solid #404040;font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#737373;margin-bottom:32px}
+.contact{font-size:13px;color:#525252}a{color:#737373;text-decoration:underline}
+</style></head><body>
+<div class="wrap">
+  <div class="logo">INTRU</div>
+  <div class="icon">🔒</div>
+  <h1>Upgrading the Wardrobe</h1>
+  <p>${message}</p>
+  ${eta ? `<div class="eta">Dropping again: ${eta}</div>` : ''}
+  <p class="contact">Urgent? <a href="mailto:shop@intru.in">shop@intru.in</a></p>
+</div>
+</body></html>`;
+}
+
+// ============ MAINTENANCE MIDDLEWARE ============
+// Intercepts all page GET requests when MAINTENANCE_MODE='full'
+// API routes and /admin always pass through
+app.use('*', async (c, next) => {
+  const path = new URL(c.req.url).pathname;
+  const isAPI = path.startsWith('/api/');
+  const isAdmin = path === '/admin' || path.startsWith('/admin/');
+  const isMaintPage = path === '/maintenance';
+  const isAsset = path.startsWith('/favicon') || path.endsWith('.txt') || path.endsWith('.xml') || path.endsWith('.ico');
+  if (isAPI || isAdmin || isMaintPage || isAsset) return next();
+  if (c.req.method !== 'GET') return next();
+
+  const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+  const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY') || getEnv(c.env, 'SUPABASE_ANON_KEY');
+  const mode = await fetchStoreSetting(sbUrl, sbKey, 'MAINTENANCE_MODE');
+  if (mode === 'full') {
+    const msg = await fetchStoreSetting(sbUrl, sbKey, 'MAINTENANCE_MESSAGE') || "We're making some improvements. Back soon!";
+    const eta = await fetchStoreSetting(sbUrl, sbKey, 'MAINTENANCE_ETA') || '';
+    return c.html(fullMaintenancePage(msg, eta), 503);
+  }
+  return next();
+})
 
 // ============ PAGE ROUTES ============
 

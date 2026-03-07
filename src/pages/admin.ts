@@ -109,6 +109,7 @@ export function adminPage(opts: {
 <button class="atab" onclick="showTab(this,'tsett')">Settings</button>
 <button class="atab" onclick="showTab(this,'tai')">AI Stylist</button>
 <button class="atab" onclick="showTab(this,'tlim')">Limits & Status</button>
+<button class="atab" onclick="showTab(this,'tmaint')">&#x1F6A7; Maintenance</button>
 </div>
 
 <!-- Orders Tab -->
@@ -247,6 +248,50 @@ export function adminPage(opts: {
 </div>
 </div>
 
+<!-- Maintenance Tab -->
+<div class="apan" id="tmaint">
+  <div class="sett-card" style="background:var(--g50)">
+    <h4>&#x1F6A7; Site Maintenance Control</h4>
+    <p>Manage how maintenance mode behaves for your customers. Changes are applied instantly.</p>
+  </div>
+
+  <div class="sett-card">
+    <h4>Maintenance Mode <span id="maintModeBadge" style="margin-left:8px;font-size:10px;padding:3px 8px;border-radius:12px;letter-spacing:1px;vertical-align:middle;text-transform:uppercase;font-family:var(--sans)"></span></h4>
+    <p><strong>Off</strong> &mdash; site works normally.<br><strong>Soft</strong> &mdash; users see an agreement modal + top banner.<br><strong>Full</strong> &mdash; site is locked with a dedicated maintenance page.</p>
+    <select class="ainp" id="settMaintMode" style="margin:0;max-width:300px">
+      <option value="off">Off (Normal)</option>
+      <option value="soft">Soft (Acknowledge + Banner)</option>
+      <option value="full">Full (Locked Page)</option>
+    </select>
+  </div>
+
+  <div class="sett-card">
+    <h4>Maintenance Message</h4>
+    <p>The main message shown to users in both soft and full modes.</p>
+    <textarea class="ainp" id="settMaintMsg" style="margin:0;min-height:80px;padding:12px" placeholder="We're making improvements. Back soon!"></textarea>
+  </div>
+
+  <div class="sett-card">
+    <h4>Estimated Return (ETA)</h4>
+    <p>Optional text shown in full mode (e.g. "March 10, 2026").</p>
+    <input type="text" class="ainp" id="settMaintEta" style="margin:0" placeholder="e.g. March 10, 2026">
+  </div>
+
+  <div style="margin-top:24px">
+    <button class="abtn" id="maintenance-save-btn" onclick="saveMaintenanceConfig()" style="max-width:240px">Save Maintenance Settings</button>
+  </div>
+
+  <div class="sett-card" style="margin-top:40px;opacity:0.75">
+    <h4>Preview (Soft Mode Modal)</h4>
+    <div style="border:1.5px solid var(--g100);border-radius:6px;padding:24px;background:#f8f8f8;max-width:400px;text-align:center">
+      <strong style="font-size:14px;font-family:var(--head);text-transform:uppercase;letter-spacing:-.03em">&#x1F6A7; Site Maintenance</strong>
+      <p style="font-size:12px;color:var(--g500);margin:8px 0 16px;line-height:1.5">Your message will appear here. Users must agree to report bugs before browsing.</p>
+      <div style="background:var(--wh);border:1px solid var(--g200);padding:10px;font-size:10px;color:var(--g400);margin-bottom:12px;text-align:left">&#9744; I understand the site is under active maintenance...</div>
+      <div style="background:var(--bk);color:var(--wh);padding:10px;font-size:9px;font-weight:700;letter-spacing:1px;opacity:0.5">I UNDERSTAND — LET ME BROWSE</div>
+    </div>
+  </div>
+</div>
+
 <!-- AI Stylist Tab [AG] -->
 <div class="apan" id="tai">
 <div class="sett-card" style="background:var(--g50)">
@@ -339,7 +384,8 @@ if(sessionStorage.getItem('iadm')==='1'){document.addEventListener('DOMContentLo
 
 function showTab(btn,id){document.querySelectorAll('.atab').forEach(function(t){t.classList.remove('act')});document.querySelectorAll('.apan').forEach(function(p){p.classList.remove('act')});btn.classList.add('act');document.getElementById(id).classList.add('act')}
 
-function initAdmin(){loadOrders();loadProducts();initLegal();loadSizeChart();loadIgFeed();loadSettings();loadLimits();loadAIConfig()}
+function initAdmin(){getAdminSettings();loadOrders();loadProducts();initLegal();loadSizeChart();loadIgFeed();loadLimits();loadAIConfig()}
+function getAdminSettings(){loadSettings()}
 
 /* ====== LIMITS [AG] ====== */
 function loadLimits(){
@@ -519,10 +565,11 @@ function loadSettings(){
     document.getElementById('settIgFeed').checked=s.INSTAGRAM_FEED_ENABLED!=='false';
     const settSizeGuide = document.getElementById('settSizeGuide');
     if (settSizeGuide) settSizeGuide.checked=s.SIZE_GUIDE_ENABLED!=='false';
-    const settBannerEn = document.getElementById('settBannerEn');
-    if (settBannerEn) settBannerEn.checked=s.MAINTENANCE_BANNER_ENABLED==='true';
-    const settBannerType = document.getElementById('settBannerType');
-    if (settBannerType) settBannerType.value=s.MAINTENANCE_BANNER_TYPE||'skippable';
+    // Maintenance
+    var mm=document.getElementById('settMaintMode'); if(mm) mm.value=s.MAINTENANCE_MODE||'off';
+    var mMsg=document.getElementById('settMaintMsg'); if(mMsg) mMsg.value=s.MAINTENANCE_MESSAGE||'';
+    var mEta=document.getElementById('settMaintEta'); if(mEta) mEta.value=s.MAINTENANCE_ETA||'';
+    if(typeof updateMaintBadge === 'function') updateMaintBadge(s.MAINTENANCE_MODE||'off');
   }).catch(function(){});
 }
 function saveSetting(key,val){
@@ -560,12 +607,55 @@ function saveAIConfig(){
     });
   });
 }
+function saveMaintenanceConfig(){
+  var mode = document.getElementById('settMaintMode').value;
+  var msg = document.getElementById('settMaintMsg').value;
+  var eta = document.getElementById('settMaintEta').value;
+  var keys = ['MAINTENANCE_MODE', 'MAINTENANCE_MESSAGE', 'MAINTENANCE_ETA'];
+  var vals = [mode, msg, eta];
+  var count = 0;
+  var failed = false;
+  keys.forEach(function(k, i){
+    fetch('/api/admin/settings/'+encodeURIComponent(k), {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'x-admin-token': sessionStorage.getItem('iadm_t') },
+      body: JSON.stringify({ value: vals[i] })
+    }).then(function(r){ return r.json() }).then(function(d){
+      if(!d.success) failed = true;
+      count++; 
+      if(count === keys.length) {
+        if(!failed) {
+          toast('Maintenance mode updated', 'ok-green');
+          updateMaintBadge(mode);
+        } else {
+          toast('Failed to save &mdash; try again', 'err');
+        }
+      }
+    }).catch(function(e){
+      failed = true; count++;
+      if(count === keys.length) toast('Failed to save &mdash; try again', 'err');
+    });
+  });
+}
+function updateMaintBadge(mode) {
+  var b = document.getElementById('maintModeBadge');
+  if(!b) return;
+  if(mode === 'off') {
+    b.innerHTML = '&#9679; OFF';
+    b.style.background = 'var(--g100)';
+    b.style.color = 'var(--g500)';
+  } else {
+    b.innerHTML = '&#9679; LIVE';
+    b.style.background = '#dcfce7';
+    b.style.color = '#166534';
+  }
+}
 </script>`;
 
   return shell(
     'Admin — INTRU.IN',
     'Admin panel for intru.in store management.',
     body,
-    { cls: 'admin-page', razorpayKeyId: opts.razorpayKeyId, googleClientId: opts.googleClientId, products, legalPages, useMagicCheckout: opts.useMagicCheckout }
+    { cls: 'admin-page', razorpayKeyId: opts.razorpayKeyId, googleClientId: opts.googleClientId, products, legalPages, useMagicCheckout: !!opts.useMagicCheckout }
   );
 }

@@ -7,6 +7,7 @@ export function productPage(product: Product, opts: {
   products: Product[];
   legalPages: LegalPage[];
   useMagicCheckout?: boolean;
+  maintenanceConfig?: { mode?: string; message?: string; eta?: string };
   storeSettings?: Record<string, string>;
 }): string {
   const products = opts.products;
@@ -281,6 +282,6 @@ function closeSizeGuide(){document.getElementById('sgModal').style.display='none
     product.name + ' — INTRU.IN | ' + STORE_CONFIG.currencySymbol + product.price.toLocaleString('en-IN'),
     product.description.substring(0, 155) + '...',
     body,
-    { og: product.images[0], url: 'https://intru.in/product/' + product.slug, schema, razorpayKeyId: opts.razorpayKeyId, googleClientId: opts.googleClientId, products, legalPages, useMagicCheckout: opts.useMagicCheckout }
+    { og: product.images[0], url: 'https://intru.in/product/' + product.slug, schema, razorpayKeyId: opts.razorpayKeyId, googleClientId: opts.googleClientId, products, legalPages, useMagicCheckout: !!opts.useMagicCheckout, maintenanceConfig: opts.maintenanceConfig, storeSettings: opts.storeSettings }
   );
 }
