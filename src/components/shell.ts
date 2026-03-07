@@ -342,7 +342,7 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 })();
 </script>
 
-<main style="padding-top:64px">${body}</main>
+<main style="padding-top:72px">${body}</main>
 <footer class="ftr" id="contact"><div class="ftri">
 <div class="ftrb"><h3>INTRU.IN</h3><p>${STORE_CONFIG.description}</p>
 <p style="margin-top:16px;font-size:11px;color:var(--g400);line-height:1.7"><strong style="color:var(--g300)">Registered Office:</strong><br>Hyderabad, Telangana, India</p>

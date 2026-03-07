@@ -17,8 +17,8 @@ export function homePage(opts: {
 
   const body = `<style>
 .noise{position:absolute;inset:0;opacity:.04;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")}
-.hero{min-height:92vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:120px 24px;position:relative;background:#fff;overflow:hidden}
-.hero-over{font-size:11px;font-weight:800;letter-spacing:6px;text-transform:uppercase;color:var(--bk);margin-bottom:24px;display:flex;align-items:center;gap:12px}.hero-over::before,.hero-over::after{content:'';width:40px;height:1px;background:var(--g200)}
+.hero{min-height:92vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:60px 24px;position:relative;background:#fff;overflow:hidden}
+.hero-over{font-size:11px;font-weight:800;letter-spacing:6px;text-transform:uppercase;color:var(--bk);margin-bottom:16px;display:flex;align-items:center;gap:12px}.hero-over::before,.hero-over::after{content:'';width:40px;height:1px;background:var(--g200)}
 .hero-title{font-family:var(--head);font-size:clamp(44px,10vw,110px);font-weight:900;line-height:.9;letter-spacing:-.06em;text-transform:uppercase;max-width:1000px;margin-bottom:24px;color:var(--bk)}
 .hero-sub{font-size:16px;color:var(--g500);max-width:520px;line-height:1.7;margin-bottom:48px;font-weight:500}
 .hero-cta{display:inline-flex;align-items:center;gap:16px;padding:20px 52px;background:var(--bk);color:var(--wh);font-size:12px;font-weight:800;letter-spacing:4px;text-transform:uppercase;border:none;transition:all .4s var(--eo);box-shadow:0 24px 48px rgba(0,0,0,.15)}
