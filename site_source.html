@@ -1,47 +1,9 @@
-import { STORE_CONFIG, type Product, type LegalPage, SEED_LEGAL_PAGES } from '../data'
-
-/**
- * Shell v6.1: Unified Checkout + Prepaid Free Shipping + Address Persistence [AG]
- * - Unified Checkout: Buy Now & Checkout pull up payment selection
- * - Prepaid: ALWAYS FREE shipping + ⚡ SAVE Rs.99 nudge
- * - COD: Rs.99 Convenience/Shipping Fee
- * - Address Persistence: data saved to localStorage on successful COD
- */
-export function shell(
-  title: string,
-  desc: string,
-  body: string,
-  opt?: {
-    og?: string; url?: string; schema?: string; cls?: string;
-    razorpayKeyId?: string; googleClientId?: string;
-    products?: Product[];
-    legalPages?: LegalPage[];
-    useMagicCheckout: boolean;
-    maintenanceConfig?: { mode?: string; message?: string; eta?: string };
-    storeSettings?: Record<string, string>;
-  }
-): string {
-  const og = opt?.og || 'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=1200&h=630&fit=crop&q=80';
-  const url = opt?.url || 'https://intru.in';
-  const rpKey = opt?.razorpayKeyId || STORE_CONFIG.razorpayKeyId;
-  const gKey = opt?.googleClientId || STORE_CONFIG.googleClientId;
-  const products = opt?.products || [];
-  const legalPages = opt?.legalPages || SEED_LEGAL_PAGES;
-  const useMagic = opt?.useMagicCheckout || false;
-  const mc = opt?.maintenanceConfig || { mode: 'off', message: '', eta: '' };
-  const mcMode = mc.mode || 'off';
-  const mcMsg = mc.message || '';
-  const mcEta = mc.eta || '';
-
-  const pm = JSON.stringify(Object.fromEntries(products.map(p => [p.id, { id: p.id, n: p.name, s: p.slug, p: p.price, i: p.images, sz: p.sizes }])));
-  const sj = JSON.stringify({ cs: STORE_CONFIG.currencySymbol, ft: STORE_CONFIG.freeShippingThreshold, sc: STORE_CONFIG.shippingCost, rk: rpKey, magic: useMagic });
-
-  return `<!DOCTYPE html><html lang="en"><head>
+<!DOCTYPE html><html lang="en"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>${title}</title><meta name="description" content="${desc}">
-<meta name="robots" content="index,follow"><link rel="canonical" href="${url}">
-<meta property="og:type" content="website"><meta property="og:title" content="${title}"><meta property="og:description" content="${desc}"><meta property="og:image" content="${og}"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:url" content="${url}"><meta property="og:site_name" content="intru.in">
-<meta name="twitter:card" content="summary_large_image"><meta name="twitter:site" content="@intru_in"><meta name="twitter:title" content="${title}"><meta name="twitter:description" content="${desc}"><meta name="twitter:image" content="${og}">
+<title>INTRU.IN — Premium Streetwear India | Oversized Tees & Limited Edition Fashion</title><meta name="description" content="Discover INTRU.IN: India\'s premier destination for limited-edition streetwear. Shop oversized tees, exclusive drops, and premium basics. No restocks, ever. Free delivery on all prepaid orders.">
+<meta name="robots" content="index,follow"><link rel="canonical" href="https://intru.in">
+<meta property="og:type" content="website"><meta property="og:title" content="INTRU.IN — Premium Streetwear India | Oversized Tees & Limited Edition Fashion"><meta property="og:description" content="Discover INTRU.IN: India\'s premier destination for limited-edition streetwear. Shop oversized tees, exclusive drops, and premium basics. No restocks, ever. Free delivery on all prepaid orders."><meta property="og:image" content="https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=1200&h=630&fit=crop&q=80"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:url" content="https://intru.in"><meta property="og:site_name" content="intru.in">
+<meta name="twitter:card" content="summary_large_image"><meta name="twitter:site" content="@intru_in"><meta name="twitter:title" content="INTRU.IN — Premium Streetwear India | Oversized Tees & Limited Edition Fashion"><meta name="twitter:description" content="Discover INTRU.IN: India\'s premier destination for limited-edition streetwear. Shop oversized tees, exclusive drops, and premium basics. No restocks, ever. Free delivery on all prepaid orders."><meta name="twitter:image" content="https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=1200&h=630&fit=crop&q=80">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -49,7 +11,7 @@ export function shell(
   "name": "intru.in",
   "url": "https://intru.in",
   "logo": "https://intru.in/logo.png",
-  "description": "${STORE_CONFIG.description}",
+  "description": "Experience premium streetwear with INTRU.IN. We specialize in limited-edition oversized tees and high-quality drops that never restock. Two best friends, tired of mass-produced fashion, bringing you exclusive Indian streetwear made with love. When it's gone, it's gone.",
   "address": {
     "@type": "PostalAddress",
     "addressLocality": "Hyderabad",
@@ -58,7 +20,7 @@ export function shell(
   }
 }
 </script>
-${opt?.schema ? '<script type="application/ld+json">' + opt.schema + '</script>' : ''}
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"ItemList","itemListElement":[{"@type":"ListItem","position":1,"item":{"@type":"Product","name":"Doodles T-Shirt","url":"https://intru.in/product/doodles-t-shirt","image":["https://intru.in/cdn/shop/files/3.png?v=1748692106&width=1946","https://intru.in/cdn/shop/files/3.png?v=1748692106&width=800","https://intru.in/cdn/shop/files/3.png?v=1748692106&width=800","https://intru.in/cdn/shop/files/3.png?v=1748692106&width=600"],"offers":{"@type":"Offer","price":999,"priceCurrency":"INR","availability":"https://schema.org/InStock"}}},{"@type":"ListItem","position":2,"item":{"@type":"Product","name":"No Risk Porsche","url":"https://intru.in/product/no-risk-porsche","image":["https://intru.in/cdn/shop/files/F51687B9-2BF2-43E0-988A-30272833B19E.jpg?v=1756359581&width=1920","https://intru.in/cdn/shop/files/F51687B9-2BF2-43E0-988A-30272833B19E.jpg?v=1756359581&width=1000","https://intru.in/cdn/shop/files/F51687B9-2BF2-43E0-988A-30272833B19E.jpg?v=1756359581&width=800","https://intru.in/cdn/shop/files/F51687B9-2BF2-43E0-988A-30272833B19E.jpg?v=1756359581&width=600"],"offers":{"@type":"Offer","price":999,"priceCurrency":"INR","availability":"https://schema.org/InStock"}}},{"@type":"ListItem","position":3,"item":{"@type":"Product","name":"Orange Puff","url":"https://intru.in/product/orange-puff-printed-t-shirt","image":["https://intru.in/cdn/shop/files/1_3de916a1-a217-41ee-9b2e-9e2c3130c4d6.png?v=1748190442&width=1445","https://intru.in/cdn/shop/files/1_3de916a1-a217-41ee-9b2e-9e2c3130c4d6.png?v=1748190442&width=1000","https://intru.in/cdn/shop/files/1_3de916a1-a217-41ee-9b2e-9e2c3130c4d6.png?v=1748190442&width=800","https://intru.in/cdn/shop/files/1_3de916a1-a217-41ee-9b2e-9e2c3130c4d6.png?v=1748190442&width=600"],"offers":{"@type":"Offer","price":899,"priceCurrency":"INR","availability":"https://schema.org/InStock"}}},{"@type":"ListItem","position":4,"item":{"@type":"Product","name":"Stripe 18 Shirt","url":"https://intru.in/product/stripe-18-shirt","image":["https://intru.in/cdn/shop/files/99.png?v=1748173436&width=1946","https://intru.in/cdn/shop/files/99.png?v=1748173436&width=1000","https://intru.in/cdn/shop/files/99.png?v=1748173436&width=800","https://intru.in/cdn/shop/files/99.png?v=1748173436&width=600"],"offers":{"@type":"Offer","price":1099,"priceCurrency":"INR","availability":"https://schema.org/InStock"}}},{"@type":"ListItem","position":5,"item":{"@type":"Product","name":"Romanticise Crop","url":"https://intru.in/product/romanticise-crop-tee","image":["https://intru.in/cdn/shop/files/4_f2aa413e-6e91-49bd-8f16-2efd41b4d6ea.png?v=1748190572&width=1946","https://intru.in/cdn/shop/files/4_f2aa413e-6e91-49bd-8f16-2efd41b4d6ea.png?v=1748190572&width=1000","https://intru.in/cdn/shop/files/4_f2aa413e-6e91-49bd-8f16-2efd41b4d6ea.png?v=1748190572&width=800","https://intru.in/cdn/shop/files/4_f2aa413e-6e91-49bd-8f16-2efd41b4d6ea.png?v=1748190572&width=600"],"offers":{"@type":"Offer","price":699,"priceCurrency":"INR","availability":"https://schema.org/InStock"}}},{"@type":"ListItem","position":6,"item":{"@type":"Product","name":"Summer Shirt","url":"https://intru.in/product/summer-shirt","image":["https://intru.in/cdn/shop/files/03.png?v=1756359941&width=1946","https://intru.in/cdn/shop/files/03.png?v=1756359941&width=1000","https://intru.in/cdn/shop/files/03.png?v=1756359941&width=800","https://intru.in/cdn/shop/files/03.png?v=1756359941&width=600"],"offers":{"@type":"Offer","price":999,"priceCurrency":"INR","availability":"https://schema.org/InStock"}}}]}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Archivo+Black&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.0/css/all.min.css">
@@ -220,7 +182,7 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 @media(max-width:480px){.ftri{grid-template-columns:1fr}}
 </style>
 </head>
-<body class="${opt?.cls || ''}" ${mcMode === 'soft' ? 'style="overflow:hidden"' : ''}>
+<body class="" style="overflow:hidden">
 <nav class="nav glass" id="nb"><div class="navi">
 <button class="menu-btn" onclick="toggleMobNav()" aria-label="Menu"><i class="fas fa-bars"></i></button>
 <div class="nlinks">
@@ -234,10 +196,10 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
   <button class="ncart" onclick="toggleCart()" aria-label="Cart Bag"><i class="fas fa-shopping-bag"></i><span class="cbadge" id="cb">0</span></button>
 </div></div></nav>
 <!-- Soft Maintenance Banner [AG] -->
-<div id="mntBanner" style="${mcMode === 'soft' ? 'display:flex;' : 'display:none;'}background:var(--bk);color:var(--wh);font-family:var(--sans);font-size:13px;align-items:center;justify-content:space-between;padding:12px 24px;width:100%;margin-top:72px;z-index:90;position:relative">
+<div id="mntBanner" style="display:flex;background:var(--bk);color:var(--wh);font-family:var(--sans);font-size:13px;align-items:center;justify-content:space-between;padding:12px 24px;width:100%;margin-top:72px;z-index:90;position:relative">
   <div style="display:flex;align-items:center;gap:12px">
     <span style="font-size:18px">🛠️</span>
-    <span><strong>Upgrading</strong> &mdash; ${mcMsg.length > 80 ? mcMsg.substring(0, 80) + '...' : mcMsg}</span>
+    <span><strong>Upgrading</strong> &mdash; We're making some improvements.</span>
   </div>
   <button onclick="mntDismissBanner()" aria-label="Dismiss banner" style="background:none;border:none;color:var(--g400);font-size:24px;cursor:pointer;padding:4px 8px;display:flex;align-items:center;transition:color .2s" onmouseover="this.style.color='var(--wh)'" onmouseout="this.style.color='var(--g400)'">&times;</button>
 </div>
@@ -258,9 +220,9 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 <div class="cbdy" id="cby"><div class="cemp"><i class="fas fa-shopping-bag"></i><p>Your bag is empty</p></div></div>
 <div id="cartTimer" class="cart-timer" style="display:none"><i class="fas fa-clock"></i> <span>Cart reserved for <span id="timerClock">05:00</span> minutes</span></div>
 <div class="cftr" id="cf" style="display:none">
-<div class="cst"><span>Subtotal</span><span id="csub">${STORE_CONFIG.currencySymbol}0</span></div>
+<div class="cst"><span>Subtotal</span><span id="csub">Rs.0</span></div>
 <div class="csh"><span>Shipping</span><span id="cshp">Calculated</span></div>
-<div class="ctl"><span>Total</span><span id="ctot">${STORE_CONFIG.currencySymbol}0</span></div>
+<div class="ctl"><span>Total</span><span id="ctot">Rs.0</span></div>
 <div style="text-align:center"><span class="trust-badge"><i class="fas fa-shield-halved"></i> 100% Secure Checkout</span></div>
 <!-- Payment Mode Selector (only when NOT magic checkout) -->
 <div class="cmode" id="cmode" style="display:none;margin-top:8px">
@@ -320,11 +282,11 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 </div>
 
 <!-- Soft Maintenance Modal [AG] -->
-<div class="id-ovl${mcMode === 'soft' ? ' open' : ''}" id="mntOvl" style="z-index:9999">
+<div class="id-ovl open" id="mntOvl" style="z-index:9999">
   <div class="id-box">
     <h3 style="margin-bottom:12px;display:flex;align-items:center;gap:10px"><span style="font-size:24px">🔒</span> Upgrading the Wardrobe</h3>
-    <p style="font-size:14px;color:var(--bk);margin-bottom:16px;line-height:1.6">${mcMsg}</p>
-    ${mcEta ? `<p style="font-size:12px;font-weight:700;color:var(--g400);margin-bottom:16px;text-transform:uppercase;letter-spacing:1px">Dropping again: ${mcEta}</p>` : ''}
+    <p style="font-size:14px;color:var(--bk);margin-bottom:16px;line-height:1.6">We're making some improvements.</p>
+    
     <p style="font-size:11px;color:var(--g400);line-height:1.5;margin-bottom:24px">You might experience some lag while we ship improvements. Please report any bugs to <a href="mailto:shop@intru.in" style="font-weight:700;color:var(--bk);text-decoration:underline">shop@intru.in</a></p>
     <button class="id-btn" onclick="mntAcknowledge()" style="width:100%">I Understand, Let Me Cop</button>
   </div>
@@ -342,15 +304,326 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 })();
 </script>
 
-<main style="padding-top:64px">${body}</main>
+<main style="padding-top:64px"><style>
+.noise{position:absolute;inset:0;opacity:.04;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")}
+.hero{min-height:92vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:120px 24px;position:relative;background:#fff;overflow:hidden}
+.hero-over{font-size:11px;font-weight:800;letter-spacing:6px;text-transform:uppercase;color:var(--bk);margin-bottom:24px;display:flex;align-items:center;gap:12px}.hero-over::before,.hero-over::after{content:'';width:40px;height:1px;background:var(--g200)}
+.hero-title{font-family:var(--head);font-size:clamp(44px,10vw,110px);font-weight:900;line-height:.9;letter-spacing:-.06em;text-transform:uppercase;max-width:1000px;margin-bottom:24px;color:var(--bk)}
+.hero-sub{font-size:16px;color:var(--g500);max-width:520px;line-height:1.7;margin-bottom:48px;font-weight:500}
+.hero-cta{display:inline-flex;align-items:center;gap:16px;padding:20px 52px;background:var(--bk);color:var(--wh);font-size:12px;font-weight:800;letter-spacing:4px;text-transform:uppercase;border:none;transition:all .4s var(--eo);box-shadow:0 24px 48px rgba(0,0,0,.15)}
+.hero-cta:hover{background:var(--g600);transform:translateY(-4px);box-shadow:0 32px 64px rgba(0,0,0,.25)}
+.hero-scroll{position:absolute;bottom:48px;left:50%;transform:translateX(-50%);font-size:10px;font-weight:800;letter-spacing:3px;text-transform:uppercase;color:var(--g300);display:flex;flex-direction:column;align-items:center;gap:12px}
+.hero-line{width:1px;height:48px;background:linear-gradient(to bottom,var(--g300),transparent)}
+.mq{overflow:hidden;padding:16px 0;background:var(--bk)}
+.mqt{display:flex;gap:40px;white-space:nowrap;animation:marquee 25s linear infinite}
+.mqi{font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--wh);opacity:.5;flex-shrink:0}
+.mqd{opacity:.3}
+.story{max-width:700px;margin:0 auto;padding:100px 24px;text-align:center}
+.story-over{font-size:10px;font-weight:700;letter-spacing:5px;text-transform:uppercase;color:var(--g400);margin-bottom:20px}
+.story-txt{font-size:clamp(20px,3vw,28px);line-height:1.6;color:var(--g500);font-weight:400}
+.story-txt strong{color:var(--bk);font-weight:700}
+.psec{padding:80px 24px;max-width:1280px;margin:0 auto}
+.shdr{text-align:center;margin-bottom:60px}
+.sover{font-size:10px;font-weight:700;letter-spacing:5px;text-transform:uppercase;color:var(--g400);margin-bottom:8px}
+.stitle{font-family:var(--head);font-size:clamp(24px,4vw,40px);text-transform:uppercase;letter-spacing:-.03em}
+.pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.pcard{position:relative;overflow:hidden;cursor:pointer;text-decoration:none;color:inherit;transition:transform .4s var(--ease)}
+.pcard:hover{transform:translateY(-4px)}
+.trust-bar{display:flex;justify-content:center;gap:40px;padding:24px;background:var(--wh);border-bottom:1px solid var(--g100);max-width:1280px;margin:0 auto}
+.t-item{display:flex;align-items:center;gap:10px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--g500)}
+.t-item i{color:var(--bk);font-size:14px}
+@media(max-width:768px){.trust-bar{gap:20px;flex-wrap:wrap;justify-content:center}.t-item{font-size:9px}}
+.pcimg{position:relative;aspect-ratio:3/4;overflow:hidden;border-radius:8px;background:var(--g50)}
+.pcimg img{width:100%;height:100%;object-fit:cover;transition:transform .6s var(--ease)}
+.pcard:hover .pcimg img{transform:scale(1.06)}
+.pcimg .ih{position:absolute;inset:0;opacity:0;transition:opacity .6s var(--eo)}.pcard:hover .pcimg .ih{opacity:1}
+.pcbadge{position:absolute;top:12px;left:12px;background:var(--bk);color:var(--wh);font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;padding:6px 12px;border-radius:2px;z-index:2}
+.limited-badge{position:absolute;top:12px;right:12px;background:rgba(255,255,255,.9);color:var(--bk);font-size:8px;font-weight:800;letter-spacing:1px;text-transform:uppercase;padding:4px 8px;border-radius:2px;backdrop-filter:blur(4px);z-index:2}
+.pcinfo{padding:14px 2px 0}
+.pcname{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
+.pctag{font-size:12px;color:var(--g400);margin-bottom:6px}
+.pcprice{display:flex;align-items:center;gap:8px}
+.pcprice .cur{font-size:15px;font-weight:700}
+.pcprice .cmp{font-size:12px;color:var(--g300);text-decoration:line-through}
+.pcprice .sv{font-size:10px;font-weight:700;color:#16a34a;background:#f0fdf4;padding:2px 6px;border-radius:3px}
+.feats{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;max-width:1280px;margin:0 auto;padding:80px 24px;border-top:1px solid var(--g100)}
+.feat{text-align:center;padding:28px 12px}
+.ficon{width:52px;height:52px;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;border:1.5px solid var(--g200);border-radius:50%;font-size:18px;color:var(--g500)}
+.feat h4{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+.feat p{font-size:12px;color:var(--g400);line-height:1.5}
+.tsec{background:var(--g50);padding:80px 24px;text-align:center}
+.tquote{font-size:clamp(18px,2.5vw,24px);line-height:1.6;max-width:650px;margin:0 auto 20px;color:var(--g500);font-weight:400;font-style:italic}
+.tauth{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--g400)}
+.nlsec{max-width:560px;margin:0 auto;padding:80px 24px;text-align:center}
+.nlsec h3{font-family:var(--head);font-size:clamp(22px,3vw,32px);text-transform:uppercase;letter-spacing:-.02em;margin-bottom:10px}
+.nlsec p{color:var(--g400);font-size:13px;margin-bottom:28px}
+.nlform{display:flex;gap:0;max-width:420px;margin:0 auto}
+.nlinp{flex:1;padding:14px 18px;border:1.5px solid var(--g200);border-right:none;font-size:13px;font-family:inherit;outline:none;transition:border-color .2s}.nlinp:focus{border-color:var(--bk)}
+.nlbtn{padding:14px 24px;background:var(--bk);color:var(--wh);border:1.5px solid var(--bk);font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;transition:background .2s}.nlbtn:hover{background:var(--g600)}
+.igsec{padding:80px 24px 40px;text-align:center}
+.iggrid{display:grid;grid-template-columns:repeat(5,1fr);gap:3px;overflow:hidden}
+.igit{aspect-ratio:1;overflow:hidden;position:relative}
+.igit img{width:100%;height:100%;object-fit:cover;transition:transform .4s var(--ease)}
+.igit:hover img{transform:scale(1.08)}
+.igit::after{content:'\f16d';font-family:'Font Awesome 6 Brands';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.35);color:#fff;font-size:22px;opacity:0;transition:opacity .3s}.igit:hover::after{opacity:1}
+@media(max-width:1024px){.pgrid{grid-template-columns:repeat(2,1fr)}.feats{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:640px){.pgrid{grid-template-columns:1fr;max-width:380px;margin:0 auto}.feats{grid-template-columns:1fr}.nlform{flex-direction:column}.nlinp{border-right:1.5px solid var(--g200)}.iggrid{grid-template-columns:repeat(3,1fr)}}
+</style>
+
+<section class="hero">
+<div class="noise"></div>
+<p class="hero-over anim">Est. 2025 &mdash; Premium Indian Streetwear</p>
+<h1 class="hero-title anim d1">LIMITED DROPS.<br>NO RESTOCKS.</h1>
+<p class="hero-sub anim d2">Experience premium streetwear with INTRU.IN. We specialize in limited-edition oversized tees and high-quality drops that never restock. Two best friends, tired of mass-produced fashion, bringing you exclusive Indian streetwear made with love. When it's gone, it's gone.</p>
+<div class="anim d3" style="margin-bottom:32px;font-size:10px;font-weight:800;letter-spacing:4px;text-transform:uppercase;color:var(--green)">⚡ 100% Cotton &bull; Oversized Fit &bull; Made in India</div>
+<a href="#products" class="hero-cta anim d4">Discover the Drop <i class="fas fa-arrow-right"></i></a>
+<div class="hero-scroll"><span>Explore Collection</span><div class="hero-line"></div></div>
+</section>
+
+<div class="trust-bar anim d4">
+  <div class="t-item"><i class="fas fa-shipping-fast"></i> Fast Shipping</div>
+  <div class="t-item"><i class="fas fa-gem"></i> Premium Cotton</div>
+  <div class="t-item"><i class="fas fa-hand-holding-heart"></i> Made in India</div>
+</div>
+
+    <div class="mq"><div class="mqt">
+<span class="mqi">Limited Stock Only</span><span class="mqi mqd">/</span><span class="mqi">No Fake Drops</span><span class="mqi mqd">/</span><span class="mqi" style="color:#22c55e;opacity:1">Free Delivery on Prepaid ⚡</span><span class="mqi mqd">/</span><span class="mqi">Made With Love</span><span class="mqi mqd">/</span><span class="mqi">Made in India</span><span class="mqi mqd">/</span><span class="mqi">Never Restocked</span><span class="mqi mqd">/</span><span class="mqi">Limited Stock Only</span><span class="mqi mqd">/</span><span class="mqi">No Fake Drops</span><span class="mqi mqd">/</span><span class="mqi" style="color:#22c55e;opacity:1">Free Delivery on Prepaid ⚡</span><span class="mqi mqd">/</span><span class="mqi">Made With Love</span><span class="mqi mqd">/</span><span class="mqi">Made in India</span><span class="mqi mqd">/</span><span class="mqi">Never Restocked</span><span class="mqi mqd">/</span><span class="mqi">Limited Stock Only</span><span class="mqi mqd">/</span><span class="mqi">No Fake Drops</span><span class="mqi mqd">/</span><span class="mqi" style="color:#22c55e;opacity:1">Free Delivery on Prepaid ⚡</span><span class="mqi mqd">/</span><span class="mqi">Made With Love</span><span class="mqi mqd">/</span><span class="mqi">Made in India</span><span class="mqi mqd">/</span><span class="mqi">Never Restocked</span><span class="mqi mqd">/</span><span class="mqi">Limited Stock Only</span><span class="mqi mqd">/</span><span class="mqi">No Fake Drops</span><span class="mqi mqd">/</span><span class="mqi" style="color:#22c55e;opacity:1">Free Delivery on Prepaid ⚡</span><span class="mqi mqd">/</span><span class="mqi">Made With Love</span><span class="mqi mqd">/</span><span class="mqi">Made in India</span><span class="mqi mqd">/</span><span class="mqi">Never Restocked</span><span class="mqi mqd">/</span>
+    </div></div>
+
+<section class="story" id="story">
+<p class="story-over anim">Our Story</p>
+<p class="story-txt anim d1">We're <strong>super picky</strong> about what we wear. We <strong>hate mass-produced, same-pattern</strong> clothes that flood every store. So two best friends decided to do something about it &mdash; we launched <strong>INTRU.IN</strong> with a promise: <strong>limited stock only, no fake drops, every piece made with love.</strong></p>
+<p class="story-txt anim d2" style="margin-top:20px">Each design is crafted over <strong>two months</strong> to feel like it was made just for YOU. When it's gone, it's <strong>never restocked</strong> &mdash; that's not a marketing tactic, that's our word.</p>
+</section>
+
+<section class="psec" id="products">
+<div class="shdr"><p class="sover anim">The Collection</p><h2 class="stitle anim d1">Current Drop</h2></div>
+<div class="pgrid">
+<a href="/product/doodles-t-shirt" class="pcard anim d1">
+<div class="pcimg">
+<img src="https://intru.in/cdn/shop/files/3.png?v=1748692106&width=1946" alt="INTRU.IN Doodles T-Shirt - Premium Streetwear T-Shirts" loading="eager" width="400" height="533">
+<img class="ih" src="https://intru.in/cdn/shop/files/3.png?v=1748692106&width=800" alt="INTRU.IN Doodles T-Shirt - Exclusive Drop Detail" loading="lazy" width="400" height="533" style="width:100%;height:100%;object-fit:cover">
+<span class="pcbadge">Save 33%</span>
+<span class="limited-badge">Exclusive Drop</span>
+<div class="pcard-actions">
+  <div class="pcsizes">
+    <div class="pcsz" data-pid="p1" data-sz="XS" onclick="selectQuickSize(event,'p1','XS')">XS</div><div class="pcsz" data-pid="p1" data-sz="S" onclick="selectQuickSize(event,'p1','S')">S</div><div class="pcsz" data-pid="p1" data-sz="M" onclick="selectQuickSize(event,'p1','M')">M</div><div class="pcsz" data-pid="p1" data-sz="L" onclick="selectQuickSize(event,'p1','L')">L</div>
+  </div>
+  <div class="pcbtns">
+    <button class="pc-atc" onclick="handleQuickAction(event,'atc','p1')">Add to Bag</button>
+    <button class="pc-bn" onclick="handleQuickAction(event,'bn','p1')">Buy Now</button>
+  </div>
+</div>
+</div>
+<div class="pcinfo">
+<h3 class="pcname">Doodles T-Shirt</h3>
+<p class="pctag">Warmth and joy</p>
+<div class="pcprice">
+<span class="cur">Rs.999</span>
+<span class="cmp">Rs.1,499</span>
+<span class="sv">33% OFF</span>
+</div></div></a>
+<a href="/product/no-risk-porsche" class="pcard anim d2">
+<div class="pcimg">
+<img src="https://intru.in/cdn/shop/files/F51687B9-2BF2-43E0-988A-30272833B19E.jpg?v=1756359581&width=1920" alt="INTRU.IN No Risk Porsche - Premium Streetwear T-Shirts" loading="eager" width="400" height="533">
+<img class="ih" src="https://intru.in/cdn/shop/files/F51687B9-2BF2-43E0-988A-30272833B19E.jpg?v=1756359581&width=1000" alt="INTRU.IN No Risk Porsche - Exclusive Drop Detail" loading="lazy" width="400" height="533" style="width:100%;height:100%;object-fit:cover">
+<span class="pcbadge">Save 33%</span>
+<span class="limited-badge">Exclusive Drop</span>
+<div class="pcard-actions">
+  <div class="pcsizes">
+    <div class="pcsz" data-pid="p2" data-sz="XS" onclick="selectQuickSize(event,'p2','XS')">XS</div><div class="pcsz" data-pid="p2" data-sz="S" onclick="selectQuickSize(event,'p2','S')">S</div><div class="pcsz" data-pid="p2" data-sz="M" onclick="selectQuickSize(event,'p2','M')">M</div><div class="pcsz" data-pid="p2" data-sz="L" onclick="selectQuickSize(event,'p2','L')">L</div>
+  </div>
+  <div class="pcbtns">
+    <button class="pc-atc" onclick="handleQuickAction(event,'atc','p2')">Add to Bag</button>
+    <button class="pc-bn" onclick="handleQuickAction(event,'bn','p2')">Buy Now</button>
+  </div>
+</div>
+</div>
+<div class="pcinfo">
+<h3 class="pcname">No Risk Porsche</h3>
+<p class="pctag">Bold edge</p>
+<div class="pcprice">
+<span class="cur">Rs.999</span>
+<span class="cmp">Rs.1,499</span>
+<span class="sv">33% OFF</span>
+</div></div></a>
+<a href="/product/orange-puff-printed-t-shirt" class="pcard anim d3">
+<div class="pcimg">
+<img src="https://intru.in/cdn/shop/files/1_3de916a1-a217-41ee-9b2e-9e2c3130c4d6.png?v=1748190442&width=1445" alt="INTRU.IN Orange Puff - Premium Streetwear T-Shirts" loading="eager" width="400" height="533">
+<img class="ih" src="https://intru.in/cdn/shop/files/1_3de916a1-a217-41ee-9b2e-9e2c3130c4d6.png?v=1748190442&width=1000" alt="INTRU.IN Orange Puff - Exclusive Drop Detail" loading="lazy" width="400" height="533" style="width:100%;height:100%;object-fit:cover">
+<span class="pcbadge">Save 40%</span>
+<span class="limited-badge">Exclusive Drop</span>
+<div class="pcard-actions">
+  <div class="pcsizes">
+    <div class="pcsz" data-pid="p3" data-sz="XS" onclick="selectQuickSize(event,'p3','XS')">XS</div><div class="pcsz" data-pid="p3" data-sz="S" onclick="selectQuickSize(event,'p3','S')">S</div><div class="pcsz" data-pid="p3" data-sz="M" onclick="selectQuickSize(event,'p3','M')">M</div><div class="pcsz" data-pid="p3" data-sz="L" onclick="selectQuickSize(event,'p3','L')">L</div>
+  </div>
+  <div class="pcbtns">
+    <button class="pc-atc" onclick="handleQuickAction(event,'atc','p3')">Add to Bag</button>
+    <button class="pc-bn" onclick="handleQuickAction(event,'bn','p3')">Buy Now</button>
+  </div>
+</div>
+</div>
+<div class="pcinfo">
+<h3 class="pcname">Orange Puff</h3>
+<p class="pctag">Caffeine-core</p>
+<div class="pcprice">
+<span class="cur">Rs.899</span>
+<span class="cmp">Rs.1,499</span>
+<span class="sv">40% OFF</span>
+</div></div></a>
+<a href="/product/stripe-18-shirt" class="pcard anim d4">
+<div class="pcimg">
+<img src="https://intru.in/cdn/shop/files/99.png?v=1748173436&width=1946" alt="INTRU.IN Stripe 18 Shirt - Premium Streetwear Shirts" loading="eager" width="400" height="533">
+<img class="ih" src="https://intru.in/cdn/shop/files/99.png?v=1748173436&width=1000" alt="INTRU.IN Stripe 18 Shirt - Exclusive Drop Detail" loading="lazy" width="400" height="533" style="width:100%;height:100%;object-fit:cover">
+<span class="pcbadge">Save 35%</span>
+<span class="limited-badge">Exclusive Drop</span>
+<div class="pcard-actions">
+  <div class="pcsizes">
+    <div class="pcsz" data-pid="p5" data-sz="XS" onclick="selectQuickSize(event,'p5','XS')">XS</div><div class="pcsz" data-pid="p5" data-sz="S" onclick="selectQuickSize(event,'p5','S')">S</div><div class="pcsz" data-pid="p5" data-sz="M" onclick="selectQuickSize(event,'p5','M')">M</div><div class="pcsz" data-pid="p5" data-sz="L" onclick="selectQuickSize(event,'p5','L')">L</div>
+  </div>
+  <div class="pcbtns">
+    <button class="pc-atc" onclick="handleQuickAction(event,'atc','p5')">Add to Bag</button>
+    <button class="pc-bn" onclick="handleQuickAction(event,'bn','p5')">Buy Now</button>
+  </div>
+</div>
+</div>
+<div class="pcinfo">
+<h3 class="pcname">Stripe 18 Shirt</h3>
+<p class="pctag">Cool tones</p>
+<div class="pcprice">
+<span class="cur">Rs.1,099</span>
+<span class="cmp">Rs.1,699</span>
+<span class="sv">35% OFF</span>
+</div></div></a>
+<a href="/product/romanticise-crop-tee" class="pcard anim d1">
+<div class="pcimg">
+<img src="https://intru.in/cdn/shop/files/4_f2aa413e-6e91-49bd-8f16-2efd41b4d6ea.png?v=1748190572&width=1946" alt="INTRU.IN Romanticise Crop - Premium Streetwear T-Shirts" loading="lazy" width="400" height="533">
+<img class="ih" src="https://intru.in/cdn/shop/files/4_f2aa413e-6e91-49bd-8f16-2efd41b4d6ea.png?v=1748190572&width=1000" alt="INTRU.IN Romanticise Crop - Exclusive Drop Detail" loading="lazy" width="400" height="533" style="width:100%;height:100%;object-fit:cover">
+<span class="pcbadge">Save 30%</span>
+<span class="limited-badge">Exclusive Drop</span>
+<div class="pcard-actions">
+  <div class="pcsizes">
+    <div class="pcsz" data-pid="p4" data-sz="XS" onclick="selectQuickSize(event,'p4','XS')">XS</div><div class="pcsz" data-pid="p4" data-sz="S" onclick="selectQuickSize(event,'p4','S')">S</div><div class="pcsz" data-pid="p4" data-sz="M" onclick="selectQuickSize(event,'p4','M')">M</div><div class="pcsz" data-pid="p4" data-sz="L" onclick="selectQuickSize(event,'p4','L')">L</div>
+  </div>
+  <div class="pcbtns">
+    <button class="pc-atc" onclick="handleQuickAction(event,'atc','p4')">Add to Bag</button>
+    <button class="pc-bn" onclick="handleQuickAction(event,'bn','p4')">Buy Now</button>
+  </div>
+</div>
+</div>
+<div class="pcinfo">
+<h3 class="pcname">Romanticise Crop</h3>
+<p class="pctag">Breezy ease</p>
+<div class="pcprice">
+<span class="cur">Rs.699</span>
+<span class="cmp">Rs.999</span>
+<span class="sv">30% OFF</span>
+</div></div></a>
+<a href="/product/summer-shirt" class="pcard anim d2">
+<div class="pcimg">
+<img src="https://intru.in/cdn/shop/files/03.png?v=1756359941&width=1946" alt="INTRU.IN Summer Shirt - Premium Streetwear Shirts" loading="lazy" width="400" height="533">
+<img class="ih" src="https://intru.in/cdn/shop/files/03.png?v=1756359941&width=1000" alt="INTRU.IN Summer Shirt - Exclusive Drop Detail" loading="lazy" width="400" height="533" style="width:100%;height:100%;object-fit:cover">
+<span class="pcbadge">Save 38%</span>
+<span class="limited-badge">Exclusive Drop</span>
+<div class="pcard-actions">
+  <div class="pcsizes">
+    <div class="pcsz" data-pid="p6" data-sz="XS" onclick="selectQuickSize(event,'p6','XS')">XS</div><div class="pcsz" data-pid="p6" data-sz="S" onclick="selectQuickSize(event,'p6','S')">S</div><div class="pcsz" data-pid="p6" data-sz="M" onclick="selectQuickSize(event,'p6','M')">M</div><div class="pcsz" data-pid="p6" data-sz="L" onclick="selectQuickSize(event,'p6','L')">L</div>
+  </div>
+  <div class="pcbtns">
+    <button class="pc-atc" onclick="handleQuickAction(event,'atc','p6')">Add to Bag</button>
+    <button class="pc-bn" onclick="handleQuickAction(event,'bn','p6')">Buy Now</button>
+  </div>
+</div>
+</div>
+<div class="pcinfo">
+<h3 class="pcname">Summer Shirt</h3>
+<p class="pctag">Sunshine staple</p>
+<div class="pcprice">
+<span class="cur">Rs.999</span>
+<span class="cmp">Rs.1,599</span>
+<span class="sv">38% OFF</span>
+</div></div></a>
+</div></section>
+
+    <section class="feats">
+      <div class="feat anim"><div class="ficon" style="color:#16a34a;border-color:#16a34a"><i class="fas fa-truck-fast"></i></div><h4>Free Delivery</h4><p>On all Prepaid orders</p></div>
+<div class="feat anim d1"><div class="ficon"><i class="fas fa-bolt"></i></div><h4>Fast Dispatch</h4><p>Processed within 36 hours</p></div>
+<div class="feat anim d2"><div class="ficon"><i class="fas fa-shield-alt"></i></div><h4>Secure Payment</h4><p>Razorpay protected</p></div>
+<div class="feat anim d3"><div class="ficon"><i class="fas fa-exchange-alt"></i></div><h4>Limited Drop</h4><p>36h exchange request</p></div>
+</section>
+
+<section class="tsec">
+<p class="sover anim">What People Say</p>
+<blockquote class="tquote anim d1">"Finally, a brand that gets it &mdash; clean designs, perfect fits, and quality you can actually feel. intru.in is the only place I shop for basics now."</blockquote>
+<p class="tauth anim d2">&mdash; Verified Customer</p>
+</section>
+
+<section class="igsec" id="igSection">
+<p class="sover">Join the Drop</p>
+<h3 style="font-family:var(--head);font-size:32px;text-transform:uppercase;letter-spacing:-.04em;margin-bottom:32px;color:var(--bk)">Official Feed</h3>
+<div class="iggrid" id="igHomeGrid">
+<!-- Default premium visuals -->
+<a href="https://instagram.com/intru.in" target="_blank" rel="noopener" class="igit"><img src="https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?w=600&h=600&fit=crop&q=80" alt="intru.in Lifestyle" loading="lazy"></a>
+<a href="https://instagram.com/intru.in" target="_blank" rel="noopener" class="igit"><img src="https://images.unsplash.com/photo-1543076447-215ad9ba6923?w=600&h=600&fit=crop&q=80" alt="intru.in Aesthetic" loading="lazy"></a>
+<a href="https://instagram.com/intru.in" target="_blank" rel="noopener" class="igit"><img src="https://images.unsplash.com/photo-1556306535-0f09a537f0a3?w=600&h=600&fit=crop&q=80" alt="intru.in Detail" loading="lazy"></a>
+<a href="https://instagram.com/intru.in" target="_blank" rel="noopener" class="igit"><img src="https://images.unsplash.com/photo-1512436991641-6745cdb1723f?w=600&h=600&fit=crop&q=80" alt="intru.in Streetwear" loading="lazy"></a>
+<a href="https://instagram.com/intru.in" target="_blank" rel="noopener" class="igit"><img src="https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=600&h=600&fit=crop&q=80" alt="intru.in Basics" loading="lazy"></a>
+<a href="https://instagram.com/intru.in" target="_blank" rel="noopener" class="igit"><img src="https://images.unsplash.com/photo-1529374255404-311a2a4f1fd9?w=600&h=600&fit=crop&q=80" alt="intru.in Culture" loading="lazy"></a>
+</div></section>
+
+<section class="nlsec" id="newsletter">
+<h3>Get Notified of the Next Drop</h3>
+<p>Be the first to know when we release new products. No spam, ever.</p>
+<form class="nlform" onsubmit="event.preventDefault();subscribeEmail(this)">
+<input class="nlinp" type="email" placeholder="Your email" required id="nlEmail">
+<button class="nlbtn" type="submit" id="nlBtn">Notify Me</button>
+</form></section>
+
+<script>
+var obs=new IntersectionObserver(function(entries){entries.forEach(function(e){if(e.isIntersecting){e.target.style.animationPlayState='running';obs.unobserve(e.target)}})},{threshold:.1});
+document.querySelectorAll('.anim').forEach(function(el){el.style.animationPlayState='paused';obs.observe(el)});
+
+/* ====== IG Feed: hide if disabled ====== */
+fetch('/api/instagram-feed').then(function(r){return r.json()}).then(function(d){
+  if(d.enabled===false){var sec=document.getElementById('igSection');if(sec)sec.style.display='none';return}
+  if(d.feed&&d.feed.length>0){
+    var grid=document.getElementById('igHomeGrid');var h='';
+    d.feed.forEach(function(item){h+='<a href="'+(item.link_url||'https://instagram.com/intru.in')+'" target="_blank" rel="noopener" class="igit"><img src="'+item.image_url+'" alt="'+(item.caption||'intru.in Instagram')+'" loading="lazy" width="300" height="300"></a>'});
+    if(h)grid.innerHTML=h;
+  }
+}).catch(function(){});
+
+function subscribeEmail(form){
+  var email=document.getElementById('nlEmail').value.trim();
+  if(!email)return;
+  var btn=document.getElementById('nlBtn');
+  btn.disabled=true;btn.textContent='SUBSCRIBING...';
+  fetch('/api/subscribe',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({email:email})
+  })
+  .then(function(r){return r.json()})
+  .then(function(d){
+    if(d.success||d.message){
+      toast(d.message||"You're on the list!",'ok-green');
+      form.reset();
+    } else {
+      toast(d.error||'Failed to subscribe','err');
+    }
+  })
+  .catch(function(e){toast('Error: '+e.message,'err')})
+  .finally(function(){btn.disabled=false;btn.textContent='NOTIFY ME'});
+}
+</script></main>
 <footer class="ftr" id="contact"><div class="ftri">
-<div class="ftrb"><h3>INTRU.IN</h3><p>${STORE_CONFIG.description}</p>
+<div class="ftrb"><h3>INTRU.IN</h3><p>Experience premium streetwear with INTRU.IN. We specialize in limited-edition oversized tees and high-quality drops that never restock. Two best friends, tired of mass-produced fashion, bringing you exclusive Indian streetwear made with love. When it's gone, it's gone.</p>
 <p style="margin-top:16px;font-size:11px;color:var(--g400);line-height:1.7"><strong style="color:var(--g300)">Registered Office:</strong><br>Hyderabad, Telangana, India</p>
 <p style="margin-top:8px;font-size:11px;color:var(--g400);line-height:1.7"><strong style="color:var(--g300)">Grievance Officer:</strong><br><a href="mailto:shop@intru.in" style="color:var(--g300)">shop@intru.in</a><br><span style="font-size:10px">Per Consumer Protection (E-Commerce) Rules, 2020</span></p>
 </div>
 <div class="ftrc"><h4>Shop</h4><a href="/#products">All Drops</a><a href="/collections">Collections</a><a href="/about">About</a></div>
 <div class="ftrc"><h4>Help</h4><a href="/p/shipping">Shipping</a><a href="/p/returns">Returns &amp; Credit</a><a href="mailto:shop@intru.in">Contact</a></div>
-<div class="ftrc"><h4>Legal</h4>${legalPages.map(p => '<a href="/p/' + p.slug + '">' + p.title + '</a>').join('')}</div>
+<div class="ftrc"><h4>Legal</h4><a href="/p/privacy">Privacy Policy</a><a href="/p/returns">Returns, Exchanges & Refunds</a><a href="/p/shipping">Shipping Policy</a><a href="/p/terms">Terms of Service</a></div>
 </div>
 <div class="pay-icons">
   <i class="fab fa-cc-visa"></i>
@@ -360,7 +633,7 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
   <i class="fas fa-money-bill-wave"></i>
 </div>
 <div class="ftrbt"><span>&copy; 2026 intru.in &mdash; Premium Indian Streetwear. All sales final.</span>
-<div class="fsoc"><a href="https://instagram.com/${STORE_CONFIG.instagram}" target="_blank" rel="noopener" aria-label="Instagram"><i class="fab fa-instagram"></i></a></div>
+<div class="fsoc"><a href="https://instagram.com/intru.in" target="_blank" rel="noopener" aria-label="Instagram"><i class="fab fa-instagram"></i></a></div>
 </div></footer>
 
 <!-- AI Stylist Widget [AG] -->
@@ -392,10 +665,13 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
   </div>
 </div>
 <div class="tc" id="tc"></div>
-${gKey !== 'YOUR_GOOGLE_CLIENT_ID' ? '<script src="https://accounts.google.com/gsi/client" async defer></script><div id="g_id_onload" data-client_id="' + gKey + '" data-context="signin" data-ux_mode="popup" data-callback="handleGoogleAuth" data-itp_support="true" data-auto_select="false" data-auto_prompt="false"></div>' : '<!-- Google One-Tap: Set GOOGLE_CLIENT_ID env var to enable -->'}
+<!-- Google One-Tap: Set GOOGLE_CLIENT_ID env var to enable -->
 <script>
 /* ====== MAINTENANCE INJECTION [AG] — isolated to survive any other script errors ====== */
-window.__MAINTENANCE__ = ${JSON.stringify(mc)};
+window.__MAINTENANCE__ = {"mode":"soft","message":"We're making some improvements.","eta":""};
+</script>
+<script>
+/* ====== MAINTENANCE GLOBALS [AG] ====== */
 function mntAcknowledge() {
   sessionStorage.setItem('intru_maintenance_ack', '1');
   var ovl = document.getElementById('mntOvl');
@@ -407,17 +683,17 @@ function mntAcknowledge() {
   var b = document.getElementById('mntBanner');
   if (b) b.style.display = 'flex';
 }
+
 function mntDismissBanner() {
   sessionStorage.setItem('intru_banner_dismissed', '1');
   var b = document.getElementById('mntBanner');
   if (b) b.style.setProperty('display', 'none', 'important');
 }
-</script>
-<script>
+
 /* ====== CONFIG ====== */
-window.STORE_PRODUCTS = ${JSON.stringify(opt?.products || [])};
-var S=${sj};
-var PM=${pm};
+window.STORE_PRODUCTS = [{"id":"p1","slug":"doodles-t-shirt","name":"Doodles T-Shirt","tagline":"Warmth and joy","description":"Playful doodle-art printed tee that radiates warmth. Crafted from premium cotton with puff-print detailing. Pre-shrunk, garment-dyed, and designed to feel like it was made just for you.","price":999,"comparePrice":1499,"currency":"INR","images":["https://intru.in/cdn/shop/files/3.png?v=1748692106&width=1946","https://intru.in/cdn/shop/files/3.png?v=1748692106&width=800","https://intru.in/cdn/shop/files/3.png?v=1748692106&width=800","https://intru.in/cdn/shop/files/3.png?v=1748692106&width=600"],"sizes":["XS","S","M","L"],"category":"T-Shirts","inStock":true,"featured":true},{"id":"p2","slug":"no-risk-porsche","name":"No Risk Porsche","tagline":"Bold edge","description":"A statement tee for those who move without hesitation. Bold graphic print, premium cotton, and a fit that commands attention. No risk, no reward.","price":999,"comparePrice":1499,"currency":"INR","images":["https://intru.in/cdn/shop/files/F51687B9-2BF2-43E0-988A-30272833B19E.jpg?v=1756359581&width=1920","https://intru.in/cdn/shop/files/F51687B9-2BF2-43E0-988A-30272833B19E.jpg?v=1756359581&width=1000","https://intru.in/cdn/shop/files/F51687B9-2BF2-43E0-988A-30272833B19E.jpg?v=1756359581&width=800","https://intru.in/cdn/shop/files/F51687B9-2BF2-43E0-988A-30272833B19E.jpg?v=1756359581&width=600"],"sizes":["XS","S","M","L"],"category":"T-Shirts","inStock":true,"featured":true},{"id":"p3","slug":"orange-puff-printed-t-shirt","name":"Orange Puff","tagline":"Caffeine-core","description":"Orange puff-printed tee with a texture you can feel. Caffeine-core energy meets streetwear minimalism. Premium cotton, relaxed fit, limited run.","price":899,"comparePrice":1499,"currency":"INR","images":["https://intru.in/cdn/shop/files/1_3de916a1-a217-41ee-9b2e-9e2c3130c4d6.png?v=1748190442&width=1445","https://intru.in/cdn/shop/files/1_3de916a1-a217-41ee-9b2e-9e2c3130c4d6.png?v=1748190442&width=1000","https://intru.in/cdn/shop/files/1_3de916a1-a217-41ee-9b2e-9e2c3130c4d6.png?v=1748190442&width=800","https://intru.in/cdn/shop/files/1_3de916a1-a217-41ee-9b2e-9e2c3130c4d6.png?v=1748190442&width=600"],"sizes":["XS","S","M","L"],"category":"T-Shirts","inStock":true,"featured":true},{"id":"p5","slug":"stripe-18-shirt","name":"Stripe 18 Shirt","tagline":"Cool tones","description":"Cool-toned striped shirt with a structured collar and relaxed body. Premium woven fabric, mother-of-pearl buttons, and a fit that bridges casual and smart.","price":1099,"comparePrice":1699,"currency":"INR","images":["https://intru.in/cdn/shop/files/99.png?v=1748173436&width=1946","https://intru.in/cdn/shop/files/99.png?v=1748173436&width=1000","https://intru.in/cdn/shop/files/99.png?v=1748173436&width=800","https://intru.in/cdn/shop/files/99.png?v=1748173436&width=600"],"sizes":["XS","S","M","L"],"category":"Shirts","inStock":true,"featured":true},{"id":"p4","slug":"romanticise-crop-tee","name":"Romanticise Crop","tagline":"Breezy ease","description":"Cropped silhouette meets everyday comfort. Soft cotton, clean cut, and an effortless vibe. Designed over two months because we refused to rush perfection.","price":699,"comparePrice":999,"currency":"INR","images":["https://intru.in/cdn/shop/files/4_f2aa413e-6e91-49bd-8f16-2efd41b4d6ea.png?v=1748190572&width=1946","https://intru.in/cdn/shop/files/4_f2aa413e-6e91-49bd-8f16-2efd41b4d6ea.png?v=1748190572&width=1000","https://intru.in/cdn/shop/files/4_f2aa413e-6e91-49bd-8f16-2efd41b4d6ea.png?v=1748190572&width=800","https://intru.in/cdn/shop/files/4_f2aa413e-6e91-49bd-8f16-2efd41b4d6ea.png?v=1748190572&width=600"],"sizes":["XS","S","M","L"],"category":"T-Shirts","inStock":true,"featured":true},{"id":"p6","slug":"summer-shirt","name":"Summer Shirt","tagline":"Sunshine staple","description":"Your go-to summer layer. Lightweight, breathable, and effortlessly styled. Made for golden-hour walks and spontaneous weekend plans.","price":999,"comparePrice":1599,"currency":"INR","images":["https://intru.in/cdn/shop/files/03.png?v=1756359941&width=1946","https://intru.in/cdn/shop/files/03.png?v=1756359941&width=1000","https://intru.in/cdn/shop/files/03.png?v=1756359941&width=800","https://intru.in/cdn/shop/files/03.png?v=1756359941&width=600"],"sizes":["XS","S","M","L"],"category":"Shirts","inStock":true,"featured":true}];
+var S={"cs":"Rs.","ft":1999,"sc":99,"rk":"YOUR_RAZORPAY_KEY_ID","magic":false};
+var PM={"p1":{"id":"p1","n":"Doodles T-Shirt","s":"doodles-t-shirt","p":999,"i":["https://intru.in/cdn/shop/files/3.png?v=1748692106&width=1946","https://intru.in/cdn/shop/files/3.png?v=1748692106&width=800","https://intru.in/cdn/shop/files/3.png?v=1748692106&width=800","https://intru.in/cdn/shop/files/3.png?v=1748692106&width=600"],"sz":["XS","S","M","L"]},"p2":{"id":"p2","n":"No Risk Porsche","s":"no-risk-porsche","p":999,"i":["https://intru.in/cdn/shop/files/F51687B9-2BF2-43E0-988A-30272833B19E.jpg?v=1756359581&width=1920","https://intru.in/cdn/shop/files/F51687B9-2BF2-43E0-988A-30272833B19E.jpg?v=1756359581&width=1000","https://intru.in/cdn/shop/files/F51687B9-2BF2-43E0-988A-30272833B19E.jpg?v=1756359581&width=800","https://intru.in/cdn/shop/files/F51687B9-2BF2-43E0-988A-30272833B19E.jpg?v=1756359581&width=600"],"sz":["XS","S","M","L"]},"p3":{"id":"p3","n":"Orange Puff","s":"orange-puff-printed-t-shirt","p":899,"i":["https://intru.in/cdn/shop/files/1_3de916a1-a217-41ee-9b2e-9e2c3130c4d6.png?v=1748190442&width=1445","https://intru.in/cdn/shop/files/1_3de916a1-a217-41ee-9b2e-9e2c3130c4d6.png?v=1748190442&width=1000","https://intru.in/cdn/shop/files/1_3de916a1-a217-41ee-9b2e-9e2c3130c4d6.png?v=1748190442&width=800","https://intru.in/cdn/shop/files/1_3de916a1-a217-41ee-9b2e-9e2c3130c4d6.png?v=1748190442&width=600"],"sz":["XS","S","M","L"]},"p5":{"id":"p5","n":"Stripe 18 Shirt","s":"stripe-18-shirt","p":1099,"i":["https://intru.in/cdn/shop/files/99.png?v=1748173436&width=1946","https://intru.in/cdn/shop/files/99.png?v=1748173436&width=1000","https://intru.in/cdn/shop/files/99.png?v=1748173436&width=800","https://intru.in/cdn/shop/files/99.png?v=1748173436&width=600"],"sz":["XS","S","M","L"]},"p4":{"id":"p4","n":"Romanticise Crop","s":"romanticise-crop-tee","p":699,"i":["https://intru.in/cdn/shop/files/4_f2aa413e-6e91-49bd-8f16-2efd41b4d6ea.png?v=1748190572&width=1946","https://intru.in/cdn/shop/files/4_f2aa413e-6e91-49bd-8f16-2efd41b4d6ea.png?v=1748190572&width=1000","https://intru.in/cdn/shop/files/4_f2aa413e-6e91-49bd-8f16-2efd41b4d6ea.png?v=1748190572&width=800","https://intru.in/cdn/shop/files/4_f2aa413e-6e91-49bd-8f16-2efd41b4d6ea.png?v=1748190572&width=600"],"sz":["XS","S","M","L"]},"p6":{"id":"p6","n":"Summer Shirt","s":"summer-shirt","p":999,"i":["https://intru.in/cdn/shop/files/03.png?v=1756359941&width=1946","https://intru.in/cdn/shop/files/03.png?v=1756359941&width=1000","https://intru.in/cdn/shop/files/03.png?v=1756359941&width=800","https://intru.in/cdn/shop/files/03.png?v=1756359941&width=600"],"sz":["XS","S","M","L"]}};
 var payMode='prepaid';
 var identifiedEmail=localStorage.getItem('intru_user_email')||'';
 var identifiedName=localStorage.getItem('intru_user_name')||'';
@@ -743,7 +1019,7 @@ function renderCart(){
   var html='';
   cart.forEach(function(item){
     var p=PM[item.p];if(!p)return;
-    html+='<div class="citm"><img class="cimg" src="'+p.i[0]+'" alt="'+p.n+'"><div class="cinf"><div class="cnm">'+p.n+'</div><div class="cmt">Size: '+item.s+'</div><div class="cpr">'+fmt(p.p*item.q)+'</div><div class="cqty"><button class="qb" onclick="updateQty(\\x27'+p.id+'\\x27,\\x27'+item.s+'\\x27,-1)">&minus;</button><span>'+item.q+'</span><button class="qb" onclick="updateQty(\\x27'+p.id+'\\x27,\\x27'+item.s+'\\x27,1)">+</button></div><button class="crm" onclick="removeFromCart(\\x27'+p.id+'\\x27,\\x27'+item.s+'\\x27)">Remove</button></div></div>';
+    html+='<div class="citm"><img class="cimg" src="'+p.i[0]+'" alt="'+p.n+'"><div class="cinf"><div class="cnm">'+p.n+'</div><div class="cmt">Size: '+item.s+'</div><div class="cpr">'+fmt(p.p*item.q)+'</div><div class="cqty"><button class="qb" onclick="updateQty(\x27'+p.id+'\x27,\x27'+item.s+'\x27,-1)">&minus;</button><span>'+item.q+'</span><button class="qb" onclick="updateQty(\x27'+p.id+'\x27,\x27'+item.s+'\x27,1)">+</button></div><button class="crm" onclick="removeFromCart(\x27'+p.id+'\x27,\x27'+item.s+'\x27)">Remove</button></div></div>';
   });
   body.innerHTML=html;
   renderCartTotals();
@@ -782,7 +1058,7 @@ function toggleAIChat(){
 function formatMsg(txt) {
   if (!txt) return '';
   /* Convert [PRODUCT:slug] to card */
-  return txt.replace(/\\[PRODUCT:([a-z0-9-]+)\\]/g, function(match, slug) {
+  return txt.replace(/[PRODUCT:([a-z0-9-]+)]/g, function(match, slug) {
     var p = window.STORE_PRODUCTS ? window.STORE_PRODUCTS.find(function(x) { return x.slug === slug; }) : null;
     if (!p) return '<a href="/product/' + slug + '" style="color:var(--bk);font-weight:700;text-decoration:underline">View Product: ' + slug + '</a>';
     return '<a href="/product/' + p.slug + '" style="display:block;background:var(--wh);border:1px solid rgba(0,0,0,.05);border-radius:8px;overflow:hidden;margin-top:8px;text-decoration:none;color:inherit">' +
@@ -795,7 +1071,7 @@ function formatMsg(txt) {
 }
 function renderAIChat(){
   var b=document.getElementById('aiBody');
-  var h='<div class="ai-msg bot">Hi! I\\'m your INTRU Stylist. Looking for a fresh drop or need help with sizing?</div>';
+  var h='<div class="ai-msg bot">Hi! I\'m your INTRU Stylist. Looking for a fresh drop or need help with sizing?</div>';
   aiMsgs.forEach(function(m){h+='<div class="ai-msg '+(m.role==='user'?'user':'bot')+'">'+formatMsg(m.content)+'</div>'});
   b.innerHTML=h;b.scrollTop=b.scrollHeight;
 }
@@ -1076,5 +1352,4 @@ function handleAdminUpload(inputId, bucket, statusId, btnId, lastUrlId, lastDivI
       fileInput.value = '';
     });
 }
-</script></body></html>`;
-}
+</script></body></html>
