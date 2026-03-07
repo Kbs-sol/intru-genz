@@ -240,7 +240,7 @@ export function adminPage(opts: {
   </div>
 
   <div class="sett-card">
-    <h4>Maintenance Mode</h4>
+    <h4>Maintenance Mode <span id="maintModeBadge" style="margin-left:8px;font-size:10px;padding:3px 8px;border-radius:12px;letter-spacing:1px;vertical-align:middle;text-transform:uppercase;font-family:var(--sans)"></span></h4>
     <p><strong>Off</strong> &mdash; site works normally.<br><strong>Soft</strong> &mdash; users see an agreement modal + top banner.<br><strong>Full</strong> &mdash; site is locked with a dedicated maintenance page.</p>
     <select class="ainp" id="settMaintMode" style="margin:0;max-width:300px">
       <option value="off">Off (Normal)</option>
@@ -553,6 +553,7 @@ function loadSettings(){
     var mm=document.getElementById('settMaintMode'); if(mm) mm.value=s.MAINTENANCE_MODE||'off';
     var mMsg=document.getElementById('settMaintMsg'); if(mMsg) mMsg.value=s.MAINTENANCE_MESSAGE||'';
     var mEta=document.getElementById('settMaintEta'); if(mEta) mEta.value=s.MAINTENANCE_ETA||'';
+    if(typeof updateMaintBadge === 'function') updateMaintBadge(s.MAINTENANCE_MODE||'off');
   }).catch(function(){});
 }
 function saveSetting(key,val){
@@ -597,15 +598,41 @@ function saveMaintenanceConfig(){
   var keys = ['MAINTENANCE_MODE', 'MAINTENANCE_MESSAGE', 'MAINTENANCE_ETA'];
   var vals = [mode, msg, eta];
   var count = 0;
+  var failed = false;
   keys.forEach(function(k, i){
     fetch('/api/admin/settings/'+encodeURIComponent(k), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'x-admin-token': sessionStorage.getItem('iadm_t') },
       body: JSON.stringify({ value: vals[i] })
     }).then(function(r){ return r.json() }).then(function(d){
-      if(d.success){ count++; if(count === keys.length) toast('Maintenance Settings Saved', 'ok-green'); }
+      if(!d.success) failed = true;
+      count++; 
+      if(count === keys.length) {
+        if(!failed) {
+          toast('Maintenance mode updated', 'ok-green');
+          updateMaintBadge(mode);
+        } else {
+          toast('Failed to save &mdash; try again', 'err');
+        }
+      }
+    }).catch(function(e){
+      failed = true; count++;
+      if(count === keys.length) toast('Failed to save &mdash; try again', 'err');
     });
   });
+}
+function updateMaintBadge(mode) {
+  var b = document.getElementById('maintModeBadge');
+  if(!b) return;
+  if(mode === 'off') {
+    b.innerHTML = '&#9679; OFF';
+    b.style.background = 'var(--g100)';
+    b.style.color = 'var(--g500)';
+  } else {
+    b.innerHTML = '&#9679; LIVE';
+    b.style.background = '#dcfce7';
+    b.style.color = '#166534';
+  }
 }
 </script>`;
 

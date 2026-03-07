@@ -233,6 +233,14 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
   <button class="nbtn" onclick="openIdentifyOrOrders()" id="navAccountBtn">Login</button>
   <button class="ncart" onclick="toggleCart()" aria-label="Cart Bag"><i class="fas fa-shopping-bag"></i><span class="cbadge" id="cb">0</span></button>
 </div></div></nav>
+<!-- Soft Maintenance Banner [AG] -->
+<div id="mntBanner" style="display:none;background:var(--bk);color:var(--wh);font-family:var(--sans);font-size:13px;align-items:center;justify-content:space-between;padding:12px 24px;width:100%;margin-top:72px;z-index:90;position:relative">
+  <div style="display:flex;align-items:center;gap:12px">
+    <span style="font-size:18px">&#x1F6A7;</span>
+    <span><strong>Under Maintenance</strong> &mdash; ${mcMsg.length > 80 ? mcMsg.substring(0, 80) + '...' : mcMsg}</span>
+  </div>
+  <button onclick="mntDismissBanner()" aria-label="Dismiss banner" style="background:none;border:none;color:var(--g400);font-size:24px;cursor:pointer;padding:4px 8px;display:flex;align-items:center;transition:color .2s" onmouseover="this.style.color='var(--wh)'" onmouseout="this.style.color='var(--g400)'">&times;</button>
+</div>
 <div class="mob-nav" id="mn">
   <button class="mob-close" onclick="toggleMobNav()"><i class="fas fa-times"></i></button>
   <div style="margin-top:40px">
@@ -311,6 +319,17 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 </div>
 </div>
 
+<!-- Soft Maintenance Modal [AG] -->
+<div class="id-ovl" id="mntOvl" style="z-index:9999">
+  <div class="id-box">
+    <h3 style="margin-bottom:12px;display:flex;align-items:center;gap:10px"><span style="font-size:24px">&#x1F6A7;</span> Site Under Maintenance</h3>
+    <p style="font-size:14px;color:var(--bk);margin-bottom:16px;line-height:1.6">${mcMsg}</p>
+    ${mcEta ? `<p style="font-size:12px;font-weight:700;color:var(--g400);margin-bottom:16px;text-transform:uppercase;letter-spacing:1px">Expected back: ${mcEta}</p>` : ''}
+    <p style="font-size:11px;color:var(--g400);line-height:1.5;margin-bottom:24px">You may encounter bugs. Please report them to <a href="mailto:shop@intru.in" style="font-weight:700;color:var(--bk);text-decoration:underline">shop@intru.in</a></p>
+    <button class="id-btn" onclick="mntAcknowledge()" style="width:100%">I Understand, Let Me Browse</button>
+  </div>
+</div>
+
 <main style="padding-top:64px">${body}</main>
 <footer class="ftr" id="contact"><div class="ftri">
 <div class="ftrb"><h3>INTRU.IN</h3><p>${STORE_CONFIG.description}</p>
@@ -365,6 +384,7 @@ ${gKey !== 'YOUR_GOOGLE_CLIENT_ID' ? '<script src="https://accounts.google.com/g
 <script>
 /* ====== CONFIG ====== */
 window.STORE_PRODUCTS = ${JSON.stringify(opt?.products || [])};
+window.__MAINTENANCE__ = ${JSON.stringify(mc)};
 var S=${sj};
 var PM=${pm};
 var payMode='prepaid';
@@ -961,7 +981,38 @@ renderCart();
 updateAccountBtn();
 loadSavedAddress();
 /* If user is identified, update UI to reflect it */
- [AG]
+
+/* ====== MAINTENANCE logic [AG] ====== */
+(function() {
+  if (window.__MAINTENANCE__ && window.__MAINTENANCE__.mode === 'soft') {
+    var ack = sessionStorage.getItem('intru_maintenance_ack');
+    if (!ack) {
+      document.getElementById('mntOvl').classList.add('open');
+      document.body.style.overflow = 'hidden';
+    } else {
+      var dismissed = sessionStorage.getItem('intru_banner_dismissed');
+      if (!dismissed) {
+        var b = document.getElementById('mntBanner');
+        if (b) {
+          b.style.display = 'flex';
+        }
+      }
+    }
+  }
+})();
+function mntAcknowledge() {
+  sessionStorage.setItem('intru_maintenance_ack', '1');
+  var ovl = document.getElementById('mntOvl');
+  if (ovl) ovl.classList.remove('open');
+  document.body.style.overflow = '';
+  var b = document.getElementById('mntBanner');
+  if (b) b.style.display = 'flex';
+}
+function mntDismissBanner() {
+  sessionStorage.setItem('intru_banner_dismissed', '1');
+  var b = document.getElementById('mntBanner');
+  if (b) b.style.display = 'none';
+}
 
 /* ====== KONAMI CODE -> /admin ====== */
 var _kseq=[38,38,40,40,37,39,37,39,66,65],_kidx=0;

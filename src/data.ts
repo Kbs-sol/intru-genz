@@ -672,7 +672,7 @@ export async function fetchAllStoreSettings(sbUrl: string, sbKey: string): Promi
           headers: { 'Prefer': 'resolution=merge-duplicates' } as any,
           body: JSON.stringify(seed)
         });
-        // We don't necessarily need to re-fetch if we're just seeding defaults
+        seed.forEach(s => rows.push({ key: s.key, value: s.value }));
       } catch (e) { console.error('Maintenance seed error:', e); }
     }
 
