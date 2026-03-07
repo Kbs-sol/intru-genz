@@ -4,12 +4,12 @@
 - **Name**: intru.in
 - **Goal**: High-conversion streetwear e-commerce with frictionless checkout
 - **Stack**: Hono + TypeScript + Cloudflare Pages + Supabase + Razorpay + Resend
-- **Version**: v10 [AG] (2026-03-06)
+- **Version**: v11 [AG] (2026-03-07)
 
 ## URLs
 - **Production**: https://intru-genz.pages.dev (staging) → https://intru.in (custom domain pending)
 - **GitHub**: https://github.com/Kbs-sol/intru-genz
-- **Admin**: Hidden — enter Konami Code (↑↑↓↓←→←→BA) on any page
+- **Admin**: Hidden — enter Robust Konami Code (↑↑↓↓←→←→ba) on any page
 
 ## Architecture
 
@@ -84,6 +84,7 @@
 | **IG Feed** | ON/OFF toggle (hides homepage section when OFF), add/edit/delete images, instant UI updates |
 | **Settings** | Payment mode toggle (Manual COD ↔ Razorpay Magic), manager notification email, COD fee |
 | **Upload [AG]** | Direct image upload to Supabase with auto-fill logic for product/IG inputs |
+| **Maintenance** | Configure Soft (banner/modal) or Full (locked) maintenance modes |
 
 ## Environment Variables (Cloudflare Secrets)
 
@@ -163,7 +164,7 @@ npx wrangler pages secret put RAZORPAY_WEBHOOK_SECRET --project-name intru-in
 ## Deployment
 - **Platform**: Cloudflare Pages
 - **Status**: ✅ Active
-- **Last Updated**: 2026-03-06 (v10) - Added Admin API Security, Mobile Optimization, and AI Stylist Enhancements.
+- **Last Updated**: 2026-03-07 (v11) - Robust Maintenance Mode (Zero-JS Flash), Enhanced Konami Code, and AI Stylist Bug Fixes.
 
 ## Full System Documentation
 
