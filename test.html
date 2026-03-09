@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<body>
+<div id="out"></div>
+<script>
+  function formatMsg(txt) {
+    txt = txt.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+    txt = txt.replace(/([_\*])(.*?)\1/g, '<i>$2</i>');
+    return txt.replace(/\[PRODUCT:([a-z0-9-]+)\]/g, function(match, slug) {
+      return '<a href="#">CARD: ' + slug + '</a>';
+    });
+  }
+
+  const raw = "Yo! Check out the **Doodles T-Shirt**. It's _fire_! [PRODUCT:doodles-t-shirt]";
+  document.getElementById('out').innerHTML = formatMsg(raw);
+</script>
+</body>
+</html>

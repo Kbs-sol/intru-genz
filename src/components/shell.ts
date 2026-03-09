@@ -278,6 +278,7 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 <div class="chdr"><h3>Your Bag</h3><button class="ccls" onclick="toggleCart()"><i class="fas fa-times"></i></button></div>
 <div class="cbdy" id="cby"><div class="cemp"><i class="fas fa-shopping-bag"></i><p>Your bag is empty</p></div></div>
 <div id="cartTimer" class="cart-timer" style="display:none"><i class="fas fa-clock"></i> <span>Cart reserved for <span id="timerClock">05:00</span> minutes</span></div>
+<div id="fsProgress" style="display:none;margin:0 24px 16px;padding:12px;background:var(--g50);border-radius:6px;text-align:center;font-size:11px;font-weight:700"></div>
 <div class="cftr" id="cf" style="display:none">
 <div class="cst"><span>Subtotal</span><span id="csub">${STORE_CONFIG.currencySymbol}0</span></div>
 <div class="csh"><span>Shipping</span><span id="cshp">Calculated</span></div>
@@ -750,6 +751,34 @@ function renderCartTotals(){
   if(payMode==='cod'){shText='Rs.99 Shipping/COD Fee'}
   document.getElementById('cshp').textContent=shText||'Free';
   document.getElementById('ctot').textContent=fmt(t.total);
+
+  var fsp = document.getElementById('fsProgress');
+  if(fsp) {
+    if(t.subtotal === 0) {
+      fsp.style.display = 'none';
+    } else if (payMode === 'prepaid') {
+      fsp.style.display = 'block';
+      fsp.innerHTML = '<i class="fas fa-bolt" style="color:var(--green);margin-right:6px"></i><b>VIP Priority Dispatch Unlocked!</b> <span style="font-weight:500;color:var(--g500)">(Free Shipping)</span>';
+      fsp.style.background = '#dcfce7';
+      fsp.style.color = '#166534';
+      fsp.style.border = '1px solid #bbf7d0';
+    } else {
+      var threshold = S.ft || 1999;
+      var rem = threshold - t.subtotal;
+      fsp.style.display = 'block';
+      if(rem > 0) {
+        fsp.innerHTML = 'Add <span style="color:var(--red)">' + fmt(rem) + '</span> more for <b>FREE COD Delivery</b>';
+        fsp.style.background = 'var(--g50)';
+        fsp.style.color = 'var(--bk)';
+        fsp.style.border = '1px solid var(--g200)';
+      } else {
+        fsp.innerHTML = '<i class="fas fa-check-circle" style="color:var(--green);margin-right:6px"></i><b>FREE COD Delivery Unlocked!</b>';
+        fsp.style.background = '#dcfce7';
+        fsp.style.color = '#166534';
+        fsp.style.border = '1px solid #bbf7d0';
+      }
+    }
+  }
 }
 
 function renderCart(){

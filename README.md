@@ -2,9 +2,9 @@
 
 ## Project Overview
 - **Name**: intru.in
-- **Goal**: High-conversion streetwear e-commerce with frictionless checkout
+- **Goal**: Engineered for High Organic Traffic (SEO) and High Conversion (using deep direct-response psychology)
 - **Stack**: Hono + TypeScript + Cloudflare Pages + Supabase + Razorpay + Resend
-- **Version**: v12 [AG] (2026-03-09) — Psychological Conversion + SEO Optimization
+- **Version**: v13 [AG] (Date: March 9, 2026) — Psychological Conversion + SEO Dominance
 
 ## URLs
 - **Production**: https://intru-genz.pages.dev (staging) → https://intru.in (custom domain pending)
@@ -45,13 +45,23 @@
 - Single "Checkout" button → Razorpay Magic Checkout handles everything
 - Payment mode selector hidden; Razorpay manages address/COD/1-click
 
-**Psychological Optimization (v12):**
-- **Identity Overlay**: Reframed for exclusivity ("WHERE SHOULD WE SEND YOUR DROP?").
-- **Trust Row**: Injected "Friction-Killers" (FREE SHIPPING, NO RESTOCKS, 36H DISPATCH) near buy buttons.
-- **Prepaid VIP**: Prepaid orders get "PRIORITY DISPATCH" ⚡ branding and skip-the-queue messaging.
-- **FOMO Counters**: Dynamic inventory badges ("Low Stock: [X] left", "CRITICAL: ONLY [X] LEFT").
-- **Sold-Out Preservation**: Product pages remain live with "VAULTED: SOLD OUT" badges and "NOTIFY ME" CTAs to capture intent.
-- **COD Friction**: Rebranded as "Logistics Heavy" with subject-to-verification warnings.
+**Psychological Conversion Engineering (v12+v13):**
+The entire platform is systematically architected to drive high conversion rates using proven micro-psychological principles:
+- **Identity Overlay**: Reframed as an exclusive "Secure Access" portal ("WHERE SHOULD WE SEND YOUR DROP?") to increase opt-in rates through exclusivity.
+- **Friction-Killer Trust Row**: Immediate trust injection (FREE SHIPPING, NO RESTOCKS, 36H DISPATCH) positioned directly adjacent to buy buttons to neutralize hesitation.
+- **Prepaid VIP Upgrades**: Prepaid orders get "PRIORITY DISPATCH" ⚡ branding and skip-the-queue messaging to drive immediate revenue over COD.
+- **High-Stakes Scarcity & FOMO Counters**: Dynamic inventory badges ("Low Stock: [X] left", "CRITICAL: ONLY [X] LEFT") that visually pulse to induce urgency.
+- **Sold-Out Preservation (Scarcity Proof)**: Product pages remain live with "VAULTED: SOLD OUT" badges and "NOTIFY ME" CTAs to capture high-intent leads and provide social proof.
+- **COD Friction**: COD is rebranded as "Logistics Heavy" with subject-to-verification warnings to gently push users toward prepaid logic.
+- **"INTRU ADVISOR" AI Stylist**: An immersive, full-screen funnel disguised as a chat. It acts as a subliminal salesperson, leveraging VIP access hooks ("I have access to the vault..."), Quick Reply chips for zero-typing friction, and massive "SECURE NOW" product cards.
+
+### Core SEO Infrastructure (High Organic Traffic)
+Beyond conversion, intru.in is engineered for aggressive organic search dominance:
+- **Zero-JS Render**: As a server-rendered Hono app, HTML is served instantly to Googlebot — zero client-side rendering delays.
+- **Dynamic Meta Management**: Page-specific, strongly-typed SEO tags via `buildHead()` covering Title, Description, OpenGraph, and Twitter Cards to maximize click-through rates.
+- **Automated XML Sitemap**: Dynamic `/sitemap.xml` with automatic `lastmod` timestamps to ensure Google indexes new drops within hours.
+- **Bulk Metadata Injection**: Semantic keyword optimization directly within the catalog, delivering 100% SEO coverage.
+- **Lighthouse Dominance**: Lean CSS, aggressive caching, and minimal frontend JS architecture ensure near-perfect Core Web Vitals, a critical search ranking factor.
 
 ### Resend Email Notifications
 - **Prepaid success** → "Drop Secured!" email to customer

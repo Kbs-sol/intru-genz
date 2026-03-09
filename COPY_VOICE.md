@@ -1,6 +1,9 @@
-# INTRU.IN — Brand Copy Voice Reference (v12)
+# INTRU.IN — Brand Copy Voice Reference
+**Version**: v13 | **Date**: March 9, 2026
 
-This document defines the rules for all customer-facing microcopy on the intru.in platform.
+*Engineered for High Organic Traffic & High Conversion using Psychological Elements*
+
+This document defines the rules for all customer-facing microcopy on the intru.in platform, mathematically designed to drive zero-friction conversions and maximize SEO value.
 
 ## Core Tenets
 1. **Terse & Confident**: Use fewer words. Never apologize for logistics.

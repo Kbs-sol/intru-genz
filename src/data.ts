@@ -59,7 +59,9 @@ export const SEED_PRODUCTS: Product[] = [
       "https://intru.in/cdn/shop/files/3.png?v=1748692106&width=800",
       "https://intru.in/cdn/shop/files/3.png?v=1748692106&width=600"
     ],
-    sizes: ["S", "M", "L", "XL", "XXL"], category: "T-Shirts", inStock: true, featured: true
+    sizes: ["S", "M", "L", "XL", "XXL"], category: "T-Shirts", inStock: true, featured: true,
+    seoTitle: "Doodles T-Shirt — Limited Edition Puff-Print Streetwear | INTRU.IN",
+    seoDescription: "Shop the exclusive Doodles T-Shirt. Premium cotton, playful puff-print art, and an oversized fit. Limited drop, no restocks. Get yours at INTRU.IN."
   },
   {
     id: "p2", slug: "no-risk-porsche", name: "No Risk Porsche",
@@ -72,7 +74,9 @@ export const SEED_PRODUCTS: Product[] = [
       "https://intru.in/cdn/shop/files/F51687B9-2BF2-43E0-988A-30272833B19E.jpg?v=1756359581&width=800",
       "https://intru.in/cdn/shop/files/F51687B9-2BF2-43E0-988A-30272833B19E.jpg?v=1756359581&width=600"
     ],
-    sizes: ["S", "M", "L", "XL", "XXL"], category: "T-Shirts", inStock: true, featured: true
+    sizes: ["S", "M", "L", "XL", "XXL"], category: "T-Shirts", inStock: true, featured: true,
+    seoTitle: "No Risk Porsche T-Shirt — Bold Graphic Oversized Tee | INTRU.IN",
+    seoDescription: "Elevate your streetwear with the No Risk Porsche tee. High-density graphic print on premium heavy cotton. Designed for those who move without hesitation."
   },
   {
     id: "p3", slug: "orange-puff-printed-t-shirt", name: "Orange Puff",
@@ -85,7 +89,9 @@ export const SEED_PRODUCTS: Product[] = [
       "https://intru.in/cdn/shop/files/1_3de916a1-a217-41ee-9b2e-9e2c3130c4d6.png?v=1748190442&width=800",
       "https://intru.in/cdn/shop/files/1_3de916a1-a217-41ee-9b2e-9e2c3130c4d6.png?v=1748190442&width=600"
     ],
-    sizes: ["S", "M", "L", "XL"], category: "T-Shirts", inStock: true, featured: true
+    sizes: ["S", "M", "L", "XL"], category: "T-Shirts", inStock: true, featured: true,
+    seoTitle: "Orange Puff Printed T-Shirt — Caffeine-Core Streetwear | INTRU.IN",
+    seoDescription: "Feel the texture with our Orange Puff Printed Tee. Relaxed fit, premium comfort, and vibrant caffeine-core energy. A streetwear essential from INTRU.IN."
   },
   {
     id: "p4", slug: "romanticise-crop-tee", name: "Romanticise Crop",
@@ -98,7 +104,9 @@ export const SEED_PRODUCTS: Product[] = [
       "https://intru.in/cdn/shop/files/4_f2aa413e-6e91-49bd-8f16-2efd41b4d6ea.png?v=1748190572&width=800",
       "https://intru.in/cdn/shop/files/4_f2aa413e-6e91-49bd-8f16-2efd41b4d6ea.png?v=1748190572&width=600"
     ],
-    sizes: ["XS", "S", "M", "L"], category: "T-Shirts", inStock: true, featured: true
+    sizes: ["XS", "S", "M", "L"], category: "T-Shirts", inStock: true, featured: true,
+    seoTitle: "Romanticise Crop Tee — Premium Cotton Cropped Streetwear | INTRU.IN",
+    seoDescription: "Effortless breezy style meets streetwear. The Romanticise Crop Tee features soft cotton and a perfect relaxed silhouette. Limited edition, never restocked."
   },
   {
     id: "p5", slug: "stripe-18-shirt", name: "Stripe 18 Shirt",
@@ -111,7 +119,9 @@ export const SEED_PRODUCTS: Product[] = [
       "https://intru.in/cdn/shop/files/99.png?v=1748173436&width=800",
       "https://intru.in/cdn/shop/files/99.png?v=1748173436&width=600"
     ],
-    sizes: ["S", "M", "L", "XL", "XXL"], category: "Shirts", inStock: true, featured: true
+    sizes: ["S", "M", "L", "XL", "XXL"], category: "Shirts", inStock: true, featured: true,
+    seoTitle: "Stripe 18 Shirt — Structured Woven Streetwear | INTRU.IN",
+    seoDescription: "Cool-toned and structured. The Stripe 18 Shirt features premium woven fabric and mother-of-pearl buttons. The perfect smart-casual layer for any fit."
   },
   {
     id: "p6", slug: "summer-shirt", name: "Summer Shirt",
@@ -124,7 +134,9 @@ export const SEED_PRODUCTS: Product[] = [
       "https://intru.in/cdn/shop/files/03.png?v=1756359941&width=800",
       "https://intru.in/cdn/shop/files/03.png?v=1756359941&width=600"
     ],
-    sizes: ["S", "M", "L", "XL"], category: "Shirts", inStock: true, featured: true
+    sizes: ["S", "M", "L", "XL"], category: "Shirts", inStock: true, featured: true,
+    seoTitle: "Summer Shirt — Lightweight & Breathable Layer | INTRU.IN",
+    seoDescription: "The ultimate sunshine staple. Lightweight, breathable, and designed for golden-hour vibes. Shop our limited-run Summer Shirt at INTRU.IN."
   },
 ];
 

@@ -1,5 +1,5 @@
 # INTRU.IN — Full System Literacy & Architecture Reference
-**Version**: v12 | **Date**: 2026-03-09 | **Production**: https://intru-genz.pages.dev (staging for intru.in) [AG]
+**Version**: v13 | **Date**: March 9, 2026 | **Production**: https://intru-genz.pages.dev (staging for intru.in) [AG]
 
 > This document is designed to be read by manager of e-commerce website AND used as a context prompt for AI assistants. It contains everything needed to understand, debug, fix, or extend the intru.in codebase.
 
@@ -8,6 +8,13 @@
 ## 1. PROJECT OVERVIEW
 
 **intru.in** is a limited-drop streetwear e-commerce platform built by two friends in Hyderabad, India. It sells exclusive, limited-stock clothing (T-shirts, shirts, crop tops). The core principle: "When it's gone, it's gone."
+
+**Engineering Philosophy:**
+The entire platform is mathematically engineered for two outcomes:
+1. **High Organic Traffic (SEO Dominance)**: Zero-JS server rendering, dynamic sitemaps, semantic OpenGraph tags, and near-perfect Core Web Vitals to ensure the site ranks aggressively on Google.
+2. **High Conversion (Psychological Warfare)**: Every pixel, micro-interaction, and piece of copy is designed using direct-response psychology. This includes FOMO scarcity counters, an immersive AI Salesperson ("INTRU ADVISOR"), Trust Rows to kill friction, and a VIP framing for prepaid orders.
+
+*This dual-mandate of High Organic Traffic and High Conversion governs all technical decisions across the stack.*
 
 | Attribute | Value |
 |-----------|-------|
@@ -492,13 +499,14 @@ RESEND_API_KEY=re_xxx
 **Root Cause**: Legacy `keyCode` was unreliable; sequence reset on modifier keys (like Shift).
 **Fix**: Migrated to `e.key`, added `e.repeat` protection, and added a whitelist for modifier keys to prevent accidental resets during capital 'b' and 'a'.
 
-### Version 12 — Psychological Optimization [AG v12]
-**Enhancements**: 
-- Rebranded identity overlay as exclusive "Secure Access" portal.
-- Injected "Trust Row" friction-killers on product pages.
-- Dynamic FOMO stock counters based on threshold settings.
-- Sold-out preservation logic with "Notify Me" capture.
-- SEO Infrastructure: Dynamic buildHead, robots.txt, sitemap.xml.
+### Version 12+13 — Psychological Optimization & SEO Infrastructure [AG v12]
+**Enhancements (Conversion & Organic Traffic)**: 
+- **Psychological Conversion Engine**: Rebranded identity overlay as an exclusive "Secure Access" portal to increase opt-in velocity.
+- **Friction Elimination**: Injected "Trust Row" elements directly surrounding the buy buttons to neutralize hesitation.
+- **Urgency Vectors**: Dynamic FOMO stock counters based on threshold settings.
+- **Demand Capture**: Sold-out preservation logic with "Notify Me" capture.
+- **AI Salesperson Funnel**: Immersive "INTRU ADVISOR" chat with psychological pacing, Quick Reply chips, and massive "SECURE NOW" product anchors.
+- **SEO Infrastructure**: Zero-JS server rendering, dynamic `buildHead`, `robots.txt`, and automated `sitemap.xml` with automatic timestamps. Bulk SEO semantic keyword injection into the catalog.
 
 ---
 
