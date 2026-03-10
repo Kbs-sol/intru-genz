@@ -758,7 +758,7 @@ function renderCartTotals(){
       fsp.style.display = 'none';
     } else if (payMode === 'prepaid') {
       fsp.style.display = 'block';
-      fsp.innerHTML = '<i class="fas fa-bolt" style="color:var(--green);margin-right:6px"></i><b>VIP Priority Dispatch Unlocked!</b> <span style="font-weight:500;color:var(--g500)">(Free Shipping)</span>';
+      fsp.innerHTML = '<i class="fas fa-bolt" style="color:var(--green);margin-right:6px"></i><b>Dispatch Unlocked!</b> <span style="font-weight:500;color:var(--g500)">(Free Shipping)</span>';
       fsp.style.background = '#dcfce7';
       fsp.style.color = '#166534';
       fsp.style.border = '1px solid #bbf7d0';
