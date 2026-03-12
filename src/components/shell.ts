@@ -724,7 +724,7 @@ function setPayMode(mode){
       rc.style.display = 'block'; rc.textContent = '⚠️ Verifying logistics availability...';
       try { paySounds.cod.play(); } catch(e){}
       setTimeout(function(){
-        rc.textContent = '❌ Non-Priority Logistics. +Rs.99 convenience fee applied.';
+        rc.textContent = '❌ Standard Logistics. +Rs.99 convenience fee applied.';
         applyPayMode(mode);
       }, 400);
       return;
