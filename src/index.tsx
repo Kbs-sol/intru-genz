@@ -160,6 +160,10 @@ app.get('/about', async (c) => {
 app.get('/robots.txt', (c) => {
   return c.text(`User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /api/
+Disallow: /auth/
+
 Sitemap: https://intru.in/sitemap.xml`);
 });
 
@@ -964,11 +968,16 @@ app.patch('/api/admin/legal/:slug', async (c) => {
 // ============ SIZE CHART API ============
 
 app.get('/api/size-chart', async (c) => {
+  const category = c.req.query('category');
   const sbUrl = getEnv(c.env, 'SUPABASE_URL');
   const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY') || getEnv(c.env, 'SUPABASE_ANON_KEY');
   if (sbUrl && sbKey) {
     try {
-      const res = await supabaseFetch(sbUrl, sbKey, 'size_chart?select=*&order=sort_order.asc');
+      let query = 'size_chart?select=*&order=sort_order.asc';
+      if (category) {
+        query += `&product_category=eq.${encodeURIComponent(category)}`;
+      }
+      const res = await supabaseFetch(sbUrl, sbKey, query);
       if (res.ok) return c.json({ sizes: await res.json(), source: 'supabase' });
     } catch (e) { console.error('Size chart error:', e); }
   }

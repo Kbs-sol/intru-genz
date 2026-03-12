@@ -13,18 +13,35 @@ export function productPage(product: Product, opts: {
   const products = opts.products;
   const legalPages = opts.legalPages;
   const storeSettings = opts.storeSettings || {};
-  const stockObj = product.stockCount || {};
-  const totalStock = Object.values(stockObj).reduce((a, b) => a + b, 0);
+  
+  // Step 7 & 8: Per-size stock gating and FOMO counter logic
+  const sizeStock = product.sizeStock || null;
+  const stockCount = product.stockCount !== undefined ? product.stockCount : null;
   const lowRes = parseInt(storeSettings.FOMO_THRESHOLD_LOW || '10');
   const critRes = parseInt(storeSettings.FOMO_THRESHOLD_CRITICAL || '3');
-
+  
+  // Generate stock copy based on Step 8 logic
+  function getStockCopy(count: number | null): string {
+    if (count === null || count > 10) return 'Available Now';
+    if (count >= 4) return `Only ${count} left in this drop. Never restocked.`;
+    if (count >= 1) return `${count} left — final units. Never restocked.`;
+    return 'Dropped. Gone.';
+  }
+  
+  const stockCopy = getStockCopy(stockCount);
+  const isLowStock = stockCount !== null && stockCount >= 4 && stockCount <= 10;
+  const isCritical = stockCount !== null && stockCount >= 1 && stockCount <= 3;
+  const isSoldOut = stockCount === 0 || !product.inStock;
+  
   let stockHtml = '';
-  if (totalStock === 0) {
-    stockHtml = `<div class="sold-out-badge"><i class="fas fa-lock"></i> VAULTED: SOLD OUT</div>`;
-  } else if (totalStock <= critRes) {
-    stockHtml = `<div class="pc-stock crit">CRITICAL: ONLY ${totalStock} LEFT</div>`;
-  } else if (totalStock <= lowRes) {
-    stockHtml = `<div class="pc-stock low">Low Stock: ${totalStock} left</div>`;
+  if (isSoldOut) {
+    stockHtml = `<div class="sold-out-badge"><i class="fas fa-lock"></i> ${stockCopy}</div>`;
+  } else if (isCritical) {
+    stockHtml = `<div class="pc-stock crit">${stockCopy}</div>`;
+  } else if (isLowStock) {
+    stockHtml = `<div class="pc-stock low">${stockCopy}</div>`;
+  } else {
+    stockHtml = `<div class="pc-stock">${stockCopy}</div>`;
   }
 
   const disc = product.comparePrice ? Math.round((1 - product.price / product.comparePrice) * 100) : 0;
@@ -158,7 +175,16 @@ ${stockHtml}
 ${storeSettings.SIZE_GUIDE_ENABLED !== 'false' ? '<button onclick="openSizeGuide()" style="background:none;border:none;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--g400);padding:4px 0;cursor:pointer;text-decoration:underline;text-underline-offset:2px;font-family:inherit;transition:color .2s" onmouseover="this.style.color=\'var(--bk)\'" onmouseout="this.style.color=\'var(--g400)\'"><i class="fas fa-ruler" style="margin-right:4px"></i>Size Guide</button>' : ''}
 </div>
 <div class="szopt" id="szopt">
-${product.sizes.map(s => '<button class="szbtn" data-sz="' + s + '" onclick="selSz(this)">' + s + '</button>').join('')}
+${product.sizes.map(s => {
+  // Step 7: Per-size stock gating
+  if (sizeStock && sizeStock[s] !== undefined) {
+    const stock = sizeStock[s];
+    if (stock === 0) {
+      return `<button class="szbtn" data-sz="${s}" data-disabled="true" style="opacity:0.3;cursor:not-allowed;text-decoration:line-through;pointer-events:none">${s}</button>`;
+    }
+  }
+  return `<button class="szbtn" data-sz="${s}" onclick="selSz(this)">${s}</button>`;
+}).join('')}
 </div>
 <p class="sz-hint" id="szHint"><i class="fas fa-exclamation-circle" style="margin-right:4px"></i>Please select a size to continue</p>
 
@@ -175,32 +201,37 @@ ${storeSettings.SIZE_GUIDE_ENABLED !== 'false' ? `<div id="sgModal" style="posit
 </div>
 </div>` : ''}
 <div class="pactions">
-${totalStock > 0 ? `
+${!isSoldOut ? `
 <button class="atc-btn" id="atcBtn" onclick="handleATC()"><i class="fas fa-shopping-bag" style="margin-right:8px"></i>Add to Bag</button>
 <button class="bn-btn" id="bnBtn" onclick="handleBuyNow()"><i class="fas fa-bolt" style="margin-right:8px"></i>Buy Now</button>
 ` : `
-<button class="atc-btn" style="background:var(--g300);cursor:not-allowed" disabled>SOLD OUT</button>
-<button class="bn-btn" onclick="openIdentify()">NOTIFY ME</button>
+<div style="text-align:center;padding:40px 20px">
+<h2 style="font-family:var(--head);font-size:32px;text-transform:uppercase;letter-spacing:-.03em;margin-bottom:12px">DROPPED. GONE.</h2>
+<p style="font-size:14px;color:var(--g400);margin-bottom:24px">This drop is closed. We never restock.</p>
+<button class="bn-btn" style="width:100%;padding:20px;border:1px solid #fafafa;background:transparent;color:#fafafa" onclick="openIdentify()">NOTIFY ME FOR THE NEXT DROP</button>
+</div>
 `}
 <button class="wl-btn" onclick="this.classList.toggle('act');this.querySelector('i').classList.toggle('fas');this.querySelector('i').classList.toggle('far')"><i class="far fa-heart"></i></button>
 </div>
-<div class="trust-row anim">
-  <div class="trust-item"><i class="fas fa-truck-fast"></i> <span>FREE SHIPPING</span></div>
-  <div class="trust-item"><i class="fas fa-ban"></i> <span>NO RESTOCKS</span></div>
-  <div class="trust-item"><i class="fas fa-bolt"></i> <span>36H DISPATCH</span></div>
+<div class="trust-row anim" style="display:flex;align-items:center;gap:8px;padding:16px 0;border-top:1.5px solid var(--g50);margin-top:24px;justify-content:center;flex-wrap:wrap">
+  <span style="font-size:9px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:rgba(255,255,255,0.3);background:var(--bk);padding:4px 10px;border-radius:3px">⚡ 3–5 Day Dispatch</span>
+  <span aria-hidden="true" style="color:var(--g200)">·</span>
+  <span style="font-size:9px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:rgba(255,255,255,0.3);background:var(--bk);padding:4px 10px;border-radius:3px">🔄 36h Exchange</span>
+  <span aria-hidden="true" style="color:var(--g200)">·</span>
+  <span style="font-size:9px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:rgba(255,255,255,0.3);background:var(--bk);padding:4px 10px;border-radius:3px">🛡 100% Authentic</span>
 </div>
 <div class="sc-info">
 <i class="fas fa-info-circle"></i>
-<span>All sales final. No cash refunds. <span class="tip"><strong>Store Credit only <i class="fas fa-question-circle" style="font-size:10px"></i></strong><span class="tiptext">We value our community. If a product arrives damaged, we provide instant store credit equal to your purchase value for your next pick. Credit never expires.</span></span></span>
+<span>Exchanges only — report defects within 36h. No returns or refunds.</span>
 </div>
 <div class="pshipping">
-<span><i class="fas fa-truck"></i> Free shipping over Rs.1,999</span>
+<span><i class="fas fa-truck"></i> Free Shipping · All Prepaid Orders</span>
 <span><i class="fas fa-exchange-alt"></i> 36h exchange window</span>
 </div>
 <div class="pdets">
 <div class="ditm"><button class="dtog opn" onclick="togDet(this)">Product Details <i class="fas fa-chevron-down"></i></button><div class="dcnt opn"><div class="dcnti">&bull; Premium 240 GSM cotton<br>&bull; Garment-dyed for soft hand-feel<br>&bull; Pre-shrunk &mdash; true to size<br>&bull; Ribbed neckline<br>&bull; Double-needle stitching</div></div></div>
 <div class="ditm"><button class="dtog" onclick="togDet(this)">Size &amp; Fit <i class="fas fa-chevron-down"></i></button><div class="dcnt"><div class="dcnti">Model is 6'0" / 183cm, wearing size L.<br>Relaxed fit &mdash; if between sizes, go with your usual.</div></div></div>
-<div class="ditm"><button class="dtog" onclick="togDet(this)">Shipping &amp; Returns <i class="fas fa-chevron-down"></i></button><div class="dcnt"><div class="dcnti">Dispatched within 36 hours. Free shipping over Rs.1,999.<br>All sales final. Store credit only for defects within 36h. <a href="/p/returns" style="text-decoration:underline">Full policy</a></div></div></div>
+<div class="ditm"><button class="dtog" onclick="togDet(this)">Shipping &amp; Returns <i class="fas fa-chevron-down"></i></button><div class="dcnt"><div class="dcnti">Dispatched within 36 hours. Free shipping on all prepaid orders.<br>Exchanges only — report defects within 36h. <a href="/p/returns" style="text-decoration:underline">Full policy</a></div></div></div>
 </div></div></div></div>
 
 <section class="relsec"><div class="shdr"><p class="sover">You May Also Like</p><h2 class="stitle">Complete the Look</h2></div>
@@ -287,14 +318,21 @@ function togDet(b){b.classList.toggle('opn');b.nextElementSibling.classList.togg
 function openSizeGuide(){
   var m=document.getElementById('sgModal');
   m.style.display='flex';document.body.style.overflow='hidden';
-  fetch('/api/size-chart').then(function(r){return r.json()}).then(function(d){
+  // Step 9: Pass category parameter
+  var category = '${product.category}';
+  fetch('/api/size-chart?category=' + encodeURIComponent(category)).then(function(r){return r.json()}).then(function(d){
     var sizes=d.sizes||[];
     if(!sizes.length){document.getElementById('sgBody').innerHTML='<p style="color:var(--g400);text-align:center">No size data available.</p>';return}
+    // Step 9: Check if shoulder/sleeve columns exist
+    var hasShoulder = sizes.some(function(s){return s.shoulder});
+    var hasSleeve = sizes.some(function(s){return s.sleeve});
     var h='<table style="width:100%;border-collapse:collapse">';
     h+='<thead><tr style="border-bottom:2px solid var(--g100)">';
     h+='<th style="text-align:left;padding:10px 12px;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--g400)">Size</th>';
     h+='<th style="text-align:center;padding:10px 12px;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--g400)">Chest (in)</th>';
     h+='<th style="text-align:center;padding:10px 12px;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--g400)">Length (in)</th>';
+    if(hasShoulder) h+='<th style="text-align:center;padding:10px 12px;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--g400)">Shoulder (in)</th>';
+    if(hasSleeve) h+='<th style="text-align:center;padding:10px 12px;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--g400)">Sleeve (in)</th>';
     h+='</tr></thead><tbody>';
     sizes.forEach(function(s){
       var isCur=P.sz.indexOf(s.size_label)!==-1;
@@ -302,6 +340,8 @@ function openSizeGuide(){
       h+='<td style="padding:10px 12px;font-size:13px">'+s.size_label+(isCur?' <span style="font-size:9px;background:var(--bk);color:var(--wh);padding:2px 6px;border-radius:2px;margin-left:4px;vertical-align:middle">AVAILABLE</span>':'')+'</td>';
       h+='<td style="text-align:center;padding:10px 12px">'+s.chest+'"</td>';
       h+='<td style="text-align:center;padding:10px 12px">'+s.length+'"</td>';
+      if(hasShoulder) h+='<td style="text-align:center;padding:10px 12px">'+(s.shoulder||'-')+'"</td>';
+      if(hasSleeve) h+='<td style="text-align:center;padding:10px 12px">'+(s.sleeve||'-')+'"</td>';
       h+='</tr>';
     });
     h+='</tbody></table>';
