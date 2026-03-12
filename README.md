@@ -4,7 +4,7 @@
 - **Name**: intru.in
 - **Goal**: Engineered for High Organic Traffic (SEO) and High Conversion (using deep direct-response psychology)
 - **Stack**: Hono + TypeScript + Cloudflare Pages + Supabase + Razorpay + Resend
-- **Version**: v13 [AG] (Date: March 9, 2026) — Psychological Conversion + SEO Dominance
+- **Version**: v13 (Date: March 12, 2026) — Conversion & SEO Optimization Complete
 
 ## URLs
 - **Production**: https://intru-genz.pages.dev (staging) → https://intru.in (custom domain pending)
@@ -174,10 +174,52 @@ npx wrangler pages secret put RAZORPAY_WEBHOOK_SECRET --project-name intru-in
 - Legal jurisdiction: Hyderabad, Telangana
 - Consumer Protection (E-Commerce) Rules, 2020 compliant
 
+## v13 Changes (March 12, 2026)
+
+### Cart Drawer Complete Redesign
+- **NO RED, NO ✗, NO WARNINGS**: Completely neutral, invitation-only language
+- **Black & White Only**: Strict B&W palette (#0a0a0a / #fafafa)
+- **Payment Cards**: Side-by-side Prepaid/COD selector with:
+  - Prepaid: "BEST" badge (top-right), white bg, black text, "⚡ Free Shipping · Ships first"
+  - COD: Transparent bg, "+Rs.99 · Pay on arrival"
+- **Nudge Line**: Context-aware copy below payment cards ("⚡ Free shipping · Your order ships before COD batch" for prepaid, "Switch to Prepaid to save Rs.99 and ship faster" for COD)
+- **COD Form**: Floating label inputs with slideIn animation (200ms), black with opacity
+- **Trust Row**: "⚡ 3–5 Day Dispatch · 🔄 36h Exchange · 🛡 Authentic" (thin borders, centered)
+- **CTA Button**: "Secure Your Drop →" (prepaid) / "Place Your Order →" (COD), Archivo Black, white bg
+
+### Product Page Enhancements
+- **Trust Row**: Replaced 3-icon row with badge-style: "⚡ 3–5 Day Dispatch · 🔄 36h Exchange · 🛡 100% Authentic"
+- **Shipping Copy**: "Free Shipping · All Prepaid Orders" (no threshold)
+- **Policy Copy**: "Exchanges only — report defects within 36h" (no "store credit" language)
+- **FOMO Stock Counter**: Dynamic copy based on `stockCount`:
+  - `null` or `>10`: "Available Now"
+  - `4-10`: "Only X left in this drop. Never restocked." (low stock style)
+  - `1-3`: "X left — final units. Never restocked." (critical style with pulse)
+  - `0`: "Dropped. Gone."
+- **Per-Size Stock Gating**: Sizes with `sizeStock[size] = 0` render greyed out, line-through, `pointer-events:none`
+- **Sold-Out Preservation**: Products with `stockCount = 0` show "DROPPED. GONE." heading, "This drop is closed. We never restock." copy, and "NOTIFY ME FOR THE NEXT DROP" button. Page returns 200 (not 404).
+
+### Size Chart System
+- **API Endpoint**: `/api/size-chart?category={product.category}` filters by `product_category` column
+- **Dynamic Columns**: Renders 4 columns (Size, Chest, Length, Shoulder) OR 5 columns (adds Sleeve) based on data presence
+- **T-Shirts/Crop Tops**: Show Sleeve column
+- **Shirts**: No Sleeve column
+- **Frontend**: Fetches with category param, automatically detects and renders correct columns
+
+### SEO Infrastructure
+- **robots.txt**: Added `Disallow: /admin`, `Disallow: /api/`, `Disallow: /auth/`
+- **sitemap.xml**: Includes sold-out products (they're preservation pages, not 404s)
+- **Admin Panel**: SEO Title & Description fields wrapped in collapsible `<details><summary>SEO (Optional)</summary>` section with placeholders "Leave blank to auto-generate"
+
+### Copy Changes
+- **Identity Overlay**: "SECURE ACCESS" → "Get Access →", added "One tap. You're in." below button
+- **Footer Links**: "Returns & Credit" → "Exchanges"
+- **Cart Legal**: "Store-Credit-only Refund Policy" → "Exchange Policy"
+
 ## Deployment
 - **Platform**: Cloudflare Pages
 - **Status**: ✅ Active
-- **Last Updated**: 2026-03-09 (v12) — Psychological Optimization & SEO Infrastructure.
+- **Last Updated**: 2026-03-12 (v13) — Complete Conversion & SEO Overhaul: Cart redesign (B&W only, no red), FOMO counters, per-size stock gating, per-product size charts, sold-out preservation pages, SEO fields in admin.
 
 ## Full System Documentation
 
