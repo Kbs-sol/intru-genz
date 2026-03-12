@@ -907,13 +907,13 @@ function checkout(){
   if(payMode==='prepaid'){doPrepaidCheckout()}
   else{
     /* Ensure COD form is visible and make sure user fills it */
-    if(!document.getElementById('codForm').classList.contains('show')){
-      setPayMode('cod');
-      toast('Please fill in your delivery address for COD','err');
-      resetBtn();
-      return;
-    }
-    doCodCheckout()
+    var codFormEl = document.getElementById('codForm');
+if(!codFormEl){
+  toast('Please select COD and fill in your address','err');
+  resetBtn();
+  return;
+}
+doCodCheckout();
   }
 }
 
