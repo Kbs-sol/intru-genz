@@ -351,6 +351,8 @@ app.post('/api/checkout', async (c: Context<{ Bindings: Bindings }>) => {
     const items = body.items;
     const userEmail = body.userEmail || '';
     const userName = body.userName || '';
+    const userPhone = body.userPhone || '';
+    const shippingAddress = body.address || null;
     const paymentMethod = body.paymentMethod || 'prepaid';
 
     if (!items || !Array.isArray(items) || items.length === 0)
@@ -417,6 +419,8 @@ app.post('/api/checkout', async (c: Context<{ Bindings: Bindings }>) => {
                 razorpay_order_id: razorpayOrderId,
                 items: validatedItems, subtotal, shipping, total,
                 customer_email: userEmail, customer_name: userName,
+                customer_phone: userPhone,
+                shipping_address: shippingAddress,
                 status: 'pending', payment_method: 'prepaid',
                 created_at: new Date().toISOString(),
               }),
