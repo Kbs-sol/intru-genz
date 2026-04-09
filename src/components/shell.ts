@@ -1034,10 +1034,22 @@ function doCodCheckout(){
 function doMagicCheckout(){
   var shipName = localStorage.getItem('intru_name') || identifiedName;
   var shipPhone = localStorage.getItem('intru_phone') || '';
+  var shipPincode = localStorage.getItem('intru_pincode') || '';
+  var shipAddr    = localStorage.getItem('intru_addr')    || '';
+  var shipAddr2   = localStorage.getItem('intru_addr2')   || '';
+  var shipCity    = localStorage.getItem('intru_city')    || '';
+  var shipState   = localStorage.getItem('intru_state')   || '';
+  var shipAddress = {
+    name: shipName, phone: shipPhone,
+    pincode: shipPincode, line1: shipAddr, line2: shipAddr2,
+    city: shipCity, state: shipState, country: 'India'
+  };
 
   fetch('/api/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
     items:cart.map(function(i){return{productId:i.p,size:i.s,quantity:i.q}}),
-    userEmail:identifiedEmail,userName:shipName,paymentMethod:'magic'
+    userEmail:identifiedEmail,userName:shipName,userPhone:shipPhone,
+    address:shipAddress,
+    paymentMethod:'magic'
   })})
   .then(function(r){return r.json()})
   .then(function(data){

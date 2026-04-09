@@ -119,8 +119,12 @@ export function adminPage(opts: {
 
 <!-- Orders Tab -->
 <div class="apan act" id="tord">
-<div style="display:flex;align-items:center;margin-bottom:16px">
+<div style="display:flex;align-items:center;margin-bottom:16px;gap:12px">
 <span class="asrc" id="ordSrc"></span>
+<div style="position:relative;flex:1 max-width:400px">
+  <input type="text" id="ordSearch" placeholder="Search customer, email, phone, pincode..." class="oselect" style="width:100%;padding:8px 12px 8px 32px;margin:0" onkeyup="grepOrders()">
+  <i class="fas fa-search" style="position:absolute;left:10px;top:10px;color:var(--g400);font-size:12px"></i>
+</div>
 <button class="arefresh" onclick="loadOrders()"><i class="fas fa-sync-alt" style="margin-right:4px"></i>Refresh</button>
 </div>
 <div class="otbl-wrap">
@@ -424,23 +428,47 @@ function loadLimits(){
   }).catch(function(){});
 }
 
-/* ====== ORDERS ====== */
+var rawOrders = [];
+function grepOrders(){
+  var q = document.getElementById('ordSearch').value.toLowerCase();
+  renderOrders(rawOrders.filter(function(o){
+    var addr = o.shipping_address || {};
+    var items = (o.items || []).map(function(i){return i.name}).join(' ');
+    var pool = [
+      o.customer_name, o.customer_email, o.customer_phone, 
+      o.razorpay_order_id, o.id, addr.pincode, addr.city, items
+    ].join(' ').toLowerCase();
+    return pool.indexOf(q) !== -1;
+  }));
+}
+
 function loadOrders(){
   document.getElementById('otbody').innerHTML='<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--g400)">Loading...</td></tr>';
   fetch('/api/admin/orders',{headers:{'x-admin-token':sessionStorage.getItem('iadm_t')}}).then(function(r){return r.json()}).then(function(d){
     var src=document.getElementById('ordSrc');
     src.textContent=d.source==='supabase'?'Live Database':'No Database';
     src.className='asrc '+(d.source==='supabase'?'asrc-db':'asrc-static');
-    var orders=d.orders||[];
-    if(!orders.length){document.getElementById('otbody').innerHTML='<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--g400)">No orders yet.</td></tr>';return}
-    var h='';
-    orders.forEach(function(o){
+    rawOrders = d.orders || [];
+    grepOrders();
+  });
+}
+
+function renderOrders(orders){
+  if(!orders.length){document.getElementById('otbody').innerHTML='<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--g400)">No orders found.</td></tr>';return}
+  var h='';
+  orders.forEach(function(o){
       var items=(o.items||[]).map(function(it){return(it.name||it.productId)+(it.size?' ('+it.size+')':'')+(it.quantity?' x'+it.quantity:'')}).join(', ');
       var st=o.status||'pending';var pm=o.payment_method||'—';
-      var addr=o.shipping_address||{};
-      var addrStr=[o.shipping_address_line1||addr.line1||addr.name||'',o.shipping_address_line2||addr.line2||'',o.shipping_city||addr.city||'',o.shipping_state||addr.state||'',o.shipping_pincode||addr.zipcode||addr.zip||''].filter(function(x){return x}).join(', ');
-      var custName=o.customer_name||addr.name||(o.customer_email?o.customer_email.split('@')[0]:'—');
-      var custPhone=o.customer_phone||addr.contact||'—';
+      var addr = o.shipping_address || {};
+      var addrStr = [
+        o.shipping_address_line1 || addr.line1 || addr.name || '',
+        o.shipping_address_line2 || addr.line2 || '',
+        o.shipping_city || addr.city || '',
+        o.shipping_state || addr.state || '',
+        o.shipping_pincode || addr.pincode || addr.zipcode || addr.zip || ''
+      ].filter(function(x){return x}).join(', ');
+      var custName = o.customer_name || addr.name || (o.customer_email?o.customer_email.split('@')[0]:'—');
+      var custPhone = o.customer_phone || addr.phone || addr.contact || '—';
       var isCod=pm==='cod';
       h+='<tr class="'+(isCod?'cod-row':'prepaid-row')+'">'
         +'<td data-label="Order ID" style="min-width:110px"><div style="font-weight:800;font-size:12px;letter-spacing:-0.5px;margin-bottom:6px">#'+(o.razorpay_order_id||o.id||'').slice(-8).toUpperCase()+'</div>'
@@ -457,8 +485,7 @@ function loadOrders(){
         +'<button class="shiprocket-btn" style="width:100%;text-align:center" onclick="copyShiprocket(\\x27'+custName.replace(/'/g,'')+'\\x27,\\x27'+custPhone+'\\x27,\\x27'+addrStr.replace(/'/g,'')+'\\x27)"><i class="fas fa-copy" style="margin-right:4px"></i>Shiprocket Copy</button>'
         +'</td></tr>';
     });
-    document.getElementById('otbody').innerHTML=h;
-  }).catch(function(e){document.getElementById('otbody').innerHTML='<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--red)">Error: '+e.message+'</td></tr>'});
+    document.getElementById('otbody').innerHTML = h;
 }
 
 /* ====== ANALYTICS [AG] ====== */
@@ -492,7 +519,10 @@ function fallbackCopy(txt){var ta=document.createElement('textarea');ta.value=tx
 function updateOrder(orderId,newStatus){
   if(!newStatus)return;
   fetch('/api/admin/orders/'+orderId,{method:'PATCH',headers:{'Content-Type':'application/json','x-admin-token':sessionStorage.getItem('iadm_t')},body:JSON.stringify({status:newStatus})})
-  .then(function(r){return r.json()}).then(function(d){if(d.success){toast('Order updated','ok-green');loadOrders()}else{toast(d.error||'Failed','err')}}).catch(function(e){toast('Error: '+e.message,'err')});
+  .then(function(r){return r.json()}).then(function(d){
+    if(d.success){toast('Order updated!','ok-green');loadOrders()}
+    else{toast('Update failed','err')}
+  }).catch(function(e){toast('Error: '+e.message,'err')});
 }
 
 /* ====== PRODUCTS ====== */

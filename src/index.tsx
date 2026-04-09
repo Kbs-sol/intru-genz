@@ -348,6 +348,13 @@ app.get('/api/products/:id', async (c: Context<{ Bindings: Bindings }>) => {
 app.post('/api/checkout', async (c: Context<{ Bindings: Bindings }>) => {
   try {
     const body = await c.req.json();
+    console.log('[Checkout] Payload:', { 
+      email: body.userEmail, 
+      name: body.userName, 
+      phone: body.userPhone, 
+      hasAddress: !!body.address,
+      method: body.paymentMethod 
+    });
     const items = body.items;
     const userEmail = body.userEmail || '';
     const userName = body.userName || '';
@@ -603,10 +610,15 @@ app.post('/api/payment/verify', async (c: Context<{ Bindings: Bindings }>) => {
       try {
         const rzpOrder = await fetchRazorpayOrder(rzpKeyId, rzpKeySecret, razorpay_order_id);
         if (rzpOrder) {
-          shippingAddress = rzpOrder.customer_details?.shipping_address || null;
+          const rzpAddr = rzpOrder.customer_details?.shipping_address || null;
+          shippingAddress = rzpAddr;
+          // Normalize: fallback pincode if only postal_code exists (Razorpay style)
+          if (shippingAddress && !shippingAddress.pincode && shippingAddress.postal_code) {
+            shippingAddress.pincode = shippingAddress.postal_code;
+          }
           customerEmail = rzpOrder.customer_details?.email || '';
           customerPhone = rzpOrder.customer_details?.contact || '';
-          customerName = rzpOrder.customer_details?.shipping_address?.name || '';
+          customerName = rzpAddr?.name || rzpOrder.customer_details?.name || '';
           orderTotal = (rzpOrder.amount || 0) / 100;
         }
       } catch (e) { console.error('Failed to fetch Razorpay order:', e); }
