@@ -37,20 +37,10 @@ export function adminPage(opts: {
 .apan{display:none}.apan.act{display:block}
 .otbl-wrap{width:100%;overflow-x:auto;border:1.5px solid var(--g100);border-radius:8px;background:var(--wh)}
 .otbl{width:100%;border-collapse:collapse;font-size:13px;min-width:860px}
-@media(max-width:900px){
-  .otbl{min-width:860px}
-}
-@media(max-width:600px){
-  .otbl-wrap{border:none;background:transparent;overflow-x:visible}
-  .otbl,.otbl thead,.otbl tbody,.otbl tr,.otbl th,.otbl td{display:block;width:100%}
-  .otbl thead{display:none}
-  .otbl tr{margin-bottom:16px;border:1.5px solid var(--g100);border-radius:8px;padding:0;background:var(--wh);overflow:hidden}
-  .otbl td{border-bottom:1px solid var(--g50);padding:10px 14px;text-align:left;vertical-align:top}
-  .otbl td:last-child{border-bottom:none}
-  .otbl td::before{content:attr(data-label);display:inline-block;font-size:9px;font-weight:800;color:var(--g400);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;margin-right:6px;min-width:80px}
-  .otbl tr:hover td{background:transparent}
+@media(max-width:768px){
   .adm{padding:20px 16px 80px}
   .ahdr{flex-direction:column;gap:12px;align-items:flex-start}
+  .otbl-wrap{-webkit-overflow-scrolling:touch}
 }
 .otbl th{text-align:left;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--g500);padding:18px 16px;border-bottom:2px solid var(--g100);background:var(--g50)}
 .otbl td{padding:18px 16px;border-bottom:1px solid var(--g100);vertical-align:top;line-height:1.6}
