@@ -210,6 +210,12 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 .id-close{position:absolute;top:20px;right:20px;background:none;border:none;font-size:24px;color:var(--g300);padding:4px;cursor:pointer;transition:color .2s}.id-close:hover{color:var(--bk)}
 .trust-badge{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;color:var(--green);background:#f0fdf4;padding:6px 12px;border-radius:4px;margin:16px 0}
 .pay-icons{display:flex;gap:12px;justify-content:center;margin-top:16px;opacity:.6;filter:grayscale(1)}
+/* Coupon UI [AG v15.2] */
+.cpn-box{margin:16px 24px 8px;border:1px dashed var(--g400);border-radius:6px;padding:8px;display:flex;gap:8px;background:var(--wh)}
+.cpn-inp{flex:1;border:none;background:none;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;outline:none}
+.cpn-btn{background:var(--bk);color:var(--wh);border:none;padding:8px 16px;font-size:9px;font-weight:800;letter-spacing:1px;text-transform:uppercase;border-radius:4px}
+.cpn-tag{display:inline-flex;align-items:center;gap:6px;background:var(--g100);padding:4px 10px;border-radius:100px;font-size:10px;font-weight:700;margin-top:8px}
+.cpn-rem{cursor:pointer;opacity:0.6}.cpn-rem:hover{opacity:1}
 .ftr{background:var(--bk);color:var(--wh);padding:80px 24px 40px}
 .ftri{max-width:1440px;margin:0 auto;display:grid;grid-template-columns:1.5fr .8fr .8fr .8fr;gap:64px}
 .ftrb h3{font-family:var(--head);font-size:24px;margin-bottom:16px;letter-spacing:-.04em;text-transform:uppercase}.ftrb p{color:var(--g400);font-size:14px;line-height:1.7;max-width:320px}
@@ -298,16 +304,16 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
       <div class="c-step-hdr"><i class="fas fa-map-marker-alt"></i> 1. Shipping Address</div>
       <div class="cod-form show" id="addressForm">
         <div class="cod-row">
-          <input class="cod-inp" id="cod_fname" type="text" placeholder="First Name *" required>
-          <input class="cod-inp" id="cod_lname" type="text" placeholder="Last Name *" required>
+          <input class="cod-inp" id="cod_fname" type="text" placeholder="First Name *" required autocomplete="given-name">
+          <input class="cod-inp" id="cod_lname" type="text" placeholder="Last Name *" required autocomplete="family-name">
         </div>
-        <input class="cod-inp" id="cod_phone" type="tel" placeholder="Phone Number *" required pattern="[0-9]{10}">
-        <input class="cod-inp" id="cod_pincode" type="text" placeholder="Pincode *" required pattern="[0-9]{6}">
-        <input class="cod-inp" id="cod_addr" type="text" placeholder="Address (House No, Building, Street) *" required>
-        <input class="cod-inp" id="cod_addr2" type="text" placeholder="Apartment, suite, etc. (optional)">
+        <input class="cod-inp" id="cod_phone" type="tel" placeholder="Phone Number *" required pattern="[0-9]{10}" autocomplete="tel">
+        <input class="cod-inp" id="cod_pincode" type="text" placeholder="Pincode *" required pattern="[0-9]{6}" autocomplete="postal-code">
+        <input class="cod-inp" id="cod_addr" type="text" placeholder="Address (House No, Building, Street) *" required autocomplete="address-line1">
+        <input class="cod-inp" id="cod_addr2" type="text" placeholder="Apartment, suite, etc. (optional)" autocomplete="address-line2">
         <div class="cod-row">
-          <input class="cod-inp" id="cod_city" type="text" placeholder="City">
-          <input class="cod-inp" id="cod_state" type="text" placeholder="State">
+          <input class="cod-inp" id="cod_city" type="text" placeholder="City" autocomplete="address-level2">
+          <input class="cod-inp" id="cod_state" type="text" placeholder="State" autocomplete="address-level1">
         </div>
         <button class="ccbtn" id="confirmAddressBtn" onclick="confirmAddress()" style="margin-top:8px">Continue to Payment <i class="fas fa-chevron-right" style="margin-left:8px;font-size:10px"></i></button>
       </div>
@@ -321,6 +327,14 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
     <!-- Step 2: Payment Selection -->
     <div id="paymentSection" class="hidden" style="margin-top:28px;border-top:1px solid var(--g100);padding-top:24px">
       <div class="c-step-hdr"><i class="fas fa-credit-card"></i> 2. Select Payment Mode</div>
+      
+      <!-- Coupon Selector [AG v15.2] -->
+      <div id="couponSection" class="cpn-box">
+        <input type="text" id="couponInput" class="cpn-inp" placeholder="HAVE A COUPON?">
+        <button class="cpn-btn" onclick="applyCoupon()">Apply</button>
+      </div>
+      <div id="appliedCoupon" class="hidden" style="margin:0 24px"></div>
+
       <div class="cmode" id="cmode" style="display:flex;margin-top:12px">
         <div class="cmode-opt prepaid act" onclick="setPayMode('prepaid')" id="cm_prepaid">
           <span class="cmode-badge">Fastest Drop</span>
@@ -567,7 +581,7 @@ function openOrders(){
 function loadCustomerOrders(){
   var list=document.getElementById('idOrdersList');
   list.innerHTML='<div style="padding:40px 0;text-align:center;color:var(--g400)"><i class="fas fa-circle-notch fa-spin"></i> Loading...</div>';
-  fetch('/api/customer/orders?email='+encodeURIComponent(identifiedEmail))
+  fetch('/api/user/orders?email='+encodeURIComponent(identifiedEmail))
   .then(function(r){return r.json()})
   .then(function(d){
     var orders=d.orders||[];
@@ -575,11 +589,11 @@ function loadCustomerOrders(){
     var h='';
     orders.forEach(function(o){
       var st=o.status||'pending';
-      var shortId=(o.razorpay_order_id||o.id||'').slice(-8).toUpperCase();
+      var shortId=(o.id||'').slice(-8).toUpperCase();
       h+='<div style="padding:16px 0;border-bottom:1px solid var(--g100);display:flex;justify-content:space-between;align-items:center">'
         +'<div><div style="font-weight:700;font-size:12px">#'+shortId+' <span style="font-weight:400;color:var(--g400);margin-left:8px">'+new Date(o.created_at).toLocaleDateString()+'</span></div>'
         +'<div style="font-size:11px;color:var(--g400);margin-top:2px">'+(o.items||[]).length+' items • Rs.'+(o.total||0).toLocaleString('en-IN')+'</div></div>'
-        +'<div class="ostatus ost-'+st+'" style="font-size:9px">'+st+'</div>'
+        +'<div style="font-size:9px;font-weight:800;text-transform:uppercase;color:'+(st==='paid'?'var(--green)':'var(--g400)')+'">'+st+'</div>'
         +'</div>';
     });
     list.innerHTML=h;
@@ -655,12 +669,22 @@ function submitIdentity(){
       identifiedEmail=email;
       localStorage.setItem('intru_user_email',email);
       if(d.name){identifiedName=d.name;localStorage.setItem('intru_user_name',d.name)}
-      toast('Welcome! Continuing checkout...','ok-green');
+      toast('Welcome! Access secured.','ok-green');
       closeIdentify();
-      if(pendingCheckout){pendingCheckout=false;checkout();}
+      
+      /* Resume pending actions */
+      var atc = sessionStorage.getItem('intru_pending_atc');
+      if(atc){
+        sessionStorage.removeItem('intru_pending_atc');
+        var p = JSON.parse(atc);
+        addToCart(p.pid, p.sz, p.q);
+      }
+      if(pendingCheckout){pendingCheckout=false;setTimeout(function(){checkout()},500);}
+
+      updateAccountBtn();
     }else{toast(d.error||'Failed','err')}
   }).catch(function(e){toast('Error: '+e.message,'err')})
-  .finally(function(){btn.disabled=false;btn.textContent='CONTINUE TO CHECKOUT'});
+  .finally(function(){btn.disabled=false;btn.textContent='SECURE MY ACCESS'});
 }
 
 /* ====== CART ENGINE ====== */
@@ -670,13 +694,42 @@ function saveCart(){localStorage.setItem('ic',JSON.stringify(cart));renderCart()
 
 function addToCart(productId,size,qty){
   if(!productId||!size){toast('Please select a size','err');return false}
+  
+  /* Funnel Analytics: Identify First [AG v15.2] */
+  if(!identifiedEmail){
+    pendingCheckout = false; // Reset to just ATC
+    sessionStorage.setItem('intru_pending_atc', JSON.stringify({pid:productId, sz:size, q:qty||1}));
+    openIdentify();
+    toast('Login to secure this item in your bag','ok');
+    return false;
+  }
+
   var p=PM[productId];if(!p){toast('Product not found','err');return false}
   if(p.sz&&p.sz.indexOf(size)===-1){toast('Invalid size selected','err');return false}
   qty=qty||1;
   var existing=cart.find(function(i){return i.p===productId&&i.s===size});
   if(existing){if(existing.q+qty>10){toast('Max 10 per item','err');return false}existing.q+=qty}
   else{cart.push({p:productId,s:size,q:qty})}
-  saveCart();toast(p.n+' ('+size+') added to bag','ok');openCartDrawer();return true;
+  saveCart();toast(p.n+' ('+size+') added to bag','ok');openCartDrawer();
+  
+  /* Trigger background analytics */
+  fetch('/api/analytics/event',{method:'POST',body:JSON.stringify({event:'add_to_cart',meta:{pid:productId,sz:size}})}).catch(function(){});
+  return true;
+}
+
+function buyNow(productId,size){
+  if(!productId||!size){toast('Select size','err');return}
+  if(!identifiedEmail){
+    pendingCheckout = true;
+    sessionStorage.setItem('intru_pending_atc', JSON.stringify({pid:productId, sz:size, q:1}));
+    openIdentify();
+    toast('Secure access to buy now','ok');
+    return;
+  }
+  var added = addToCart(productId,size,1);
+  if(added) {
+    setTimeout(function(){ checkout(); }, 200);
+  }
 }
 
 /* Quick Action Helpers [AG] */
@@ -705,57 +758,67 @@ function updateQty(productId,size,delta){
   if(item.q>10){item.q=10;toast('Max 10 per item','err')}saveCart();
 }
 
+/* ====== COUPON SYSTEM [AG v15.2] ====== */
+var appliedCoupon = null;
+
+function applyCoupon(){
+  var code = document.getElementById('couponInput').value.trim().toUpperCase();
+  if(!code) return;
+  var totals = getCartTotals();
+  
+  fetch('/api/coupons/validate', {
+    method: 'POST', 
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ code: code, total: totals.subtotal })
+  })
+  .then(function(r){return r.json()})
+  .then(function(d){
+    if(d.success && d.coupon){
+      appliedCoupon = d.coupon;
+      toast('Coupon applied: ' + d.coupon.code, 'ok-green');
+      renderAppliedCoupon();
+      renderCartTotals();
+    } else {
+      toast(d.error || 'Invalid coupon', 'err');
+    }
+  }).catch(function(){toast('Failed to validate coupon', 'err')});
+}
+
+function renderAppliedCoupon(){
+  var el = document.getElementById('appliedCoupon');
+  if(!appliedCoupon) { el.classList.add('hidden'); return; }
+  el.classList.remove('hidden');
+  var desc = appliedCoupon.type === 'percent' ? appliedCoupon.value + '% OFF' : fmt(appliedCoupon.value) + ' OFF';
+  el.innerHTML = '<div class="cpn-tag"><i class="fas fa-tag"></i> <span>' + appliedCoupon.code + ' (' + desc + ')</span><i class="fas fa-times cpn-rem" onclick="removeCoupon()"></i></div>';
+}
+
+function removeCoupon(){
+  appliedCoupon = null;
+  document.getElementById('couponInput').value = '';
+  renderAppliedCoupon();
+  renderCartTotals();
+}
+
 function getCartTotals(){
   var sub=0;cart.forEach(function(i){var p=PM[i.p];if(p)sub+=p.p*i.q});
-  /* New Logic: Prepaid always FREE; COD always Rs.99 Convenience/Shipping Fee */
+  var discount = 0;
+  if(appliedCoupon){
+    if(appliedCoupon.type === 'percent') discount = sub * (appliedCoupon.value / 100);
+    else discount = appliedCoupon.value;
+  }
+  var discountedSub = Math.max(0, sub - discount);
   var codFee=payMode==='cod'?99:0;
   var sh=0; 
-  return{subtotal:sub,shipping:sh,codFee:codFee,total:sub+sh+codFee};
-}
-
-function fmt(n){return S.cs+n.toLocaleString('en-IN')}
-
-/* ====== HIGH-CONVERSION PSYCHOLOGY [AG] ====== */
-var paySounds = {
-  prepaid: new Audio('data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YTtvT19vT19vT19vT19vT19vT19vT19vT19vT19vT19vT19vT19vT19vT19vT19vT19vT19vT19vT19vT19v'),
-  cod: new Audio('data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YTtvT19vT19vT19vT19vT19vT19vT19vT19vT19vT19vT19vT19vT19vT19vT19vT19vT19vT19vT19vT19v'),
-};
-/* Just placeholders/minimalist beeps. We'll simulate with volume=0.1 */
-paySounds.prepaid.volume = 0.1; paySounds.cod.volume = 0.05;
-
-var cartTimerInterval;
-function startCartTimer(){
-  if(cartTimerInterval) clearInterval(cartTimerInterval);
-  var duration = 300; // 5 mins
-  var display = document.getElementById('timerClock');
-  var banner = document.getElementById('cartTimer');
-  if(!banner) return;
-  banner.style.display = 'flex';
-  cartTimerInterval = setInterval(function(){
-    var mins = Math.floor(duration / 60);
-    var secs = duration % 60;
-    display.textContent = (mins < 10 ? '0' : '') + mins + ':' + (secs < 10 ? '0' : '') + secs;
-    if(--duration < 0) { clearInterval(cartTimerInterval); banner.innerHTML = '⚡ <b>OFFER EXPIRED:</b> Prices may change soon.'; }
-  }, 1000);
-}
-
-function setPayMode(mode){
-  applyPayMode(mode);
-}
-
-function applyPayMode(mode){
-  payMode=mode;
-  document.getElementById('cm_prepaid').classList.toggle('act',mode==='prepaid');
-  document.getElementById('cm_cod').classList.toggle('act',mode==='cod');
-  var perk = document.getElementById('prepaidPerk'); if(perk) perk.style.display = mode==='prepaid'?'block':'none';
-  var risk = document.getElementById('riskCalc'); if(risk) risk.style.display = mode==='cod'?'block':'none';
-  var btn = document.getElementById('checkoutBtn'); if(btn) btn.style.display = 'block';
-  renderCartTotals();
+  return{subtotal:sub, discount:discount, discountedSub:discountedSub, shipping:sh, codFee:codFee, total:discountedSub+sh+codFee};
 }
 
 function renderCartTotals(){
   var t=getCartTotals();
   document.getElementById('csub').textContent=fmt(t.subtotal);
+  if(t.discount > 0){
+    document.getElementById('csub').innerHTML = '<span style="text-decoration:line-through;opacity:0.5;margin-right:8px">' + fmt(t.subtotal) + '</span>' + fmt(t.discountedSub);
+  }
+  
   var shText=payMode==='prepaid'?'FREE':'';
   if(payMode==='cod'){shText='Rs.99 Shipping/COD Fee'}
   document.getElementById('cshp').textContent=shText||'Free';

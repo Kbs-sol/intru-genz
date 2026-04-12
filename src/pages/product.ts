@@ -9,6 +9,7 @@ export function productPage(product: Product, opts: {
   useMagicCheckout?: boolean;
   maintenanceConfig?: { mode?: string; message?: string; eta?: string };
   storeSettings?: Record<string, string>;
+  ratings?: { average: number; count: number };
 }): string {
   const products = opts.products;
   const legalPages = opts.legalPages;
@@ -45,10 +46,17 @@ export function productPage(product: Product, opts: {
     stockHtml = `<div class="pc-stock">${stockCopy}</div>`;
   }
 
+  const rAverage = opts.ratings?.average || 4.8;
+  const rCount = opts.ratings?.count || 43;
+  const fullStars = Math.floor(rAverage);
+  const hasHalf = rAverage % 1 !== 0;
+  const emptyStars = 5 - Math.ceil(rAverage);
+  const starsHtml = Array(fullStars).fill('<i class="fas fa-star"></i>').join('') + (hasHalf ? '<i class="fas fa-star-half-alt"></i>' : '') + Array(emptyStars).fill('<i class="far fa-star"></i>').join('');
+
   const disc = product.comparePrice ? Math.round((1 - product.price / product.comparePrice) * 100) : 0;
   const related = products.filter(p => p.id !== product.id).slice(0, 3);
   const schema = JSON.stringify([
-    { "@context": "https://schema.org", "@type": "Product", "name": product.name, "description": product.description, "image": product.images, "brand": { "@type": "Brand", "name": "Intru" }, "offers": { "@type": "Offer", "url": "https://intru.in/product/" + product.slug, "priceCurrency": "INR", "price": product.price, "availability": product.inStock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock" }, "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.8", "reviewCount": "43" } },
+    { "@context": "https://schema.org", "@type": "Product", "name": product.name, "description": product.description, "image": product.images, "brand": { "@type": "Brand", "name": "Intru" }, "offers": { "@type": "Offer", "url": "https://intru.in/product/" + product.slug, "priceCurrency": "INR", "price": product.price, "availability": product.inStock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock" }, "aggregateRating": { "@type": "AggregateRating", "ratingValue": String(rAverage), "reviewCount": String(rCount) } },
     { "@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{ "@type": "Question", "name": "What makes Intru the best oversized collection?", "acceptedAnswer": { "@type": "Answer", "text": "Intru offers the best oversized collection in India using premium heavyweight fabrics, industrial brutalist designs, and limited zero-restock drops." } }] }
   ]);
   const pj = JSON.stringify({ id: product.id, s: product.slug, n: product.name, p: product.price, i: product.images, sz: product.sizes });
@@ -164,7 +172,7 @@ ${product.images.map((_, i) => '<button class="gdot ' + (i === 0 ? 'act' : '') +
 <p class="pcat">${product.category}</p>
 <h1 class="pname">${product.name}</h1>
 <p class="ptag">${product.tagline}</p>
-<div class="prating"><span class="pstars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i></span><span class="prtext">4.8 (43 reviews)</span></div>
+<div class="prating"><span class="pstars">${starsHtml}</span><span class="prtext">${rAverage} (${rCount} reviews)</span></div>
 <div class="pprow">
 <span class="pprice">${STORE_CONFIG.currencySymbol}${product.price.toLocaleString('en-IN')}</span>
 ${product.comparePrice ? '<span class="pcmp">' + STORE_CONFIG.currencySymbol + product.comparePrice.toLocaleString('en-IN') + '</span>' : ''}

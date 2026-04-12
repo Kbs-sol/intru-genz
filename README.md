@@ -4,7 +4,7 @@
 - **Name**: intru.in
 - **Goal**: Engineered for High Organic Traffic (SEO) and High Conversion (using deep direct-response psychology)
 - **Stack**: Hono + TypeScript + Cloudflare Pages + Supabase + Razorpay + Resend
-- **Version**: v14.4 (Date: March 20, 2026) — Sequential Checkout, Prepaid Manager Alerts, UX Refactoring
+- **Version**: v15.2 (Date: April 12, 2026) — Sales Funnel Optimization, Zero-Token Analytics, Abandoned Cart System
 
 ## URLs
 - **Production**: https://intru-genz.pages.dev (staging) → https://intru.in (custom domain pending)
@@ -230,10 +230,18 @@ npx wrangler pages secret put RAZORPAY_WEBHOOK_SECRET --project-name intru-in
 - **UX Sensitivity**: Removed all "penalty" and "scare" terminology (e.g., "Logistics Heavy", "COD Fee Warning") in favor of premium, benefit-driven language.
 - **Address Persistence**: Implemented `localStorage` caching for successful address entries to streamline the experience for repeat customers.
 
+## v15.2 Changes (April 12, 2026)
+### Sales Funnel & Zero-Token Analytics
+- **Identity First Validation**: Captures user emails on "Add to Bag" to secure items and build customer pipelines.
+- **Order History**: Accounts feature immediate viewing access to past orders and statuses.
+- **Zero-Token Tracking**: Implemented scalable, background funnel analytics (page views, checkout events) using `ctx.waitUntil()` on CF workers to bypass free-tier caps.
+- **Abandoned Carts**: Automated tracking of leads >24h without purchase, with manual trigger from Admin panel scaling through Resend.
+- **Coupons Engine**: Discount integration mapping to percent & flat limits, strictly validated server-side.
+
 ## Deployment
 - **Platform**: Cloudflare Pages
 - **Status**: ✅ Active
-- **Last Updated**: 2026-03-13 (v14.1) — Cart layout fixes, sticky footer, and UI enhancements.
+- **Last Updated**: 2026-04-12 (v15.2) — Funnel logic and Abandoned Carts.
 
 ## Full System Documentation
 

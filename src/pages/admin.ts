@@ -138,9 +138,22 @@ export function adminPage(opts: {
 <!-- Analytics Tab -->
 <div class="apan" id="tana">
 <div class="stat-grid">
-  <div class="stat-card"><div class="stat-val" id="anaTotalViews">...</div><div class="stat-label">Total Views</div></div>
-  <div class="stat-card"><div class="stat-val" id="anaProductViews">...</div><div class="stat-label">Product Views</div></div>
-  <div class="stat-card"><div class="stat-val" id="anaPageViews">...</div><div class="stat-label">Page Views</div></div>
+  <div class="stat-card"><div class="stat-val" id="anaIdentify">...</div><div class="stat-label">Identified Leads</div></div>
+  <div class="stat-card"><div class="stat-val" id="anaCheckouts">...</div><div class="stat-label">Checkouts</div></div>
+  <div class="stat-card"><div class="stat-val" id="anaConvRate">...</div><div class="stat-label">Conv Rate</div></div>
+</div>
+
+<div class="stat-grid" style="grid-template-columns: 1fr; margin-bottom: 32px">
+  <div class="stat-card" style="display:flex;justify-content:space-between;align-items:center;background:var(--bk);color:var(--wh)">
+    <div>
+      <h3 style="font-size:12px;text-transform:uppercase;letter-spacing:1px;opacity:0.8">Abandoned Cart Recovery</h3>
+      <p style="font-size:11px;opacity:0.6;margin-top:4px">Trigger identification and recovery workflow for carts abandoned >24h.</p>
+    </div>
+    <div style="display:flex;gap:12px;align-items:center">
+      <span id="abandonStatus" style="font-size:10px;font-weight:700;text-transform:uppercase"></span>
+      <button class="asave" style="background:var(--wh);color:var(--bk);border:none" onclick="triggerAbandoned()">Trigger Now</button>
+    </div>
+  </div>
 </div>
 <div class="shdr" style="margin-bottom:20px;display:flex;justify-content:space-between;align-items:center">
   <h2 style="font-family:var(--head);font-size:18px;text-transform:uppercase">Granular Performance</h2>
@@ -148,7 +161,7 @@ export function adminPage(opts: {
 </div>
 <div class="otbl-wrap">
 <table class="otbl" style="min-width:600px">
-<thead><tr><th>Resource Target</th><th>Type</th><th>Views</th><th>Last Tracked</th></tr></thead>
+<thead><tr><th>Metric / Target</th><th>Type</th><th>Count / Views</th><th>Last Activity</th></tr></thead>
 <tbody id="anaTbody"><tr><td colspan="4" style="text-align:center;padding:40px;color:var(--g400)">Loading...</td></tr></tbody>
 </table>
 </div>
@@ -488,26 +501,60 @@ function renderOrders(orders){
     document.getElementById('otbody').innerHTML = h;
 }
 
-/* ====== ANALYTICS [AG] ====== */
+/* ====== ANALYTICS [AG v15.2] ====== */
 function loadAnalytics(){
   document.getElementById('anaTbody').innerHTML='<tr><td colspan="4" style="text-align:center;padding:40px;color:var(--g400)">Propagating...</td></tr>';
   fetch('/api/admin/analytics',{headers:{'x-admin-token':sessionStorage.getItem('iadm_t')}}).then(function(r){return r.json()}).then(function(d){
     var stats=d.analytics||[];
-    var total=0; var prodTotal=0; var pageTotal=0;
+    var funnel=d.funnel||{};
+    
+    document.getElementById('anaIdentify').textContent= (funnel.identify || 0).toLocaleString();
+    document.getElementById('anaCheckouts').textContent= (funnel.checkout || 0).toLocaleString();
+    
+    var conv = funnel.identify ? ((funnel.checkout / funnel.identify) * 100).toFixed(1) : '0';
+    document.getElementById('anaConvRate').textContent= conv + '%';
+
     var h='';
     stats.forEach(function(s){
-      total+=s.views;
-      if(s.type==='product')prodTotal+=s.views; else pageTotal+=s.views;
       h+='<tr><td style="font-weight:700;color:var(--bk)">'+s.target+'</td>'
-        +'<td><span class="ostatus" style="background:var(--g100);color:var(--g500)">'+s.type+'</span></td>'
+        +'<td><span class="ostatus" style="background:var(--g100);color:var(--g500)">'+(s.type||'page')+'</span></td>'
         +'<td style="font-weight:900;font-size:16px">'+s.views.toLocaleString()+'</td>'
-        +'<td style="font-size:10px;color:var(--g400)">'+new Date(s.updated_at).toLocaleString()+'</td></tr>';
+        +'<td style="font-size:10px;color:var(--g400)">'+ (s.updated_at ? new Date(s.updated_at).toLocaleString() : '—') +'</td></tr>';
     });
-    document.getElementById('anaTotalViews').textContent=total.toLocaleString();
-    document.getElementById('anaProductViews').textContent=prodTotal.toLocaleString();
-    document.getElementById('anaPageViews').textContent=pageTotal.toLocaleString();
+    
+    /* Mix in Funnel Events if any */
+    if(d.events && d.events.length) {
+      h += '<tr><td colspan="4" style="background:var(--g50);font-weight:800;padding:8px 16px;font-size:10px;text-transform:uppercase">Recent Funnel Events</td></tr>';
+      d.events.forEach(function(e){
+        h+='<tr><td style="font-size:11px;font-family:monospace">'+(e.email||'Anonymous')+'</td>'
+          +'<td><span class="ostatus" style="background:#fef3c7;color:#92400e">'+e.event_type+'</span></td>'
+          +'<td style="font-size:11px">'+(e.metadata ? JSON.stringify(e.metadata) : '')+'</td>'
+          +'<td style="font-size:10px;color:var(--g400)">'+new Date(e.created_at).toLocaleString()+'</td></tr>';
+      });
+    }
+
     document.getElementById('anaTbody').innerHTML=h||'<tr><td colspan="4" style="text-align:center;padding:40px">No data yet.</td></tr>';
-  }).catch(function(e){document.getElementById('anaTbody').innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--red)">Failed to load.</td></tr>'});
+  }).catch(function(e){document.getElementById('anaTbody').innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--red)">Failed to load metrics.</td></tr>'});
+}
+
+function triggerAbandoned(){
+  var st = document.getElementById('abandonStatus');
+  st.textContent = 'Triggering...';
+  fetch('/api/admin/abandoned/trigger', {
+    method: 'POST',
+    headers: { 'x-admin-token': sessionStorage.getItem('iadm_t') }
+  })
+  .then(function(r){ return r.json() })
+  .then(function(d){
+    if(d.success) {
+      toast('Recovery emails sent: ' + d.sent, 'ok-green');
+      st.textContent = 'DONE: ' + d.sent + ' SENT';
+      setTimeout(function(){ st.textContent = ''; }, 5000);
+    } else {
+      toast(d.error || 'Failed', 'err');
+      st.textContent = 'FAILED';
+    }
+  }).catch(function(){ toast('Trigger failed', 'err'); st.textContent = ''; });
 }
 
 function copyShiprocket(name,phone,addr){

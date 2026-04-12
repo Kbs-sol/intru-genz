@@ -7,7 +7,7 @@ import {
   buildMagicLineItems, hmacSHA256, supabaseFetch,
   fetchProducts, fetchProductBySlug, fetchProductById, fetchLegalPages,
   sendResendEmail, emailDropSecured, emailCodReceived, emailCodManagerAlert,
-  fetchStoreSetting, fetchAllStoreSettings, uploadToR2, incrementView, fetchAnalytics
+  fetchStoreSetting, fetchAllStoreSettings, uploadToR2, incrementView, fetchAnalytics, fetchProductRatings
 } from './data'
 import { homePage } from './pages/home'
 import { productPage } from './pages/product'
@@ -21,6 +21,8 @@ import { maintenancePage } from './pages/maintenance'
 type Bindings = Env & { [key: string]: string }
 
 const app = new Hono<{ Bindings: Bindings }>()
+
+
 
 app.use('/api/*', cors())
 
@@ -124,7 +126,8 @@ app.get('/product/:slug', async (c: Context<{ Bindings: Bindings }>) => {
   const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY') || getEnv(c.env, 'SUPABASE_ANON_KEY');
   const product = await fetchProductBySlug(sbUrl, sbKey, slug);
   if (!product) return c.html(`<html><head><meta http-equiv="refresh" content="0;url=/"></head></html>`, 404);
-  const opts = await getPageOpts(c);
+  const opts: any = await getPageOpts(c);
+  opts.ratings = await fetchProductRatings(sbUrl, sbKey, product.id);
   c.executionCtx.waitUntil(incrementView(c.env, `/product/${slug}`));
   return c.html(productPage(product, opts));
 })
@@ -1016,6 +1019,59 @@ app.patch('/api/admin/products/:id', async (c: Context<{ Bindings: Bindings }>) 
   return c.json({ error: 'Supabase not configured' }, 500);
 })
 
+// ============ USER: Order History [AG v15.2] ============
+
+app.get('/api/user/orders', async (c: Context<{ Bindings: Bindings }>) => {
+  try {
+    const email = c.req.query('email');
+    if (!email) return c.json({ error: 'Email required' }, 400);
+
+    const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+    const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY') || getEnv(c.env, 'SUPABASE_ANON_KEY');
+    
+    if (sbUrl && sbKey) {
+      const res = await supabaseFetch(sbUrl, sbKey, `orders?customer_email=eq.${encodeURIComponent(email)}&select=id,created_at,status,total,currency,items&order=created_at.desc`);
+      if (res.ok) {
+        const orders = await res.json() as any[];
+        return c.json({ success: true, orders });
+      }
+      return c.json({ error: 'Failed to fetch orders' }, 500);
+    }
+    return c.json({ error: 'Database not connected' }, 500);
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+// ============ COUPONS: Validation [AG v15.2] ============
+
+app.post('/api/coupons/validate', async (c: Context<{ Bindings: Bindings }>) => {
+  try {
+    const { code, total } = await c.req.json();
+    if (!code) return c.json({ error: 'Code required' }, 400);
+
+    const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+    const sbKey = getEnv(c.env, 'SUPABASE_ANON_KEY');
+    
+    if (sbUrl && sbKey) {
+      const res = await supabaseFetch(sbUrl, sbKey, `coupons?code=eq.${encodeURIComponent(code.toUpperCase())}&is_active=eq.true`);
+      if (res.ok) {
+        const coupons = await res.json() as any[];
+        if (coupons.length === 0) return c.json({ error: 'Invalid coupon code' }, 400);
+        
+        const coupon = coupons[0];
+        if (coupon.expiry_at && new Date(coupon.expiry_at) < new Date()) {
+          return c.json({ error: 'Coupon expired' }, 400);
+        }
+        if (coupon.min_total && total < coupon.min_total) {
+          return c.json({ error: `Min. total Rs.${coupon.min_total} required` }, 400);
+        }
+
+        return c.json({ success: true, coupon });
+      }
+    }
+    return c.json({ error: 'Validation failed' }, 500);
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
 app.patch('/api/admin/legal/:slug', async (c: Context<{ Bindings: Bindings }>) => {
   const slug = c.req.param('slug');
   const body = await c.req.json();
@@ -1355,6 +1411,75 @@ app.get('/api/admin/limits', async (c: Context<{ Bindings: Bindings }>) => {
   }
 
   return c.json({ rows, emailsSentEst, storageMb });
+});
+
+// ============ ADMIN: Analytics Fix [AG v15.2] ============
+
+app.get('/api/admin/analytics', async (c: Context<{ Bindings: Bindings }>) => {
+  const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+  const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY') || getEnv(c.env, 'SUPABASE_ANON_KEY');
+  if (sbUrl && sbKey) {
+    try {
+      // Fetch Page Views
+      const viewRes = await supabaseFetch(sbUrl, sbKey, 'view_stats?select=*&order=count.desc');
+      const views = viewRes.ok ? await viewRes.json() : [];
+
+      // Fetch Funnel Events
+      const funnelRes = await supabaseFetch(sbUrl, sbKey, 'funnel_events?select=*&order=created_at.desc&limit=100');
+      const funnel = funnelRes.ok ? await funnelRes.json() : [];
+
+      return c.json({ success: true, views, funnel });
+    } catch (e) { console.error('Analytics fix error:', e); }
+  }
+  return c.json({ success: false, error: 'Failed to fetch analytics' });
+});
+
+// ============ ADMIN: Abandoned Cart Trigger [AG v15.2] ============
+
+app.post('/api/admin/abandoned/trigger', async (c: Context<{ Bindings: Bindings }>) => {
+  const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+  const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY');
+  const resendKey = getEnv(c.env, 'RESEND_API_KEY');
+
+  if (!sbUrl || !sbKey || !resendKey) return c.json({ error: 'Services not configured' }, 500);
+
+  try {
+    const indentifyRes = await supabaseFetch(sbUrl, sbKey, `funnel_events?event_type=eq.identify&created_at=lt.${new Date(Date.now() - 86400000).toISOString()}&order=created_at.desc&limit=50`);
+    const potentialLeads = indentifyRes.ok ? await indentifyRes.json() : [];
+
+    let count = 0;
+    for (const lead of potentialLeads) {
+      if (!lead.email) continue;
+      
+      const orderRes = await supabaseFetch(sbUrl, sbKey, `orders?customer_email=eq.${encodeURIComponent(lead.email)}&status=eq.paid&limit=1`);
+      const hasBought = orderRes.ok && (await orderRes.json() as any[]).length > 0;
+      
+      if (!hasBought) {
+        const logRes = await supabaseFetch(sbUrl, sbKey, `email_logs?email=eq.${encodeURIComponent(lead.email)}&type=eq.abandoned_cart&limit=1`);
+        const alreadySent = logRes.ok && (await logRes.json() as any[]).length > 0;
+
+        if (!alreadySent) {
+          const recoveryBody = `
+            <div style="font-family:sans-serif;text-align:center;padding:40px;background:#f9fafb;border-radius:12px">
+              <h1 style="font-size:24px;letter-spacing:1px">STILL THINKING?</h1>
+              <p>You left something in your bag. Our drops are limited and won't restock.</p>
+              <div style="margin:30px 0">
+                <a href="https://intru.in" style="background:#000;color:#fff;padding:16px 32px;text-decoration:none;font-weight:700;letter-spacing:1px;border-radius:6px">SECURE MY DROP</a>
+              </div>
+              <p style="font-size:12px;color:#999">Use code <strong>BACKFORIT</strong> for a secret surprise at checkout.</p>
+            </div>
+          `;
+          await sendResendEmail(resendKey, lead.email, 'Your Intru drop is waiting...', recoveryBody);
+          
+          await supabaseFetch(sbUrl, sbKey, 'email_logs', {
+            method: 'POST', body: JSON.stringify({ email: lead.email, type: 'abandoned_cart', sent_at: new Date().toISOString() })
+          });
+          count++;
+        }
+      }
+    }
+    return c.json({ success: true, recovered: count });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
 });
 
 /* ====== Helper Functions for Webhooks [AG] ====== */

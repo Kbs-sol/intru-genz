@@ -1,5 +1,5 @@
 # INTRU.IN — Full System Literacy & Architecture Reference
-**Version**: v14.4 | **Date**: March 20, 2026 | **Production**: https://intru-genz.pages.dev (staging for intru.in) [AG]
+**Version**: v15.2 | **Date**: April 12, 2026 | **Production**: https://intru-genz.pages.dev (staging for intru.in) [AG]
 
 > This document is designed to be read by manager of e-commerce website AND used as a context prompt for AI assistants. It contains everything needed to understand, debug, fix, or extend the intru.in codebase.
 
@@ -11,9 +11,9 @@
 
 **Engineering Philosophy:**
 The entire platform is mathematically engineered for two outcomes:
-1. **High Organic Traffic (SEO Dominance)**: Zero-JS server rendering, dynamic sitemaps, semantic OpenGraph tags, and near-perfect Core Web Vitals to ensure the site ranks aggressively on Google.
-2. **High Conversion (Brutalist UX)**: Every pixel is engineered for conversion using a "Brutalist Typography" aesthetic. This emphasizes raw brand authority, visual scarcity, and a frictionless "Quick Add" system that reduces clicks-to-checkout.
-3. **Data-Driven Drop Management**: Granular tracking of product views and drop performance to inform inventory decisions and scaling.
+1. **High Organic Traffic (SEO Dominance)**: Zero-JS server rendering, dynamic sitemaps, semantic OpenGraph tags, and FAQ/AEO optimization (v15+) to ensure aggressive Google ranking.
+2. **High Conversion Funnel (Identity-First)**: A sequential journey optimized for lead capture. Guest users are identified during "Add to Bag", ensuring no lead is lost even if they exit before checkout.
+3. **Data-Driven Drop Management**: Granular tracking of funnel events (Identify → ATC → Checkout → Paid) to identify bottlenecks.
 
 *This triple-mandate of SEO, Conversion, and Analytics governs all technical decisions across the stack.*
 
@@ -448,6 +448,37 @@ RESEND_API_KEY=re_xxx
 
 ### Access: Konami Code on any page (up up down down left right left right B A)
 ### Authentication: POST `/api/admin/auth` with `{password: "..."}`
+### Key Metrics [v15.2 AG]:
+- **Identified Leads**: Total unique emails captured at Add to Bag.
+- **Checkouts**: Total checkout sessions initiated.
+- **Funnel Events**: Granular tracking of user journey steps.
+- **Manual Trigger**: Forced abandoned cart recovery for leads >24h old.
+
+---
+
+## 12. SALES FUNNEL & ANALYTICS ENGINE [v15.2 AG]
+
+### Funnel Identification
+The system captures identity at the earliest possible intent (Add to Bag).
+- **Endpoint**: `POST /api/auth/identify`
+- **Logic**: Upserts to `public.users`.
+- **UI Resume**: Uses `sessionStorage['intru_pending_atc']` to resume actions after login.
+
+### Analytics Tracking
+Built for Cloudflare Free Tier limits (zero extra worker invocations).
+- **Page Views**: `incrementView(env, target)` logged in `view_stats`.
+- **Funnel Events**: `logFunnelEvent(env, email, type, meta)` logged in `funnel_events`.
+- **Technique**: Uses `ctx.waitUntil()` to execute database writes after the response is sent to the user.
+
+### Abandoned Cart Recovery
+- **Logic**: Identifies users who triggered `identify` or `add_to_cart` but NOT `order_placed` within 24 hours.
+- **Trigger**: `POST /api/admin/abandoned/trigger` (Manual trigger in Admin Panel).
+- **Service**: Resend API (noreply@intru.in) with high-converting "Drop Secured" templates.
+
+### Coupon System
+- **Endpoint**: `POST /api/coupons/validate`
+- **Supported**: Percent-based (`PROMO20`) and Flat-discount (`FIXED500`).
+- **Enforcement**: Minimum subtotal and active/expiry verification.
 
 ### Tabs:
 1. **Orders**: View all orders, COD highlighted yellow, update status, copy Shiprocket details
