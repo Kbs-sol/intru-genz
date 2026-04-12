@@ -56,6 +56,7 @@ webapp/
 │   └── schema.sql         # Complete Supabase schema (v6) — safe to re-run
 ├── migrations/
 │   └── 0001_initial_schema.sql  # D1 migration (unused — we use Supabase)
+├── migration_v2.sql       # v15.2 migrations: funnel_events, coupons tables [AG]
 ├── seed.sql               # Test seed data
 ├── ecosystem.config.cjs   # PM2 config for local dev
 ├── wrangler.jsonc         # Cloudflare Pages config
@@ -113,6 +114,16 @@ webapp/
 | `intru_user` | Full user object `{email, name, picture}` |
 | `intru_user_email` | User email string |
 | `intru_user_name` | User display name |
+| `intru_fname` | Checkout form: First name (for address autofill) |
+| `intru_lname` | Checkout form: Last name (for address autofill) |
+| `intru_phone` | Checkout form: Phone number (for address autofill) |
+| `intru_pincode` | Checkout form: Pincode (for address autofill) |
+| `intru_addr` | Checkout form: Address line 1 (for address autofill) |
+| `intru_addr2` | Checkout form: Address line 2 (for address autofill) |
+| `intru_city` | Checkout form: City (for address autofill) |
+| `intru_state` | Checkout form: State (for address autofill) |
+
+> **Autofill Note**: These address keys are written by `saveAddress()` after a successful COD/prepaid checkout. `loadSavedAddress()` reads them to pre-fill the form on the next visit. Additionally, all form inputs use standard HTML `autocomplete` attributes to enable the browser's native keychain autofill.
 
 ### sessionStorage Keys:
 | Key | Purpose |
@@ -207,7 +218,7 @@ ALTER TABLE orders ADD CONSTRAINT orders_status_check
 | razorpay_payment_id | TEXT | After payment |
 | customer_name | TEXT | |
 | customer_email | TEXT | |
-| customer_phone | TEXT | |
+| customer_phone | TEXT | **Backend Only (PII)** |
 | items | JSONB | Array of {name, size, quantity, unitPrice, lineTotal, productId, image, slug} |
 | subtotal | INTEGER | |
 | shipping | INTEGER | |
@@ -215,10 +226,14 @@ ALTER TABLE orders ADD CONSTRAINT orders_status_check
 | status | TEXT | pending/paid/payment_failed/processing/shipped/delivered/cancelled/refunded |
 | payment_method | TEXT | 'prepaid', 'cod', 'pending' |
 | cod_fee | INTEGER | 99 for COD, 0 for prepaid |
-| shipping_address | JSONB | {name, phone, pincode, line1, city, state, country} |
+| shipping_address | JSONB | **Backend Only (PII)** |
 | rto_risk_level | TEXT | Default 'unknown' |
 | shipping_address_line1/line2 | TEXT | Flat address fields (legacy) |
 | shipping_city/state/pincode/country | TEXT | Flat address fields (legacy) |
+
+> [!CAUTION]
+> **PII Leakage Prevention (`/api/user/orders`)**
+> The `orders` endpoint is restricted. Queries intentionally omit `shipping_address` and `customer_phone` from returning to the frontend. Form autofill exclusively relies on the browser's native keychain using HTML `autocomplete` tags to prevent data scraping over the network.
 
 #### `store_settings`
 | Key | Default Value | Purpose |
@@ -237,6 +252,25 @@ ALTER TABLE orders ADD CONSTRAINT orders_status_check
 | page_path | TEXT | e.g. '/', '/product/slug' |
 | view_count | INTEGER | Incremented on every visit |
 | last_viewed | TIMESTAMPTZ | |
+
+#### `funnel_events`
+| Column | Type | Notes |
+|--------|------|-------|
+| id | UUID PK | |
+| email | TEXT | Target user |
+| cart_subtotal | INTEGER | |
+| items | JSONB | Saved cart snapshot |
+| converted | BOOLEAN | Turned into a sale? |
+| created_at/updated_at | TIMESTAMPTZ | Used for 24h abandoned cart queries |
+
+#### `coupons`
+| Column | Type | Notes |
+|--------|------|-------|
+| code | TEXT PK | The uppercase code e.g. "WELCOME10" |
+| discount_type | TEXT | "percentage" or "fixed" |
+| discount_value | INTEGER | e.g., 10 (%), or 500 (INR) |
+| current_uses | INTEGER | Track claim counts |
+| max_uses | INTEGER | Nullable for infinity |
 
 #### Other Tables:
 - **`legal_pages`**: slug (PK), title, content (HTML), updated_at
@@ -280,6 +314,9 @@ ALTER TABLE orders ADD CONSTRAINT orders_status_check
 | POST | `/api/subscribe` | `{email}` | `{success, message}` | Newsletter signup |
 | POST | `/api/store-credit` | `{email}` | `{email, balance}` | Check store credit balance |
 | POST | `/api/shipping-info` | `{addresses}` | `{addresses}` | For Razorpay Magic |
+| GET | `/api/user/orders` | `?email=` | `{success, orders[]}` | Customer order history (safe fields only — no PII) |
+| POST | `/api/coupons/validate` | `{code, total}` | `{valid, discount, final_total}` | Validate & apply coupon code |
+| POST | `/api/funnel/track` | `{email, items, subtotal}` | `{success}` | Record/update funnel event for abandoned cart |
 | GET | `/robots.txt` | — | Text | SEO crawl-control |
 | GET | `/sitemap.xml` | — | XML | SEO sitemap with product timestamps |
 
@@ -300,6 +337,8 @@ ALTER TABLE orders ADD CONSTRAINT orders_status_check
 | DELETE | `/api/admin/instagram-feed/:id` | Delete IG feed item |
 | POST | `/api/admin/upload` | Upload image to Cloudflare R2 (S3-compatible [AG]) |
 | GET | `/api/admin/analytics` | Fetch granular page/product view data |
+| GET | `/api/admin/abandoned-carts` | List emails with cart > 24h without purchase |
+| POST | `/api/admin/send-recovery` | Trigger abandoned cart recovery email (Resend) |
 
 ### Page Routes:
 
@@ -757,8 +796,43 @@ When asked to fix/modify this project:
 3. **Frontend behavior**: `src/components/shell.ts` — cart, checkout, auth, all client-side JS
 4. **Page templates**: `src/pages/*.ts` — HTML generation for each page
 5. **DB schema**: `supabase/schema.sql` — complete schema with RLS policies
-6. **Build**: `npm run build` then `npx wrangler pages deploy dist --project-name intru-genz`
-7. **All writes to Supabase MUST use service key** (RLS blocks anon writes)
-8. **Status values for orders**: pending, paid, payment_failed, processing, shipped, delivered, cancelled, refunded (NOT 'placed' unless constraint is updated)
-9. **COD fee**: Rs.99 (configurable via store_settings)
-10. **Free shipping**: Prepaid always free; COD free above Rs.1999 threshold
+6. **v15.2 DB migrations**: `migration_v2.sql` — run this in Supabase SQL Editor to add `funnel_events` and `coupons` tables
+7. **Build**: `npm run build` then `npx wrangler pages deploy dist --project-name intru-genz`
+8. **All writes to Supabase MUST use service key** (RLS blocks anon writes)
+9. **Status values for orders**: pending, paid, payment_failed, processing, shipped, delivered, cancelled, refunded (NOT 'placed' unless constraint is updated)
+10. **COD fee**: Rs.99 (configurable via store_settings)
+11. **Free shipping**: Prepaid always free; COD free above Rs.1999 threshold
+12. **PII Rule**: `shipping_address` and `customer_phone` must NEVER be returned from `/api/user/orders` — only id, created_at, status, total, currency, items are exposed
+13. **Address autofill**: Uses `localStorage` keys (`intru_fname`, `intru_phone`, etc.) loaded by `loadSavedAddress()` + native browser keychain via HTML `autocomplete` attributes
+
+---
+
+## 18. CHANGELOG
+
+### v15.2 (April 12, 2026) — Sales Funnel & Security
+- **Identity-First Funnel**: Users must identify via email before "Add to Bag"; captures all leads even if they don't purchase
+- **Order History** (`/api/user/orders`): Safe endpoint returning the customer's past orders with status tracking; PII fields blocked
+- **Zero-Token Analytics**: Page view tracking via `ctx.waitUntil()` — non-blocking background writes to `analytics` table
+- **Abandoned Cart System**: `funnel_events` table tracks checkout attempts; admin `/api/admin/abandoned-carts` + `/api/admin/send-recovery` triggers re-engagement emails via Resend
+- **Coupons Engine**: `coupons` table + `/api/coupons/validate` — supports `percentage` and `fixed` discount types with usage caps
+- **Data Privacy Patch**: `/api/user/orders` intentionally omits `shipping_address` & `customer_phone` via `?select=` column filtering to prevent unauthenticated PII scraping
+- **Native Browser Autofill**: COD form inputs decorated with HTML standard `autocomplete` attributes (`given-name`, `postal-code`, `address-line1`, etc.) to trigger iOS/Chrome/Safari address keychain; no server roundtrip needed
+- **DB Migration**: `migration_v2.sql` added to repo — creates `funnel_events` and `coupons` tables safely
+
+### v14.4 (March 20, 2026) — Sequential Checkout & Premium Payments
+- Sequential address-before-payment checkout journey
+- Prepaid/COD reframed as quality-of-service tiers (not penalties)
+- Manager alert parity for all payment types
+- `localStorage` address caching via `saveAddress()` / `loadSavedAddress()`
+
+### v14 (March 12, 2026) — AI Stylist & Per-Size Stock
+- AI Stylist live catalog integration (Gemini / Groq / OpenRouter fallback chain)
+- Per-size stock gating: disabled sizes are greyed out, line-through, no interaction
+- SEO: `robots.txt` updated, sitemap includes sold-out preservation pages
+
+### v13 (March 12, 2026) — Cart Redesign & FOMO
+- Full cart drawer redesign (B&W palette, no red warnings)
+- FOMO stock counters with pulsing critical badges
+- Sold-out preservation pages (200 status, "VAULTED: SOLD OUT")
+- Dynamic size chart with category-based column rendering
+

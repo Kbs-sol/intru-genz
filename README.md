@@ -237,6 +237,8 @@ npx wrangler pages secret put RAZORPAY_WEBHOOK_SECRET --project-name intru-in
 - **Zero-Token Tracking**: Implemented scalable, background funnel analytics (page views, checkout events) using `ctx.waitUntil()` on CF workers to bypass free-tier caps.
 - **Abandoned Carts**: Automated tracking of leads >24h without purchase, with manual trigger from Admin panel scaling through Resend.
 - **Coupons Engine**: Discount integration mapping to percent & flat limits, strictly validated server-side.
+- **Data Privacy Patch**: Restricted `/api/user/orders` to block `shipping_address` or `customer_phone` from API responses to prevent unauthenticated PII leakage.
+- **Zero-Friction Checkout**: Added universal `autocomplete` standard tags to the COD form to trigger native iOS/Chrome/Safari saved address autofill securely.
 
 ## Deployment
 - **Platform**: Cloudflare Pages
