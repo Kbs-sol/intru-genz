@@ -974,12 +974,8 @@ function sendAIMessage(){
 /* ====== QUICK ADD (from home/grid) ====== */
 function quickAddToCart(productId,size){
   if(!size){toast('Select size','err');return}
-  var p=PM[productId];if(!p){return}
-  /* Check if already in cart */
-  var exists=cart.find(function(i){return i.p===productId && i.s===size});
-  if(exists){exists.q++}else{cart.push({p:productId,s:size,q:1})}
-  saveCart();openCartDrawer();
-  toast('Added '+p.n+' ('+size+')','ok-green');
+  /* Route through addToCart so the identity gate is enforced [AG v15.2 fix] */
+  addToCart(productId, size, 1);
 }
 
 /* ====== BUY NOW (unified) ====== */
