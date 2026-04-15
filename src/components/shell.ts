@@ -263,7 +263,7 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 <div class="nlinks">
   <a href="/" class="nbtn">Shop</a>
   <a href="/collections" class="nbtn">Collections</a>
-  <a href="/intrustylist" class="nbtn" style="color:var(--bk);font-weight:700"><i class="fas fa-magic-wand-sparkles" style="margin-right:4px"></i>AI Stylist</a>
+  <button onclick="toggleAIChat()" class="nbtn" style="color:var(--bk);font-weight:700;background:none;border:none;cursor:pointer;font-family:inherit;font-size:inherit;padding:inherit"><i class="fas fa-magic-wand-sparkles" style="margin-right:4px"></i>AI Stylist</button>
 </div>
 <a href="/" class="logo"><svg viewBox="0 0 100 32" width="100" height="32" xmlns="http://www.w3.org/2000/svg" aria-label="intru.in"><text x="50%" y="24" dominant-baseline="middle" text-anchor="middle" font-family="'Archivo Black',sans-serif" font-size="24" font-weight="900" fill="#0a0a0a" letter-spacing="-0.04em">INTRU</text></svg></a>
 <div class="nactions">
@@ -283,7 +283,7 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
   <div style="margin-top:40px">
     <a href="/" class="nbtn" onclick="toggleMobNav()">Shop All</a>
     <a href="/collections" class="nbtn" onclick="toggleMobNav()">Collections</a>
-    <a href="/intrustylist" class="nbtn" onclick="toggleMobNav()" style="color:var(--bk);font-weight:700">AI Stylist Pro</a>
+    <button class="nbtn" onclick="toggleMobNav();toggleAIChat()" style="color:var(--bk);font-weight:700;background:none;border:none;cursor:pointer;font-family:inherit;font-size:inherit;padding:0">AI Stylist</button>
     <a href="/about" class="nbtn" onclick="toggleMobNav()">About Us</a>
     <a href="/#contact" class="nbtn" onclick="toggleMobNav()">Contact</a>
     <button class="nbtn" onclick="toggleMobNav();openIdentifyOrOrders()" style="margin-top:20px;border:none;color:var(--bk);font-weight:700">My Account / Login</button>
@@ -663,7 +663,8 @@ function submitIdentity(){
   var btn=document.getElementById('idBtn');
   btn.disabled=true;btn.textContent='IDENTIFYING...';
   /* Silently upsert user in backend */
-  fetch('/api/auth/identify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email})})
+  var cartPayload=cart.map(function(i){var p=PM[i.p];return{productId:i.p,name:p?p.n:'',size:i.s,qty:i.q}});
+  fetch('/api/auth/identify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,cartItems:cartPayload})})
   .then(function(r){return r.json()})
   .then(function(d){
     if(d.success){
@@ -1001,7 +1002,18 @@ function toggleAIChat(){
   p.classList.toggle('open');
   if(cta) cta.classList.remove('show');
   localStorage.setItem('ai_chat_opened', '1');
-  if(p.classList.contains('open')){document.getElementById('aiInput').focus();renderAIChat()}
+  if(p.classList.contains('open')){
+    /* Close cart/drawers so AI chat is visible */
+    closeAllDrawers();
+    renderAIChat();
+    setTimeout(function(){
+      var inp=document.getElementById('aiInput');
+      if(inp) inp.focus();
+      /* On mobile, scroll widget into view */
+      var w=document.getElementById('aiStylist');
+      if(w && window.innerWidth < 768) w.scrollIntoView({behavior:'smooth',block:'end'});
+    }, 150);
+  }
 }
 
 function formatMsg(txt) {

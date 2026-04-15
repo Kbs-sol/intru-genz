@@ -4,7 +4,7 @@
 - **Name**: intru.in
 - **Goal**: Engineered for High Organic Traffic (SEO) and High Conversion (using deep direct-response psychology)
 - **Stack**: Hono + TypeScript + Cloudflare Pages + Supabase + Razorpay + Resend
-- **Version**: v15.3 (Date: April 15, 2026) — Phase 2/3: Identity Gate, Dynamic Ratings, /verify-order, Resend Credit Guard, Event Delegation, Zero-TTFB Analytics
+- **Version**: v15.4 (Date: April 15, 2026) — Coupon Management Admin, Expanded Analytics, AI Stylist UX, Add-to-Cart Email Trigger
 
 ## URLs
 - **Production**: https://intru-genz.pages.dev (staging) → https://intru.in (custom domain pending)
@@ -122,17 +122,35 @@ Beyond conversion, intru.in is engineered for aggressive organic search dominanc
 
 **Run `supabase/schema.sql` then `migration_v2.sql` in Supabase SQL Editor** to create/migrate all tables.
 
+### New in v15.4: Coupon Management
+- New admin tab **🏷️ Coupons** — full UI for creating, toggling active state, and deleting coupon codes
+- Supports `percent` (e.g., SUMMER20 = 20% off) and `flat` (e.g., FLAT100 = Rs.100 off) discount types
+- Enforces minimum cart total, expiry date, and maximum usage count
+- Codes are case-insensitive (auto-uppercased)
+
+### New in v15.4: AI Stylist UX Improvement
+- **Header "AI Stylist" button** → now opens the on-page chat popup via `toggleAIChat()` instead of navigating to `/intrustylist`
+- Chat opens, closes all drawers, focuses input, and scrolls widget into view on mobile
+- Keeps users on page → higher conversion probability
+
+### New in v15.4: Add-to-Cart Email
+- When a **new user** submits their email in the identity overlay, a personalized "Access Secured" email is sent via Resend
+- Email includes cart preview (up to 3 items) and a "Complete My Order →" CTA
+- Zero blocking: uses `ctx.waitUntil()`, guarded by Resend credit guard
+
 ## Admin Panel (Konami-protected)
 
 | Tab | Features |
 |-----|----------|
 | **Orders** | COD rows highlighted yellow, customer name/phone/email, payment method badge, "Copy for Shiprocket" button, **"Send Recovery Email" button for pending/placed orders** |
+| **Analytics** | 6 stat cards (Leads, ATC, Checkouts, Payments, Conv Rate, Total Views), page view bars, funnel summary with drop-off %, top products by ATC, recent events table |
 | **Products** | Image URL editor (4 slots), price/compare-price, in-stock toggle, per-size stock editor (size_stock JSON), total stock (stock_count JSON), collapsible SEO section |
+| **🏷️ Coupons** | Create/activate/deactivate/delete discount codes. Percent and flat types, expiry, min total, max uses |
 | **Legal** | HTML editor with live preview for all legal pages |
 | **Size Chart** | Full CRUD for chest/length measurements |
 | **IG Feed** | ON/OFF toggle (hides homepage section when OFF), add/edit/delete images, instant UI updates |
 | **Settings** | Payment mode toggle (Manual COD ↔ Razorpay Magic), manager notification email, COD fee |
-| **Upload [AG]** | Direct image upload to Supabase with auto-fill logic for product/IG inputs |
+| **Upload [AG]** | Direct image upload to Cloudflare R2 with auto-fill logic for product/IG inputs |
 | **Maintenance** | Configure Soft (banner/modal) or Full (locked) maintenance modes |
 
 ## Environment Variables (Cloudflare Secrets)

@@ -952,11 +952,17 @@ app.post('/api/webhooks/razorpay', async (c: Context<{ Bindings: Bindings }>) =>
 
 app.post('/api/auth/identify', async (c: Context<{ Bindings: Bindings }>) => {
   try {
-    const { email } = await c.req.json();
+    const body = await c.req.json();
+    const { email, cartItems } = body;
     if (!email || !email.includes('@')) return c.json({ error: 'Valid email required' }, 400);
 
     const sbUrl = getEnv(c.env, 'SUPABASE_URL');
     const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY') || getEnv(c.env, 'SUPABASE_ANON_KEY');
+    const sbSvc = getEnv(c.env, 'SUPABASE_SERVICE_KEY');
+    const resendKey = getEnv(c.env, 'RESEND_API_KEY');
+
+    let isNewUser = false;
+    let userName = '';
 
     if (sbUrl && sbKey) {
       // Check if user exists
@@ -964,11 +970,19 @@ app.post('/api/auth/identify', async (c: Context<{ Bindings: Bindings }>) => {
       if (res.ok) {
         const users = await res.json() as any[];
         if (users.length > 0) {
-          // Existing user — link session
-          return c.json({ success: true, name: users[0].name, existing: true });
+          userName = users[0].name || '';
+          // Existing user — just update last_login
+          c.executionCtx.waitUntil(
+            supabaseFetch(sbUrl, sbKey, `users?email=eq.${encodeURIComponent(email)}`, {
+              method: 'PATCH',
+              body: JSON.stringify({ last_login: new Date().toISOString() }),
+            }).catch(() => {})
+          );
+          return c.json({ success: true, name: userName, existing: true });
         }
       }
       // New user — silently create in public.users
+      isNewUser = true;
       try {
         await supabaseFetch(sbUrl, sbKey, 'users', {
           method: 'POST',
@@ -979,6 +993,55 @@ app.post('/api/auth/identify', async (c: Context<{ Bindings: Bindings }>) => {
           }),
         });
       } catch (e) { console.error('User create error:', e); }
+
+      // Log funnel event + send welcome email for new users (non-blocking)
+      c.executionCtx.waitUntil(
+        (async () => {
+          // Log funnel event
+          if (sbUrl && sbKey) {
+            try {
+              await supabaseFetch(sbUrl, sbKey, 'funnel_events', {
+                method: 'POST',
+                body: JSON.stringify({
+                  event_type: 'identify',
+                  email,
+                  session_id: null,
+                  metadata: { cart_items: cartItems?.length || 0, source: 'email_form' },
+                  created_at: new Date().toISOString(),
+                }),
+              });
+            } catch (e) { console.error('Funnel event error:', e); }
+          }
+
+          // Send welcome/cart-saved email for new users (check guard first)
+          if (resendKey && sbUrl && sbSvc) {
+            try {
+              const guard = await checkResendGuard(sbUrl, sbSvc, 'welcome');
+              if (guard.allowed) {
+                const cartPreview = (cartItems || []).slice(0, 3).map((it: any) => `<li style="padding:4px 0;font-size:13px;color:#374151">${it.name || it.productId}${it.size ? ' — Size ' + it.size : ''}</li>`).join('');
+                const welcomeHtml = `
+<div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:540px;margin:0 auto;background:#fff;border:1px solid #e5e7eb">
+  <div style="background:#0a0a0a;padding:36px;text-align:center">
+    <div style="font-family:'Archivo Black',Georgia,serif;font-size:24px;color:#fff;letter-spacing:4px;text-transform:uppercase">INTRU</div>
+    <div style="color:#a3a3a3;font-size:11px;letter-spacing:2px;margin-top:4px;text-transform:uppercase">Limited Drops. No Restocks.</div>
+  </div>
+  <div style="padding:36px">
+    <h2 style="font-size:18px;color:#0a0a0a;margin:0 0 12px;font-weight:800">Access Secured ✓</h2>
+    <p style="font-size:14px;color:#4b5563;line-height:1.7;margin:0 0 20px">Your exclusive access to INTRU drops has been secured. ${cartItems?.length ? 'Your bag is saved and waiting for you.' : 'Browse our current collection before it sells out.'}</p>
+    ${cartPreview ? `<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:16px;margin-bottom:24px"><div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#6b7280;margin-bottom:8px">Your Bag</div><ul style="margin:0;padding:0;list-style:none">${cartPreview}</ul></div>` : ''}
+    <a href="https://intru.in" style="display:block;background:#0a0a0a;color:#fff;padding:16px;text-decoration:none;font-weight:700;letter-spacing:2px;text-transform:uppercase;font-size:12px;text-align:center;border-radius:4px">Complete My Order →</a>
+    <p style="font-size:11px;color:#9ca3af;margin-top:20px;text-align:center">Once gone, they never restock. Move fast.</p>
+  </div>
+  <div style="background:#f5f5f5;padding:16px;text-align:center;font-size:10px;color:#9ca3af">intru.in — You're receiving this because you secured access at intru.in</div>
+</div>`;
+                await sendResendEmail(resendKey, email, 'Your INTRU access is secured', welcomeHtml);
+                await logResendEmail(sbUrl, sbSvc, email, 'welcome', null);
+              }
+            } catch (e) { console.error('Welcome email error:', e); }
+          }
+        })()
+      );
+
       return c.json({ success: true, existing: false });
     }
 
@@ -1196,6 +1259,76 @@ app.post('/api/coupons/validate', async (c: Context<{ Bindings: Bindings }>) => 
       }
     }
     return c.json({ error: 'Validation failed' }, 500);
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+// ============ ADMIN: Coupon CRUD [AG v15.4] ============
+
+app.get('/api/admin/coupons', async (c: Context<{ Bindings: Bindings }>) => {
+  const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+  const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY') || getEnv(c.env, 'SUPABASE_ANON_KEY');
+  if (!sbUrl || !sbKey) return c.json({ error: 'Database not configured' }, 500);
+  try {
+    const res = await supabaseFetch(sbUrl, sbKey, 'coupons?select=*&order=created_at.desc');
+    if (res.ok) return c.json({ success: true, coupons: await res.json() });
+    return c.json({ error: 'Failed to fetch coupons' }, 500);
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+app.post('/api/admin/coupons', async (c: Context<{ Bindings: Bindings }>) => {
+  const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+  const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY');
+  if (!sbUrl || !sbKey) return c.json({ error: 'Database not configured' }, 500);
+  try {
+    const body = await c.req.json();
+    const { code, type, value, min_total, is_active, expiry_at, max_uses } = body;
+    if (!code || !type || !value) return c.json({ error: 'code, type, value required' }, 400);
+    const payload: any = {
+      code: code.toUpperCase(),
+      type, value: Number(value),
+      min_total: min_total ? Number(min_total) : null,
+      is_active: is_active !== false,
+      max_uses: max_uses ? Number(max_uses) : null,
+      current_uses: 0,
+      created_at: new Date().toISOString(),
+    };
+    if (expiry_at) payload.expiry_at = expiry_at;
+    const res = await supabaseFetch(sbUrl, sbKey, 'coupons', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      headers: { 'Prefer': 'return=representation' } as any,
+    });
+    if (res.ok) return c.json({ success: true });
+    const err = await res.text();
+    if (err.includes('duplicate') || err.includes('unique')) return c.json({ error: 'Coupon code already exists' }, 409);
+    return c.json({ error: err }, 500);
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+app.patch('/api/admin/coupons/:code', async (c: Context<{ Bindings: Bindings }>) => {
+  const code = c.req.param('code');
+  const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+  const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY');
+  if (!sbUrl || !sbKey) return c.json({ error: 'Database not configured' }, 500);
+  try {
+    const body = await c.req.json();
+    const res = await supabaseFetch(sbUrl, sbKey, `coupons?code=eq.${encodeURIComponent(code.toUpperCase())}`, {
+      method: 'PATCH', body: JSON.stringify(body),
+    });
+    if (res.ok) return c.json({ success: true });
+    return c.json({ error: await res.text() }, 500);
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+app.delete('/api/admin/coupons/:code', async (c: Context<{ Bindings: Bindings }>) => {
+  const code = c.req.param('code');
+  const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+  const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY');
+  if (!sbUrl || !sbKey) return c.json({ error: 'Database not configured' }, 500);
+  try {
+    const res = await supabaseFetch(sbUrl, sbKey, `coupons?code=eq.${encodeURIComponent(code.toUpperCase())}`, { method: 'DELETE' });
+    if (res.ok) return c.json({ success: true });
+    return c.json({ error: await res.text() }, 500);
   } catch (e: any) { return c.json({ error: e.message }, 500); }
 });
 

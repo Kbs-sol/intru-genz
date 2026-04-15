@@ -88,6 +88,14 @@ export function adminPage(opts: {
 .ig-card input{width:100%;padding:6px 8px;border:1px solid var(--g200);font-size:11px;font-family:inherit;margin-bottom:4px;border-radius:3px}
 .shiprocket-btn{display:block;margin-top:4px;background:none;border:1px solid var(--g200);padding:4px 8px;font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-radius:3px;font-family:inherit;transition:all .2s}
 .shiprocket-btn:hover{background:var(--bk);color:var(--wh)}
+/* Order status badges */
+.ostatus{display:inline-block;padding:2px 8px;border-radius:3px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.ost-pending{background:#fef3c7;color:#92400e}.ost-placed{background:#dbeafe;color:#1e40af}.ost-paid{background:#d1fae5;color:#065f46}.ost-processing{background:#e0e7ff;color:#3730a3}.ost-shipped{background:#ede9fe;color:#5b21b6}.ost-delivered{background:#dcfce7;color:#166534}.ost-cancelled{background:#fee2e2;color:#991b1b}.ost-verified{background:#d1fae5;color:#065f46}.ost-cod{background:#fef3c7;color:#92400e}.ost-prepaid{background:#dbeafe;color:#1e40af}
+.oselect{padding:8px 10px;border:1.5px solid var(--g200);font-size:12px;font-family:inherit;border-radius:3px;background:var(--wh);width:100%}
+/* Coupon table */
+.cpn-act{background:#d1fae5;color:#065f46}.cpn-inact{background:#fee2e2;color:#991b1b}
+/* Toast */
+.tc-ok-green{background:#065f46!important}.tc-err{background:#991b1b!important}
 @media(max-width:768px){.apcards{grid-template-columns:1fr}.apc-imgs{grid-template-columns:repeat(2,1fr)}.ig-grid{grid-template-columns:repeat(2,1fr)}}
 </style>
 
@@ -108,6 +116,7 @@ export function adminPage(opts: {
 <button class="atab act" onclick="showTab(this,'tord')">Orders</button>
 <button class="atab" onclick="showTab(this,'tana')">Analytics</button>
 <button class="atab" onclick="showTab(this,'tprod')">Products</button>
+<button class="atab" onclick="showTab(this,'tcpn')">🏷️ Coupons</button>
 <button class="atab" onclick="showTab(this,'tleg')">Legal</button>
 <button class="atab" onclick="showTab(this,'tsize')">Size Chart</button>
 <button class="atab" onclick="showTab(this,'tig')">IG Feed</button>
@@ -137,10 +146,13 @@ export function adminPage(opts: {
 
 <!-- Analytics Tab -->
 <div class="apan" id="tana">
-<div class="stat-grid">
+<div class="stat-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-bottom:20px">
   <div class="stat-card"><div class="stat-val" id="anaIdentify">...</div><div class="stat-label">Identified Leads</div></div>
-  <div class="stat-card"><div class="stat-val" id="anaCheckouts">...</div><div class="stat-label">Checkouts</div></div>
+  <div class="stat-card"><div class="stat-val" id="anaAddToCart">...</div><div class="stat-label">Add to Cart Events</div></div>
+  <div class="stat-card"><div class="stat-val" id="anaCheckouts">...</div><div class="stat-label">Checkouts Started</div></div>
+  <div class="stat-card"><div class="stat-val" id="anaPayments">...</div><div class="stat-label">Payments Success</div></div>
   <div class="stat-card"><div class="stat-val" id="anaConvRate">...</div><div class="stat-label">Conv Rate</div></div>
+  <div class="stat-card"><div class="stat-val" id="anaTotalViews">...</div><div class="stat-label">Total Page Views</div></div>
 </div>
 
 <div class="stat-grid" style="grid-template-columns: 1fr; margin-bottom: 32px">
@@ -155,14 +167,15 @@ export function adminPage(opts: {
     </div>
   </div>
 </div>
-<div class="shdr" style="margin-bottom:20px;display:flex;justify-content:space-between;align-items:center">
-  <h2 style="font-family:var(--head);font-size:18px;text-transform:uppercase">Granular Performance</h2>
+
+<div style="margin-bottom:20px;display:flex;justify-content:space-between;align-items:center">
+  <h2 style="font-family:var(--head);font-size:18px;text-transform:uppercase">Page Views &amp; Funnel</h2>
   <button class="arefresh" onclick="loadAnalytics()"><i class="fas fa-sync-alt" style="margin-right:4px"></i>Refresh</button>
 </div>
 <div class="otbl-wrap">
 <table class="otbl" style="min-width:600px">
-<thead><tr><th>Metric / Target</th><th>Type</th><th>Count / Views</th><th>Last Activity</th></tr></thead>
-<tbody id="anaTbody"><tr><td colspan="4" style="text-align:center;padding:40px;color:var(--g400)">Loading...</td></tr></tbody>
+<thead><tr><th>Metric / Page</th><th>Type</th><th>Count</th><th>Last Activity</th></tr></thead>
+<tbody id="anaTbody"><tr><td colspan="4" style="text-align:center;padding:40px;color:var(--g400)"><i class="fas fa-circle-notch fa-spin"></i> Loading analytics...</td></tr></tbody>
 </table>
 </div>
 </div>
@@ -187,6 +200,49 @@ export function adminPage(opts: {
 <button class="arefresh" onclick="loadProducts()"><i class="fas fa-sync-alt" style="margin-right:4px"></i>Refresh</button>
 </div>
 <div class="apcards" id="apcards"></div>
+</div>
+
+<!-- Coupons Tab -->
+<div class="apan" id="tcpn">
+<div class="sett-card" style="margin-bottom:20px;background:var(--g50)">
+<h4>Coupon Management</h4>
+<p>Create and manage discount codes. Supports percentage (%) and flat (Rs.) discount types. Codes are case-insensitive.</p>
+</div>
+
+<!-- Create New Coupon -->
+<div class="sett-card" style="margin-bottom:20px">
+<h4>Create New Coupon</h4>
+<div class="apc-row">
+  <div style="flex:1.5"><label>Code <span style="font-weight:400;font-size:10px;color:var(--g400)">(e.g. INTRU20)</span></label><input type="text" id="cpnCode" class="ainp" style="margin:0;text-transform:uppercase" placeholder="SUMMER20" oninput="this.value=this.value.toUpperCase()"></div>
+  <div style="flex:1"><label>Type</label>
+  <select id="cpnType" class="ainp" style="margin:0">
+    <option value="percent">Percentage (%)</option>
+    <option value="flat">Flat (Rs.)</option>
+  </select></div>
+</div>
+<div class="apc-row">
+  <div style="flex:1"><label>Value</label><input type="number" id="cpnValue" class="ainp" style="margin:0" placeholder="20"></div>
+  <div style="flex:1"><label>Min. Cart Total (Rs.)</label><input type="number" id="cpnMin" class="ainp" style="margin:0" placeholder="0"></div>
+  <div style="flex:1"><label>Expiry Date <span style="font-weight:400;font-size:10px;color:var(--g400)">(optional)</span></label><input type="date" id="cpnExpiry" class="ainp" style="margin:0"></div>
+</div>
+<div class="apc-row">
+  <div style="flex:1"><label>Max Uses <span style="font-weight:400;font-size:10px;color:var(--g400)">(0 = unlimited)</span></label><input type="number" id="cpnMaxUses" class="ainp" style="margin:0" placeholder="0"></div>
+  <div style="flex:1;display:flex;align-items:flex-end"><label class="atog" style="margin-bottom:0"><input type="checkbox" id="cpnActive" checked> Active</label></div>
+</div>
+<button class="asave" onclick="createCoupon()"><i class="fas fa-plus" style="margin-right:6px"></i>Create Coupon</button>
+</div>
+
+<!-- Existing Coupons -->
+<div style="display:flex;align-items:center;margin-bottom:16px">
+<h3 style="font-family:var(--head);font-size:16px;text-transform:uppercase;flex:1">Existing Coupons</h3>
+<button class="arefresh" onclick="loadCoupons()"><i class="fas fa-sync-alt" style="margin-right:4px"></i>Refresh</button>
+</div>
+<div class="otbl-wrap">
+<table class="otbl" style="min-width:700px">
+<thead><tr><th>Code</th><th>Type</th><th>Value</th><th>Min Total</th><th>Uses</th><th>Expiry</th><th>Status</th><th>Actions</th></tr></thead>
+<tbody id="cpnTbody"><tr><td colspan="8" style="text-align:center;padding:40px;color:var(--g400)">Loading...</td></tr></tbody>
+</table>
+</div>
 </div>
 
 <!-- Legal Tab -->
@@ -425,7 +481,7 @@ if(sessionStorage.getItem('iadm')==='1'){document.addEventListener('DOMContentLo
 
 function showTab(btn,id){document.querySelectorAll('.atab').forEach(function(t){t.classList.remove('act')});document.querySelectorAll('.apan').forEach(function(p){p.classList.remove('act')});btn.classList.add('act');document.getElementById(id).classList.add('act')}
 
-function initAdmin(){getAdminSettings();loadOrders();loadAnalytics();loadProducts();initLegal();loadSizeChart();loadIgFeed();loadLimits();loadAIConfig()}
+function initAdmin(){getAdminSettings();loadOrders();loadAnalytics();loadProducts();loadCoupons();initLegal();loadSizeChart();loadIgFeed();loadLimits();loadAIConfig()}
 function getAdminSettings(){loadSettings()}
 
 /* ====== LIMITS [AG] ====== */
@@ -502,17 +558,18 @@ function renderOrders(orders){
     document.getElementById('otbody').innerHTML = h;
 }
 
-/* ====== ANALYTICS [AG Phase2] ====== */
+/* ====== ANALYTICS [AG v15.4] ====== */
 function loadAnalytics(){
   document.getElementById('anaTbody').innerHTML='<tr><td colspan="4" style="text-align:center;padding:40px;color:var(--g400)"><i class="fas fa-circle-notch fa-spin"></i> Loading analytics...</td></tr>';
   fetch('/api/admin/analytics',{headers:{'x-admin-token':sessionStorage.getItem('iadm_t')}})
   .then(function(r){return r.json()})
   .then(function(d){
-    /* d = { success, views: [{path,count,last_viewed_at}], funnel: [{event_type,email,product_id,created_at,metadata}] } */
+    if(!d.success){ document.getElementById('anaTbody').innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--red);padding:40px"><i class="fas fa-exclamation-circle" style="margin-right:6px"></i>Failed to load — check Supabase connection.</td></tr>'; return; }
+
     var views = d.views || [];
     var funnelEvents = d.funnel || [];
 
-    /* Count funnel event types */
+    /* Count funnel event types from full list */
     var identifyCount=0, atcCount=0, checkoutCount=0, payCount=0;
     funnelEvents.forEach(function(e){
       if(e.event_type==='identify') identifyCount++;
@@ -521,54 +578,86 @@ function loadAnalytics(){
       else if(e.event_type==='payment_success') payCount++;
     });
 
-    document.getElementById('anaIdentify').textContent= identifyCount.toLocaleString();
-    document.getElementById('anaCheckouts').textContent= checkoutCount.toLocaleString();
+    /* Total page views */
+    var totalViews = views.reduce(function(a,v){ return a + (v.count||0); }, 0);
+
+    /* Update stat cards */
+    document.getElementById('anaIdentify').textContent = identifyCount.toLocaleString();
+    document.getElementById('anaAddToCart').textContent = atcCount.toLocaleString();
+    document.getElementById('anaCheckouts').textContent = checkoutCount.toLocaleString();
+    document.getElementById('anaPayments').textContent = payCount.toLocaleString();
     var conv = identifyCount ? ((payCount / identifyCount) * 100).toFixed(1) : '0';
-    document.getElementById('anaConvRate').textContent= conv + '%';
+    document.getElementById('anaConvRate').textContent = conv + '%';
+    document.getElementById('anaTotalViews').textContent = totalViews.toLocaleString();
 
     var h='';
 
-    /* Page Views Section */
+    /* === Page Views Section === */
     if(views.length){
-      h+='<tr><td colspan="4" style="background:#0a0a0a;color:#fff;font-weight:800;padding:10px 16px;font-size:10px;text-transform:uppercase;letter-spacing:1px">📊 Page Views (view_stats)</td></tr>';
+      h += '<tr><td colspan="4" style="background:#0a0a0a;color:#fff;font-weight:800;padding:10px 16px;font-size:10px;text-transform:uppercase;letter-spacing:1px">📊 Page Views</td></tr>';
       views.forEach(function(s){
-        h+='<tr><td style="font-weight:700;color:var(--bk);font-family:monospace;font-size:12px">'+(s.path||'/')+'</td>'
+        var bar = Math.min(100, Math.round((s.count / (totalViews||1)) * 100));
+        h += '<tr><td style="font-weight:700;color:var(--bk);font-family:monospace;font-size:12px">'+(s.path||'/')
+          +'<div style="height:3px;background:var(--g100);border-radius:2px;margin-top:6px;width:100%"><div style="height:3px;background:var(--bk);width:'+bar+'%;border-radius:2px"></div></div></td>'
           +'<td><span style="background:var(--g100);color:var(--g500);font-size:9px;font-weight:700;padding:2px 8px;border-radius:3px;text-transform:uppercase">page_view</span></td>'
           +'<td style="font-weight:900;font-size:18px;color:var(--bk)">'+(s.count||0).toLocaleString()+'</td>'
-          +'<td style="font-size:10px;color:var(--g400)">'+(s.last_viewed_at?new Date(s.last_viewed_at).toLocaleString():'—')+'</td></tr>';
+          +'<td style="font-size:10px;color:var(--g400)">'+(s.last_viewed_at ? new Date(s.last_viewed_at).toLocaleString() : '—')+'</td></tr>';
       });
     }
 
-    /* Funnel Summary */
+    /* === Funnel Summary === */
     var funnelSummary = [
-      {label:'Identify',count:identifyCount,color:'#dbeafe',tc:'#1e40af'},
-      {label:'Add to Cart',count:atcCount,color:'#fef3c7',tc:'#92400e'},
-      {label:'Checkout Start',count:checkoutCount,color:'#f3e8ff',tc:'#7c3aed'},
-      {label:'Payment Success',count:payCount,color:'#d1fae5',tc:'#065f46'}
+      {label:'👤 Identify (Email Captured)',count:identifyCount,color:'#dbeafe',tc:'#1e40af'},
+      {label:'🛒 Add to Cart',count:atcCount,color:'#fef3c7',tc:'#92400e'},
+      {label:'💳 Checkout Started',count:checkoutCount,color:'#f3e8ff',tc:'#7c3aed'},
+      {label:'✅ Payment Success',count:payCount,color:'#d1fae5',tc:'#065f46'}
     ];
-    h+='<tr><td colspan="4" style="background:#0a0a0a;color:#fff;font-weight:800;padding:10px 16px;font-size:10px;text-transform:uppercase;letter-spacing:1px;border-top:4px solid rgba(255,255,255,.1)">🔥 Funnel Events Summary (funnel_events)</td></tr>';
+    var maxFunnel = Math.max(identifyCount,1);
+    h += '<tr><td colspan="4" style="background:#0a0a0a;color:#fff;font-weight:800;padding:10px 16px;font-size:10px;text-transform:uppercase;letter-spacing:1px;border-top:4px solid rgba(255,255,255,.1)">🔥 Funnel Events Summary</td></tr>';
     funnelSummary.forEach(function(fs){
-      h+='<tr><td style="font-weight:700;color:var(--bk)">'+fs.label+'</td>'
+      var pct = Math.round((fs.count / maxFunnel) * 100);
+      h += '<tr><td style="font-weight:700;color:var(--bk)">'+fs.label
+        +'<div style="height:3px;background:var(--g100);border-radius:2px;margin-top:6px;width:100%"><div style="height:3px;background:'+fs.tc+';width:'+pct+'%;border-radius:2px"></div></div></td>'
         +'<td><span style="background:'+fs.color+';color:'+fs.tc+';font-size:9px;font-weight:700;padding:2px 8px;border-radius:3px;text-transform:uppercase">funnel</span></td>'
         +'<td style="font-weight:900;font-size:18px;color:var(--bk)">'+fs.count.toLocaleString()+'</td>'
-        +'<td style="font-size:10px;color:var(--g400)">—</td></tr>';
+        +'<td style="font-size:10px;color:var(--g400)">'+(pct > 0 ? pct+'% of leads' : '—')+'</td></tr>';
     });
 
-    /* Recent Funnel Events */
+    /* === Product Performance from funnel events === */
+    var productCounts = {};
+    funnelEvents.forEach(function(e){
+      if(e.event_type === 'add_to_cart' && e.product_id){
+        productCounts[e.product_id] = (productCounts[e.product_id]||0)+1;
+      }
+    });
+    var sortedProducts = Object.keys(productCounts).sort(function(a,b){ return productCounts[b]-productCounts[a]; });
+    if(sortedProducts.length){
+      h += '<tr><td colspan="4" style="background:var(--g50);font-weight:800;padding:10px 16px;font-size:10px;text-transform:uppercase;letter-spacing:1px;border-top:2px solid var(--g100)">🛍️ Top Products (Add to Cart)</td></tr>';
+      sortedProducts.slice(0,10).forEach(function(pid){
+        var prodName = prods.find(function(p){return p.id===pid;});
+        h += '<tr><td style="font-weight:700;color:var(--bk)">'+(prodName ? prodName.name : pid)+'<div style="font-size:10px;font-weight:400;color:var(--g400);font-family:monospace">'+pid+'</div></td>'
+          +'<td><span style="background:#fef3c7;color:#92400e;font-size:9px;font-weight:700;padding:2px 8px;border-radius:3px;text-transform:uppercase">add_to_cart</span></td>'
+          +'<td style="font-weight:900;font-size:18px;color:var(--bk)">'+productCounts[pid]+'</td>'
+          +'<td style="font-size:10px;color:var(--g400)">—</td></tr>';
+      });
+    }
+
+    /* === Recent Funnel Events === */
     if(funnelEvents.length){
-      h+='<tr><td colspan="4" style="background:var(--g50);font-weight:800;padding:8px 16px;font-size:10px;text-transform:uppercase;letter-spacing:1px;border-top:2px solid var(--g100)">Recent Funnel Events (last 100)</td></tr>';
-      funnelEvents.slice(0,20).forEach(function(e){
-        var evtColor = e.event_type==='identify'?'#dbeafe':e.event_type==='add_to_cart'?'#fef3c7':e.event_type==='checkout_start'?'#f3e8ff':'#d1fae5';
-        var evtTc = e.event_type==='identify'?'#1e40af':e.event_type==='add_to_cart'?'#92400e':e.event_type==='checkout_start'?'#7c3aed':'#065f46';
-        h+='<tr><td style="font-size:11px;font-family:monospace;color:var(--g500)">'+(e.email||'<i>Anonymous</i>')+'</td>'
-          +'<td><span style="background:'+evtColor+';color:'+evtTc+';font-size:9px;font-weight:700;padding:2px 8px;border-radius:3px">'+e.event_type+'</span></td>'
-          +'<td style="font-size:11px;color:var(--g600)">'+(e.product_id||'')+(e.metadata?'<br><span style="font-size:9px;color:var(--g400);font-family:monospace">'+JSON.stringify(e.metadata).slice(0,60)+'</span>':'')+'</td>'
+      h += '<tr><td colspan="4" style="background:var(--g50);font-weight:800;padding:8px 16px;font-size:10px;text-transform:uppercase;letter-spacing:1px;border-top:2px solid var(--g100)">📋 Recent Events (last 25)</td></tr>';
+      funnelEvents.slice(0,25).forEach(function(e){
+        var evtColors = {identify:'#dbeafe',add_to_cart:'#fef3c7',checkout_start:'#f3e8ff',payment_success:'#d1fae5'};
+        var evtTcs = {identify:'#1e40af',add_to_cart:'#92400e',checkout_start:'#7c3aed',payment_success:'#065f46'};
+        var ec = evtColors[e.event_type]||'#f3f4f6'; var etc = evtTcs[e.event_type]||'#374151';
+        h += '<tr><td style="font-size:11px;font-family:monospace;color:var(--g500)">'+(e.email||'<i>anonymous</i>')+'</td>'
+          +'<td><span style="background:'+ec+';color:'+etc+';font-size:9px;font-weight:700;padding:2px 8px;border-radius:3px">'+e.event_type+'</span></td>'
+          +'<td style="font-size:11px;color:var(--g600)">'+(e.product_id||'—')+(e.metadata?'<br><span style="font-size:9px;color:var(--g400);font-family:monospace">'+JSON.stringify(e.metadata).slice(0,50)+'</span>':'')+'</td>'
           +'<td style="font-size:10px;color:var(--g400)">'+new Date(e.created_at).toLocaleString()+'</td></tr>';
       });
     }
 
-    document.getElementById('anaTbody').innerHTML=h||'<tr><td colspan="4" style="text-align:center;padding:40px;color:var(--g400)">No analytics data yet. Views and funnel events will appear here as customers interact.</td></tr>';
-  }).catch(function(){document.getElementById('anaTbody').innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--red);padding:40px">Failed to load metrics. Check Supabase connection.</td></tr>'});
+    document.getElementById('anaTbody').innerHTML = h || '<tr><td colspan="4" style="text-align:center;padding:40px;color:var(--g400)">No data yet. Analytics will populate as customers interact.</td></tr>';
+  }).catch(function(err){ document.getElementById('anaTbody').innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--red);padding:40px"><i class="fas fa-exclamation-circle" style="margin-right:6px"></i>Failed to load. Check console for details.</td></tr>'; console.error(err); });
 }
 
 function triggerAbandoned(){
@@ -832,6 +921,105 @@ function saveMaintenanceConfig(){
     });
   });
 }
+/* ====== COUPONS [AG v15.4] ====== */
+var cpnData = [];
+function loadCoupons(){
+  document.getElementById('cpnTbody').innerHTML='<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--g400)"><i class="fas fa-circle-notch fa-spin"></i> Loading...</td></tr>';
+  fetch('/api/admin/coupons',{headers:{'x-admin-token':sessionStorage.getItem('iadm_t')}})
+  .then(function(r){return r.json()})
+  .then(function(d){
+    cpnData = d.coupons || [];
+    renderCoupons();
+  }).catch(function(){document.getElementById('cpnTbody').innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--red);padding:30px">Error loading coupons. Check Supabase connection.</td></tr>'});
+}
+
+function renderCoupons(){
+  if(!cpnData.length){
+    document.getElementById('cpnTbody').innerHTML='<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--g400)">No coupons yet. Create one above!</td></tr>';
+    return;
+  }
+  var h='';
+  cpnData.forEach(function(c){
+    var isExpired = c.expiry_at && new Date(c.expiry_at) < new Date();
+    var statusBadge = !c.is_active ? '<span style="background:#fee2e2;color:#991b1b;font-size:9px;font-weight:700;padding:2px 8px;border-radius:3px;text-transform:uppercase">Inactive</span>'
+      : isExpired ? '<span style="background:#fef3c7;color:#92400e;font-size:9px;font-weight:700;padding:2px 8px;border-radius:3px;text-transform:uppercase">Expired</span>'
+      : '<span style="background:#d1fae5;color:#065f46;font-size:9px;font-weight:700;padding:2px 8px;border-radius:3px;text-transform:uppercase">Active</span>';
+    var typeLabel = c.type === 'percent' ? c.value+'% OFF' : 'Rs.'+c.value+' OFF';
+    var uses = (c.current_uses || 0) + (c.max_uses ? ' / '+c.max_uses : ' / ∞');
+    var expiry = c.expiry_at ? new Date(c.expiry_at).toLocaleDateString('en-IN') : '—';
+    h += '<tr>'
+      + '<td style="font-weight:800;font-family:monospace;font-size:13px;letter-spacing:.5px">'+c.code+'</td>'
+      + '<td><span style="background:var(--g100);color:var(--g600);font-size:9px;font-weight:700;padding:2px 8px;border-radius:3px;text-transform:uppercase">'+c.type+'</span></td>'
+      + '<td style="font-weight:700;color:var(--bk)">'+typeLabel+'</td>'
+      + '<td style="color:var(--g500)">'+(c.min_total ? 'Rs.'+c.min_total : '—')+'</td>'
+      + '<td style="font-weight:700">'+uses+'</td>'
+      + '<td style="color:var(--g500)">'+expiry+'</td>'
+      + '<td>'+statusBadge+'</td>'
+      + '<td style="display:flex;gap:6px;flex-wrap:wrap">'
+      + '<button class="asave" style="padding:4px 10px;font-size:9px;background:'+(c.is_active?'#ef4444':'var(--bk)')+'" onclick="toggleCoupon(\\x27'+c.code+'\\x27,'+(c.is_active?'false':'true')+')">'+( c.is_active ? 'Deactivate' : 'Activate')+'</button>'
+      + '<button style="padding:4px 10px;background:none;border:1.5px solid var(--red);color:var(--red);font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;border-radius:3px;cursor:pointer;font-family:inherit" onclick="deleteCoupon(\\x27'+c.code+'\\x27)">Delete</button>'
+      + '</td></tr>';
+  });
+  document.getElementById('cpnTbody').innerHTML = h;
+}
+
+function createCoupon(){
+  var code = document.getElementById('cpnCode').value.trim().toUpperCase();
+  var type = document.getElementById('cpnType').value;
+  var value = parseFloat(document.getElementById('cpnValue').value);
+  var minTotal = parseFloat(document.getElementById('cpnMin').value) || 0;
+  var expiry = document.getElementById('cpnExpiry').value;
+  var maxUses = parseInt(document.getElementById('cpnMaxUses').value) || null;
+  var isActive = document.getElementById('cpnActive').checked;
+  if(!code || !value){ toast('Code and value are required','err'); return; }
+  if(type === 'percent' && (value < 1 || value > 100)){ toast('Percentage must be 1–100','err'); return; }
+  var payload = { code: code, type: type, value: value, min_total: minTotal||null, is_active: isActive, max_uses: maxUses };
+  if(expiry) payload.expiry_at = new Date(expiry).toISOString();
+  fetch('/api/admin/coupons', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-admin-token': sessionStorage.getItem('iadm_t') },
+    body: JSON.stringify(payload)
+  })
+  .then(function(r){ return r.json() })
+  .then(function(d){
+    if(d.success){
+      toast('Coupon "'+code+'" created!','ok-green');
+      document.getElementById('cpnCode').value='';
+      document.getElementById('cpnValue').value='';
+      document.getElementById('cpnMin').value='';
+      document.getElementById('cpnExpiry').value='';
+      document.getElementById('cpnMaxUses').value='';
+      loadCoupons();
+    } else { toast(d.error||'Failed to create','err'); }
+  }).catch(function(e){ toast('Error: '+e.message,'err'); });
+}
+
+function toggleCoupon(code, newState){
+  fetch('/api/admin/coupons/'+encodeURIComponent(code), {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', 'x-admin-token': sessionStorage.getItem('iadm_t') },
+    body: JSON.stringify({ is_active: newState === 'true' || newState === true })
+  })
+  .then(function(r){ return r.json() })
+  .then(function(d){
+    if(d.success){ toast('Coupon updated','ok-green'); loadCoupons(); }
+    else { toast(d.error||'Failed','err'); }
+  }).catch(function(e){ toast('Error: '+e.message,'err'); });
+}
+
+function deleteCoupon(code){
+  if(!confirm('Permanently delete coupon "'+code+'"?')) return;
+  fetch('/api/admin/coupons/'+encodeURIComponent(code), {
+    method: 'DELETE',
+    headers: { 'x-admin-token': sessionStorage.getItem('iadm_t') }
+  })
+  .then(function(r){ return r.json() })
+  .then(function(d){
+    if(d.success){ toast('Coupon deleted','ok-green'); loadCoupons(); }
+    else { toast(d.error||'Failed','err'); }
+  }).catch(function(e){ toast('Error: '+e.message,'err'); });
+}
+
 function updateMaintBadge(mode) {
   var b = document.getElementById('maintModeBadge');
   if(!b) return;

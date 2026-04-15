@@ -950,26 +950,30 @@ async function hmacHex(key: ArrayBuffer, data: string): Promise<string> {
 export async function incrementView(env: Env, path: string): Promise<void> {
   if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_KEY) return;
   try {
-    // Upsert using an RPC or a merge-duplicates logic
-    // Table: page_views (path text PK, views bigint DEFAULT 1, last_viewed_at timestamptz DEFAULT now())
-    // Note: To truly "increment" without an RPC, we'd need to fetch first, or use a clever UPSERT.
-    // In Postgres/Supabase REST, it's easier to use an RPC if available. 
-    // If not, we'll try a basic upsert that just logs the last hit if we can't easily increment.
-    // Better: call a 'increment_view' RPC that takes a 'page_path' argument.
-    await supabaseFetch(env.SUPABASE_URL, env.SUPABASE_SERVICE_KEY, 'rpc/increment_view', {
+    // First try the RPC function (preferred — atomic increment)
+    const rpcRes = await supabaseFetch(env.SUPABASE_URL, env.SUPABASE_SERVICE_KEY, 'rpc/increment_view', {
       method: 'POST',
       body: JSON.stringify({ page_path: path }),
+    });
+    if (rpcRes.ok) return;
+
+    // Fallback: upsert into view_stats (non-atomic but better than nothing)
+    await supabaseFetch(env.SUPABASE_URL, env.SUPABASE_SERVICE_KEY, 'view_stats', {
+      method: 'POST',
+      headers: { 'Prefer': 'resolution=merge-duplicates' } as any,
+      body: JSON.stringify({ path, count: 1, last_viewed_at: new Date().toISOString() }),
     });
   } catch (e) { console.error('Analytics tracking error:', e); }
 }
 
 /**
  * Fetch all page view stats from Supabase.
+ * Returns view_stats rows ordered by count desc.
  */
 export async function fetchAnalytics(env: Env): Promise<any[]> {
   if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_KEY) return [];
   try {
-    const res = await supabaseFetch(env.SUPABASE_URL, env.SUPABASE_SERVICE_KEY, 'page_views?select=*&order=views.desc');
+    const res = await supabaseFetch(env.SUPABASE_URL, env.SUPABASE_SERVICE_KEY, 'view_stats?select=*&order=count.desc');
     if (res.ok) return await res.json();
   } catch (e) { console.error('Analytics fetch error:', e); }
   return [];

@@ -61,8 +61,32 @@ CREATE TABLE IF NOT EXISTS public.funnel_events (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     session_id TEXT,
     email TEXT,
-    event_type TEXT CHECK (event_type IN ('identify', 'add_to_cart', 'checkout_start', 'payment_success')),
+    event_type TEXT CHECK (event_type IN ('identify', 'add_to_cart', 'checkout_start', 'payment_success', 'view')),
     product_id TEXT,
     metadata JSONB,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- 7. Coupon usage tracking columns (run if upgrading from v15.2)
+ALTER TABLE public.coupons ADD COLUMN IF NOT EXISTS current_uses INTEGER DEFAULT 0;
+ALTER TABLE public.coupons ADD COLUMN IF NOT EXISTS max_uses INTEGER;
+
+-- 8. Users table: track last login
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS last_login TIMESTAMPTZ DEFAULT NOW();
+
+-- Grant RPC access to anon role for view tracking
+GRANT EXECUTE ON FUNCTION increment_view(TEXT) TO anon;
+GRANT EXECUTE ON FUNCTION increment_view(TEXT) TO service_role;
+
+-- Row Level Security (ensure tables allow service-key writes)
+ALTER TABLE public.view_stats ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.funnel_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.email_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.coupons ENABLE ROW LEVEL SECURITY;
+
+-- Policies: allow service_role full access, anon can read coupons/view_stats
+CREATE POLICY IF NOT EXISTS "service_role_all_view_stats" ON public.view_stats FOR ALL TO service_role USING (true);
+CREATE POLICY IF NOT EXISTS "service_role_all_funnel_events" ON public.funnel_events FOR ALL TO service_role USING (true);
+CREATE POLICY IF NOT EXISTS "service_role_all_email_logs" ON public.email_logs FOR ALL TO service_role USING (true);
+CREATE POLICY IF NOT EXISTS "service_role_all_coupons" ON public.coupons FOR ALL TO service_role USING (true);
+CREATE POLICY IF NOT EXISTS "anon_read_coupons" ON public.coupons FOR SELECT TO anon USING (is_active = true);

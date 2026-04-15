@@ -1,5 +1,5 @@
 # INTRU.IN — Full System Literacy & Architecture Reference
-**Version**: v15.3 | **Date**: April 15, 2026 | **Production**: https://intru-genz.pages.dev (staging for intru.in) [AG]
+**Version**: v15.4 | **Date**: April 15, 2026 | **Production**: https://intru-genz.pages.dev (staging for intru.in) [AG]
 
 > This document is designed to be read by manager of e-commerce website AND used as a context prompt for AI assistants. It contains everything needed to understand, debug, fix, or extend the intru.in codebase.
 
@@ -847,18 +847,59 @@ When asked to fix/modify this project:
 3. **Frontend behavior**: `src/components/shell.ts` — cart, checkout, auth, all client-side JS
 4. **Page templates**: `src/pages/*.ts` — HTML generation for each page
 5. **DB schema**: `supabase/schema.sql` — complete schema with RLS policies
-6. **v15.2 DB migrations**: `migration_v2.sql` — run this in Supabase SQL Editor to add `funnel_events` and `coupons` tables
+6. **v15.4 DB migrations**: `migration_v2.sql` — run this in Supabase SQL Editor to add `funnel_events`, `coupons`, `view_stats`, `email_logs`, and `ratings` tables + `current_uses`/`max_uses` columns on coupons
 7. **Build**: `npm run build` then `npx wrangler pages deploy dist --project-name intru-genz`
 8. **All writes to Supabase MUST use service key** (RLS blocks anon writes)
-9. **Status values for orders**: pending, paid, payment_failed, processing, shipped, delivered, cancelled, refunded (NOT 'placed' unless constraint is updated)
+9. **Status values for orders**: pending, paid, payment_failed, processing, shipped, delivered, cancelled, refunded, verified (COD verification complete)
 10. **COD fee**: Rs.99 (configurable via store_settings)
 11. **Free shipping**: Prepaid always free; COD free above Rs.1999 threshold
 12. **PII Rule**: `shipping_address` and `customer_phone` must NEVER be returned from `/api/user/orders` — only id, created_at, status, total, currency, items are exposed
 13. **Address autofill**: Uses `localStorage` keys (`intru_fname`, `intru_phone`, etc.) loaded by `loadSavedAddress()` + native browser keychain via HTML `autocomplete` attributes
+14. **AI Stylist**: Header "AI Stylist" button calls `toggleAIChat()` to open the on-page popup — does NOT redirect to `/intrustylist`. Chatbot calls `/api/ai/chat` (OpenRouter → Groq → Gemini fallback chain).
+15. **Coupon Admin**: Full CRUD at `/api/admin/coupons` — GET list, POST create, PATCH update, DELETE. Admin tab "🏷️ Coupons" in dashboard. Coupon validation at `/api/coupons/validate`.
+16. **Analytics**: `view_stats` table tracks page views (path, count, last_viewed_at). `funnel_events` table tracks identify/add_to_cart/checkout_start/payment_success events. Admin analytics tab shows 6 stat cards + progress bars + product-level breakdown.
+17. **Welcome Email**: Sent to new users on `/api/auth/identify` — includes cart preview, uses `waitUntil` for zero blocking, guarded by `checkResendGuard` as `welcome` type.
 
 ---
 
 ## 18. CHANGELOG
+
+### v15.4 (April 15, 2026) — Coupon Management, Analytics Expansion, AI Stylist UX & Email Triggers
+
+#### New Features
+- **Coupon Management Admin Tab** (`🏷️ Coupons`): Full CRUD for discount codes in admin dashboard — create, activate/deactivate, delete. Supports `percent` (%) and `flat` (Rs.) types, minimum total enforcement, expiry dates, usage caps (`max_uses`), and `current_uses` tracking.
+- **Admin Coupon API Routes**: `GET /api/admin/coupons`, `POST /api/admin/coupons`, `PATCH /api/admin/coupons/:code`, `DELETE /api/admin/coupons/:code` — all protected by `x-admin-token` middleware.
+- **Expanded Analytics Dashboard**: 6 stat cards (Identified Leads, Add-to-Cart Events, Checkouts Started, Payments Success, Conversion Rate, Total Page Views). Analytics table now shows progress bars, funnel drop-off percentages, top products by add-to-cart events, and last 25 funnel events.
+- **Add-to-Cart Email Trigger**: `/api/auth/identify` now sends a personalized "Access Secured + Cart Saved" email to **new users** using `ctx.waitUntil()` (zero blocking). Email includes cart preview. Uses Resend credit guard; logged to `email_logs` as `welcome` type. Cart items passed from client on identify.
+- **AI Stylist Header Button**: The "AI Stylist" nav link (desktop + mobile) now opens the on-page AI chat popup (`toggleAIChat()`) instead of redirecting to `/intrustylist`. This keeps users on the page, improving conversion. Mobile: auto-scrolls widget into view.
+- **`migration_v2.sql` updated** with: `current_uses`/`max_uses` columns on `coupons`, `last_login` on `users`, `view` event type in `funnel_events`, RLS policies for new tables, RPC grant to anon role.
+
+#### Bug Fixes & Improvements
+- `incrementView()` now tries RPC first, then falls back to `view_stats` upsert (fixes silent analytics failures).
+- `fetchAnalytics()` now queries `view_stats` (not deprecated `page_views` table) consistently.
+- `submitIdentity()` now passes `cartItems` to `/api/auth/identify` so welcome email includes cart preview.
+- `toggleAIChat()` improved: closes all drawers before opening chat, focuses input after 150ms, scrolls widget into view on mobile.
+- Admin analytics `loadAnalytics()` rewritten to populate all 6 new stat cards and show product-level funnel data from `funnel_events`.
+- Admin CSS: Added `.ostatus`, `.ost-*` badge styles, `.oselect` input styles — prevents unstyled order status badges.
+
+#### API Reference Updates
+| Method | Route | Description |
+|--------|-------|-------------|
+| GET | `/api/admin/coupons` | List all coupons (admin only) |
+| POST | `/api/admin/coupons` | Create new coupon (admin only) |
+| PATCH | `/api/admin/coupons/:code` | Update coupon (toggle active, change value) |
+| DELETE | `/api/admin/coupons/:code` | Delete coupon permanently |
+
+#### Email Types Added
+| Type | Trigger | Guard | Template |
+|------|---------|-------|----------|
+| `welcome` | New user identifies via email form | Resend guard (non-priority) | "Access Secured" with cart preview |
+
+### v15.3 (April 15, 2026) — Phase 2/3 Implementation
+- Identity gate with post-login auto-add, verify-order (idempotent), Resend credit guard
+- Zero-impact funnel analytics with `waitUntil`, event delegation in cart
+- Rich email templates: `emailOrderConfirmed`, `emailCodVerificationRequired`
+- Admin "Send Now" per-order abandoned cart button with dedup
 
 ### v15.2 (April 12, 2026) — Sales Funnel & Security
 - **Identity-First Funnel**: Users must identify via email before "Add to Bag"; captures all leads even if they don't purchase
