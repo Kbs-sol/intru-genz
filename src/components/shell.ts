@@ -354,6 +354,7 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 </div>
 
 <div class="cftr" id="cf" style="display:none">
+<div id="fsProgress" style="display:none;font-size:11px;font-weight:600;padding:10px 16px;border-radius:6px;margin-bottom:12px;text-align:center;border:1px solid var(--g200);background:var(--g50)"></div>
 <div class="cst"><span>Subtotal</span><span id="csub">${STORE_CONFIG.currencySymbol}0</span></div>
 <div class="csh"><span>Shipping</span><span id="cshp">Calculated</span></div>
 <div class="ctl"><span>Total</span><span id="ctot">${STORE_CONFIG.currencySymbol}0</span></div>
@@ -687,6 +688,48 @@ function submitIdentity(){
   .finally(function(){btn.disabled=false;btn.textContent='SECURE MY ACCESS'});
 }
 
+/* ====== UTILITY FUNCTIONS ====== */
+function fmt(n){return (S.cs||'Rs.')+Math.round(n||0).toLocaleString('en-IN')}
+
+/* ====== PAY MODE ENGINE [AG] ====== */
+function applyPayMode(mode){
+  payMode=mode;
+  var pd=document.getElementById('cm_prepaid');
+  var cd=document.getElementById('cm_cod');
+  if(pd)pd.classList.toggle('act',mode==='prepaid');
+  if(cd)cd.classList.toggle('act',mode==='cod');
+  var rk=document.getElementById('riskCalc');
+  var pp=document.getElementById('prepaidPerk');
+  if(rk)rk.style.display=mode==='cod'?'block':'none';
+  if(pp)pp.style.display=mode==='prepaid'?'block':'none';
+  /* Update checkout button visibility */
+  var chkBtn=document.getElementById('checkoutBtn');
+  if(chkBtn)chkBtn.style.display='block';
+  renderCartTotals();
+}
+function setPayMode(mode){applyPayMode(mode)}
+
+/* ====== CART COUNTDOWN TIMER [AG] ====== */
+var _cartTimerEl=null,_cartTimerInt=null;
+function startCartTimer(){
+  if(_cartTimerEl||!document.getElementById('cby'))return;
+  /* Inject timer bar just below cart header */
+  var timerDiv=document.createElement('div');
+  timerDiv.className='cart-timer';
+  timerDiv.id='cartTimer';
+  timerDiv.innerHTML='<i class="fas fa-clock"></i> <span id="ctVal">10:00</span> — Limited stock at this price';
+  var cby=document.getElementById('cby');
+  if(cby)cby.parentElement.insertBefore(timerDiv,cby);
+  _cartTimerEl=document.getElementById('ctVal');
+  var secs=600;
+  _cartTimerInt=setInterval(function(){
+    secs--;
+    if(secs<=0){clearInterval(_cartTimerInt);if(_cartTimerEl)_cartTimerEl.parentElement.innerHTML='<i class="fas fa-fire"></i> Hurry — others are viewing this drop!';return}
+    var m=Math.floor(secs/60);var s=secs%60;
+    if(_cartTimerEl)_cartTimerEl.textContent=(m<10?'0':'')+m+':'+(s<10?'0':'')+s;
+  },1000);
+}
+
 /* ====== CART ENGINE ====== */
 var cart=JSON.parse(localStorage.getItem('ic')||'[]');
 
@@ -888,11 +931,48 @@ function renderCart(){
   var html='';
   cart.forEach(function(item){
     var p=PM[item.p];if(!p)return;
-    html+='<div class="citm"><img class="cimg" src="'+p.i[0]+'" alt="'+p.n+'"><div class="cinf"><div class="cnm">'+p.n+'</div><div class="cmt">Size: '+item.s+'</div><div class="cpr">'+fmt(p.p*item.q)+'</div><div class="cqty"><button class="qb" onclick="updateQty(\\x27'+p.id+'\\x27,\\x27'+item.s+'\\x27,-1)">&minus;</button><span>'+item.q+'</span><button class="qb" onclick="updateQty(\\x27'+p.id+'\\x27,\\x27'+item.s+'\\x27,1)">+</button></div><button class="crm" onclick="removeFromCart(\\x27'+p.id+'\\x27,\\x27'+item.s+'\\x27)">Remove</button></div></div>';
+    /* Event delegation: use data-* attributes instead of inline onclick */
+    html+='<div class="citm" data-pid="'+item.p+'" data-sz="'+item.s+'">'
+      +'<img class="cimg" src="'+p.i[0]+'" alt="'+p.n+'" loading="lazy">'
+      +'<div class="cinf">'
+        +'<div class="cnm">'+p.n+'</div>'
+        +'<div class="cmt">Size: '+item.s+'</div>'
+        +'<div class="cpr">'+fmt(p.p*item.q)+'</div>'
+        +'<div class="cqty">'
+          +'<button class="qb cart-qty-btn" data-pid="'+item.p+'" data-sz="'+item.s+'" data-delta="-1">&minus;</button>'
+          +'<span>'+item.q+'</span>'
+          +'<button class="qb cart-qty-btn" data-pid="'+item.p+'" data-sz="'+item.s+'" data-delta="1">+</button>'
+        +'</div>'
+        +'<button class="crm cart-rm-btn" data-pid="'+item.p+'" data-sz="'+item.s+'">Remove</button>'
+      +'</div>'
+    +'</div>';
   });
   if(itemsWrap) itemsWrap.innerHTML=html;
   renderCartTotals();
 }
+
+/* ====== CART EVENT DELEGATION [AG Phase2] ====== */
+/* Single listener on cartItems container — handles all qty +/- and remove actions */
+(function(){
+  var container = document.getElementById('cartItems');
+  if(!container) return;
+  container.addEventListener('click', function(e){
+    var target = e.target;
+    /* Walk up to handle clicks on icon children */
+    if(!target.dataset.pid) target = target.closest('[data-pid]');
+    if(!target) return;
+    var pid = target.dataset.pid;
+    var sz = target.dataset.sz;
+    if(!pid || !sz) return;
+    if(target.classList.contains('cart-qty-btn')){
+      e.preventDefault();
+      updateQty(pid, sz, parseInt(target.dataset.delta||'0'));
+    } else if(target.classList.contains('cart-rm-btn')){
+      e.preventDefault();
+      removeFromCart(pid, sz);
+    }
+  });
+})();
 
 /* ====== DRAWER ENGINE ====== */
 function toggleCart(){document.getElementById('co').classList.toggle('open');document.getElementById('cd').classList.toggle('open');document.body.style.overflow=document.getElementById('cd').classList.contains('open')?'hidden':''}

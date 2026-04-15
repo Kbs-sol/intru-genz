@@ -4,7 +4,7 @@
 - **Name**: intru.in
 - **Goal**: Engineered for High Organic Traffic (SEO) and High Conversion (using deep direct-response psychology)
 - **Stack**: Hono + TypeScript + Cloudflare Pages + Supabase + Razorpay + Resend
-- **Version**: v15.2 (Date: April 12, 2026) — Sales Funnel Optimization, Zero-Token Analytics, Abandoned Cart System
+- **Version**: v15.3 (Date: April 15, 2026) — Phase 2/3: Identity Gate, Dynamic Ratings, /verify-order, Resend Credit Guard, Event Delegation, Zero-TTFB Analytics
 
 ## URLs
 - **Production**: https://intru-genz.pages.dev (staging) → https://intru.in (custom domain pending)
@@ -63,13 +63,45 @@ Beyond conversion, intru.in is engineered for aggressive organic search dominanc
 - **Bulk Metadata Injection**: Semantic keyword optimization directly within the catalog, delivering 100% SEO coverage.
 - **Lighthouse Dominance**: Lean CSS, aggressive caching, and minimal frontend JS architecture ensure near-perfect Core Web Vitals, a critical search ranking factor.
 
-### Resend Email Notifications
-- **Prepaid success** → "Drop Secured!" email to customer + Payment Alert to manager
-- **COD success** → "Action Required: Confirm your intru.in COD Order #[ID]" email to customer
-- **COD success** → "NEW COD ORDER - Action Required — [name] — Rs.[total]" email to manager
-- Emails triggered server-side (Resend); requires `RESEND_API_KEY` in secrets
+### Identity-First Funnel (Phase 2)
+- `addToCart()` enforces identity gate: if no `intru_user_email` in localStorage, shows login modal
+- `intru_pending_atc` sessionStorage preserves item; auto-added post-login without re-click
+- `buyNow(pid, size)` adds item + immediately triggers `checkout()` — direct to payment
+- Cart count updates via `dispatchEvent` pattern — no hard reload required
 
-## Supabase Schema (v6)
+### Background Analytics Flow (Zero-TTFB)
+- All page views tracked via `c.executionCtx.waitUntil(incrementView(...))` — response sent first
+- Funnel events (identify, add_to_cart, checkout_start, payment_success) logged to `funnel_events` table
+- Client calls `POST /api/analytics/event` — server responds 200 instantly, logs via `waitUntil`
+- Admin Analytics tab shows view_stats + funnel_events breakdown in real-time
+
+### Resend Email Notifications (Phase 2 — Conditional Logic)
+- **Prepaid success** → Rich "Order Confirmed" email via `emailOrderConfirmed()` + manager alert
+- **COD placed** → "Action Required: Verify Your Order" via `emailCodVerificationRequired()` with idempotent `/verify-order?id=...` link
+- **COD verification** → `/verify-order` updates status `pending→verified`, sends "Order Confirmed" — one-shot, idempotent
+- **COD verify** is priority (bypasses credit guard); manager alerts are non-priority
+
+### Resend Credit Guard (Phase 2)
+- 15-day rolling window, 1200 email limit tracked via `email_logs` table
+- Priority types (`verification`, `confirmation`, `order_confirmed`, `cod_verify`) bypass the guard
+- Non-priority types (`abandoned_cart`, `newsletter`, `manager_alert`) are blocked when limit exceeded
+- `checkResendGuard(sbUrl, sbKey, type)` + `logResendEmail(sbUrl, sbKey, email, type, orderId)` helpers in `data.ts`
+
+### Abandoned Cart (Phase 2)
+- **Manual Override**: "Send Recovery Email" button per order row in Admin → Orders tab (for pending/placed orders)
+- **Scheduled**: Cron trigger via `POST /api/admin/abandoned/trigger` checks funnel_events > 24h old, unverified, no paid order
+- **IMPORTANT**: Cloudflare Workers are stateless — configure a **Cloudflare Cron Trigger** (Scheduled Worker) in `wrangler.jsonc` to call `abandoned/trigger` hourly:
+  ```jsonc
+  "triggers": { "crons": ["0 * * * *"] }
+  ```
+  And add a `scheduled` handler in `src/index.tsx` for the cron job to work autonomously
+
+### Dynamic Ratings (Phase 2)
+- If no approved ratings: returns pseudo-random deterministic float between 4.1–4.7 (seeded by productId)
+- If ratings exist: calculates average, floors at 4.0 (brand prestige floor)
+- Source: `ratings` table in Supabase (`product_id`, `rating`, `is_approved`)
+
+## Supabase Schema (v6 + migration_v2)
 
 | Table | Purpose |
 |-------|---------|
@@ -82,14 +114,19 @@ Beyond conversion, intru.in is engineered for aggressive organic search dominanc
 | `subscribers` | "Notify Me" email signups |
 | `store_settings` | Admin toggles (USE_MAGIC_CHECKOUT, FOMO_THRESHOLD_LOW, FOMO_THRESHOLD_CRITICAL, etc.) |
 | `instagram_feed` | Admin-managed Instagram feed images |
+| `view_stats` | Atomic page view counter (path PK, count, last_viewed_at) + `increment_view` RPC |
+| `coupons` | Discount codes (code, type: percent/flat, value, min_total, expiry_at, is_active) |
+| `ratings` | Product ratings (product_id, rating 1-5, is_approved, customer_name, comment) |
+| `email_logs` | Resend quota tracking (email, type, order_id, sent_at) — 1200/15d guard |
+| `funnel_events` | Sales funnel tracking (session_id, email, event_type, product_id, metadata) |
 
-**Run `supabase/schema.sql` in Supabase SQL Editor** to create/migrate all tables.
+**Run `supabase/schema.sql` then `migration_v2.sql` in Supabase SQL Editor** to create/migrate all tables.
 
 ## Admin Panel (Konami-protected)
 
 | Tab | Features |
 |-----|----------|
-| **Orders** | COD rows highlighted yellow, customer name/phone/email, payment method badge, "Copy for Shiprocket" button |
+| **Orders** | COD rows highlighted yellow, customer name/phone/email, payment method badge, "Copy for Shiprocket" button, **"Send Recovery Email" button for pending/placed orders** |
 | **Products** | Image URL editor (4 slots), price/compare-price, in-stock toggle, per-size stock editor (size_stock JSON), total stock (stock_count JSON), collapsible SEO section |
 | **Legal** | HTML editor with live preview for all legal pages |
 | **Size Chart** | Full CRUD for chest/length measurements |

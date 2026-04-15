@@ -493,48 +493,82 @@ function renderOrders(orders){
         +'<td data-label="Items" style="font-size:12px;min-width:180px;color:var(--bk);font-weight:500">'+items+'</td>'
         +'<td data-label="Pricing" style="min-width:110px"><div style="font-weight:800;font-size:15px;color:var(--bk)">Rs.'+(o.total||0).toLocaleString('en-IN')+'</div>'+(o.cod_fee>0?'<div style="font-size:9px;color:#92400e;font-weight:700;margin-top:2px">+ Rs.'+o.cod_fee+' COD handle</div>':'')+'</td>'
         +'<td data-label="Status"> <span class="ostatus ost-'+st+'">'+st+'</span></td>'
-        +'<td data-label="Actions" style="min-width:150px"><select class="oselect" style="width:100%;margin-bottom:8px" onchange="updateOrder(\\x27'+o.id+'\\x27,this.value)">'
+        +'<td data-label="Actions" style="min-width:170px"><select class="oselect" style="width:100%;margin-bottom:8px" onchange="updateOrder(\\x27'+o.id+'\\x27,this.value)">'
         +'<option value="">Update Status...</option><option value="paid">Mark Paid</option><option value="processing">Processing</option><option value="shipped">Shipped</option><option value="delivered">Delivered</option><option value="cancelled">Cancelled</option></select>'
-        +'<button class="shiprocket-btn" style="width:100%;text-align:center" onclick="copyShiprocket(\\x27'+custName.replace(/'/g,'')+'\\x27,\\x27'+custPhone+'\\x27,\\x27'+addrStr.replace(/'/g,'')+'\\x27)"><i class="fas fa-copy" style="margin-right:4px"></i>Shiprocket Copy</button>'
+        +'<button class="shiprocket-btn" style="width:100%;text-align:center;margin-bottom:6px" onclick="copyShiprocket(\\x27'+custName.replace(/'/g,'')+'\\x27,\\x27'+custPhone+'\\x27,\\x27'+addrStr.replace(/'/g,'')+'\\x27)"><i class="fas fa-copy" style="margin-right:4px"></i>Shiprocket Copy</button>'
+        +(o.customer_email && (st === 'pending' || st === 'placed') ? '<button class="shiprocket-btn" style="width:100%;text-align:center;background:#fef3c7;color:#92400e;border-color:#fcd34d" onclick="sendAbandonedCart(\\x27'+o.id+'\\x27,\\x27'+(o.customer_email||'')+'\\x27,this)"><i class="fas fa-envelope" style="margin-right:4px"></i>Send Recovery Email</button>' : '')
         +'</td></tr>';
     });
     document.getElementById('otbody').innerHTML = h;
 }
 
-/* ====== ANALYTICS [AG v15.2] ====== */
+/* ====== ANALYTICS [AG Phase2] ====== */
 function loadAnalytics(){
-  document.getElementById('anaTbody').innerHTML='<tr><td colspan="4" style="text-align:center;padding:40px;color:var(--g400)">Propagating...</td></tr>';
-  fetch('/api/admin/analytics',{headers:{'x-admin-token':sessionStorage.getItem('iadm_t')}}).then(function(r){return r.json()}).then(function(d){
-    var stats=d.analytics||[];
-    var funnel=d.funnel||{};
-    
-    document.getElementById('anaIdentify').textContent= (funnel.identify || 0).toLocaleString();
-    document.getElementById('anaCheckouts').textContent= (funnel.checkout || 0).toLocaleString();
-    
-    var conv = funnel.identify ? ((funnel.checkout / funnel.identify) * 100).toFixed(1) : '0';
+  document.getElementById('anaTbody').innerHTML='<tr><td colspan="4" style="text-align:center;padding:40px;color:var(--g400)"><i class="fas fa-circle-notch fa-spin"></i> Loading analytics...</td></tr>';
+  fetch('/api/admin/analytics',{headers:{'x-admin-token':sessionStorage.getItem('iadm_t')}})
+  .then(function(r){return r.json()})
+  .then(function(d){
+    /* d = { success, views: [{path,count,last_viewed_at}], funnel: [{event_type,email,product_id,created_at,metadata}] } */
+    var views = d.views || [];
+    var funnelEvents = d.funnel || [];
+
+    /* Count funnel event types */
+    var identifyCount=0, atcCount=0, checkoutCount=0, payCount=0;
+    funnelEvents.forEach(function(e){
+      if(e.event_type==='identify') identifyCount++;
+      else if(e.event_type==='add_to_cart') atcCount++;
+      else if(e.event_type==='checkout_start') checkoutCount++;
+      else if(e.event_type==='payment_success') payCount++;
+    });
+
+    document.getElementById('anaIdentify').textContent= identifyCount.toLocaleString();
+    document.getElementById('anaCheckouts').textContent= checkoutCount.toLocaleString();
+    var conv = identifyCount ? ((payCount / identifyCount) * 100).toFixed(1) : '0';
     document.getElementById('anaConvRate').textContent= conv + '%';
 
     var h='';
-    stats.forEach(function(s){
-      h+='<tr><td style="font-weight:700;color:var(--bk)">'+s.target+'</td>'
-        +'<td><span class="ostatus" style="background:var(--g100);color:var(--g500)">'+(s.type||'page')+'</span></td>'
-        +'<td style="font-weight:900;font-size:16px">'+s.views.toLocaleString()+'</td>'
-        +'<td style="font-size:10px;color:var(--g400)">'+ (s.updated_at ? new Date(s.updated_at).toLocaleString() : '—') +'</td></tr>';
+
+    /* Page Views Section */
+    if(views.length){
+      h+='<tr><td colspan="4" style="background:#0a0a0a;color:#fff;font-weight:800;padding:10px 16px;font-size:10px;text-transform:uppercase;letter-spacing:1px">📊 Page Views (view_stats)</td></tr>';
+      views.forEach(function(s){
+        h+='<tr><td style="font-weight:700;color:var(--bk);font-family:monospace;font-size:12px">'+(s.path||'/')+'</td>'
+          +'<td><span style="background:var(--g100);color:var(--g500);font-size:9px;font-weight:700;padding:2px 8px;border-radius:3px;text-transform:uppercase">page_view</span></td>'
+          +'<td style="font-weight:900;font-size:18px;color:var(--bk)">'+(s.count||0).toLocaleString()+'</td>'
+          +'<td style="font-size:10px;color:var(--g400)">'+(s.last_viewed_at?new Date(s.last_viewed_at).toLocaleString():'—')+'</td></tr>';
+      });
+    }
+
+    /* Funnel Summary */
+    var funnelSummary = [
+      {label:'Identify',count:identifyCount,color:'#dbeafe',tc:'#1e40af'},
+      {label:'Add to Cart',count:atcCount,color:'#fef3c7',tc:'#92400e'},
+      {label:'Checkout Start',count:checkoutCount,color:'#f3e8ff',tc:'#7c3aed'},
+      {label:'Payment Success',count:payCount,color:'#d1fae5',tc:'#065f46'}
+    ];
+    h+='<tr><td colspan="4" style="background:#0a0a0a;color:#fff;font-weight:800;padding:10px 16px;font-size:10px;text-transform:uppercase;letter-spacing:1px;border-top:4px solid rgba(255,255,255,.1)">🔥 Funnel Events Summary (funnel_events)</td></tr>';
+    funnelSummary.forEach(function(fs){
+      h+='<tr><td style="font-weight:700;color:var(--bk)">'+fs.label+'</td>'
+        +'<td><span style="background:'+fs.color+';color:'+fs.tc+';font-size:9px;font-weight:700;padding:2px 8px;border-radius:3px;text-transform:uppercase">funnel</span></td>'
+        +'<td style="font-weight:900;font-size:18px;color:var(--bk)">'+fs.count.toLocaleString()+'</td>'
+        +'<td style="font-size:10px;color:var(--g400)">—</td></tr>';
     });
-    
-    /* Mix in Funnel Events if any */
-    if(d.events && d.events.length) {
-      h += '<tr><td colspan="4" style="background:var(--g50);font-weight:800;padding:8px 16px;font-size:10px;text-transform:uppercase">Recent Funnel Events</td></tr>';
-      d.events.forEach(function(e){
-        h+='<tr><td style="font-size:11px;font-family:monospace">'+(e.email||'Anonymous')+'</td>'
-          +'<td><span class="ostatus" style="background:#fef3c7;color:#92400e">'+e.event_type+'</span></td>'
-          +'<td style="font-size:11px">'+(e.metadata ? JSON.stringify(e.metadata) : '')+'</td>'
+
+    /* Recent Funnel Events */
+    if(funnelEvents.length){
+      h+='<tr><td colspan="4" style="background:var(--g50);font-weight:800;padding:8px 16px;font-size:10px;text-transform:uppercase;letter-spacing:1px;border-top:2px solid var(--g100)">Recent Funnel Events (last 100)</td></tr>';
+      funnelEvents.slice(0,20).forEach(function(e){
+        var evtColor = e.event_type==='identify'?'#dbeafe':e.event_type==='add_to_cart'?'#fef3c7':e.event_type==='checkout_start'?'#f3e8ff':'#d1fae5';
+        var evtTc = e.event_type==='identify'?'#1e40af':e.event_type==='add_to_cart'?'#92400e':e.event_type==='checkout_start'?'#7c3aed':'#065f46';
+        h+='<tr><td style="font-size:11px;font-family:monospace;color:var(--g500)">'+(e.email||'<i>Anonymous</i>')+'</td>'
+          +'<td><span style="background:'+evtColor+';color:'+evtTc+';font-size:9px;font-weight:700;padding:2px 8px;border-radius:3px">'+e.event_type+'</span></td>'
+          +'<td style="font-size:11px;color:var(--g600)">'+(e.product_id||'')+(e.metadata?'<br><span style="font-size:9px;color:var(--g400);font-family:monospace">'+JSON.stringify(e.metadata).slice(0,60)+'</span>':'')+'</td>'
           +'<td style="font-size:10px;color:var(--g400)">'+new Date(e.created_at).toLocaleString()+'</td></tr>';
       });
     }
 
-    document.getElementById('anaTbody').innerHTML=h||'<tr><td colspan="4" style="text-align:center;padding:40px">No data yet.</td></tr>';
-  }).catch(function(e){document.getElementById('anaTbody').innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--red)">Failed to load metrics.</td></tr>'});
+    document.getElementById('anaTbody').innerHTML=h||'<tr><td colspan="4" style="text-align:center;padding:40px;color:var(--g400)">No analytics data yet. Views and funnel events will appear here as customers interact.</td></tr>';
+  }).catch(function(){document.getElementById('anaTbody').innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--red);padding:40px">Failed to load metrics. Check Supabase connection.</td></tr>'});
 }
 
 function triggerAbandoned(){
@@ -555,6 +589,32 @@ function triggerAbandoned(){
       st.textContent = 'FAILED';
     }
   }).catch(function(){ toast('Trigger failed', 'err'); st.textContent = ''; });
+}
+
+function sendAbandonedCart(orderId, email, btn){
+  if(!email || !orderId){toast('No email found for this order','err');return}
+  if(!confirm('Send abandoned cart recovery email to ' + email + '?')) return;
+  var origText = btn.innerHTML;
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+  fetch('/api/admin/abandoned/send-single', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json','x-admin-token':sessionStorage.getItem('iadm_t')},
+    body: JSON.stringify({ orderId: orderId, email: email })
+  })
+  .then(function(r){return r.json()})
+  .then(function(d){
+    if(d.success){
+      toast('Recovery email sent to '+email,'ok-green');
+      btn.textContent = '✓ Sent';
+      btn.style.background = '#d1fae5';
+      btn.style.color = '#065f46';
+    } else {
+      toast(d.error || 'Failed to send','err');
+      btn.innerHTML = origText;
+      btn.disabled = false;
+    }
+  }).catch(function(){toast('Network error','err');btn.innerHTML=origText;btn.disabled=false});
 }
 
 function copyShiprocket(name,phone,addr){

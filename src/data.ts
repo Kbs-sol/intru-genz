@@ -497,18 +497,36 @@ export function buildMagicLineItems(
   return { line_items, line_items_total: lineItemsTotal };
 }
 
-/** Fetch product ratings from Supabase */
+/** Fetch product ratings from Supabase.
+ * - If no approved ratings exist: return a pseudo-random value between 4.1 and 4.7 (seeded by productId for consistency)
+ * - If ratings exist: calculate average but floor it at 4.0 to maintain brand prestige
+ */
 export async function fetchProductRatings(supabaseUrl: string, key: string, productId: string): Promise<{ average: number, count: number }> {
-    if (!supabaseUrl || !key) return { average: 4.8, count: 43 }; // fallback
+    // Pseudo-random fallback seeded by productId chars (deterministic per product)
+    function pseudoRandom(seed: string): number {
+        let h = 0;
+        for (let i = 0; i < seed.length; i++) {
+            h = (Math.imul(31, h) + seed.charCodeAt(i)) | 0;
+        }
+        const normalized = Math.abs(h % 10000) / 10000; // 0-0.9999
+        return Number((4.1 + normalized * 0.6).toFixed(1)); // 4.1 – 4.7
+    }
+
+    if (!supabaseUrl || !key) {
+        return { average: pseudoRandom(productId), count: 0 };
+    }
     try {
         const res = await supabaseFetch(supabaseUrl, key, `ratings?product_id=eq.${encodeURIComponent(productId)}&is_approved=eq.true`);
-        if (!res.ok) return { average: 4.8, count: 43 };
+        if (!res.ok) return { average: pseudoRandom(productId), count: 0 };
         const rows = await res.json() as any[];
-        if (rows.length === 0) return { average: 4.8, count: 43 };
-        const sum = rows.reduce((acc, r) => acc + (r.rating || 5), 0);
-        return { average: Number((sum / rows.length).toFixed(1)), count: rows.length };
+        if (rows.length === 0) return { average: pseudoRandom(productId), count: 0 };
+        const sum = rows.reduce((acc: number, r: any) => acc + (r.rating || 5), 0);
+        const rawAvg = sum / rows.length;
+        // Floor at 4.0 to maintain brand prestige, cap display at 5.0
+        const floored = Math.max(4.0, Math.min(5.0, rawAvg));
+        return { average: Number(floored.toFixed(1)), count: rows.length };
     } catch {
-        return { average: 4.8, count: 43 };
+        return { average: pseudoRandom(productId), count: 0 };
     }
 }
 
@@ -583,6 +601,64 @@ export async function fetchRazorpayOrder(keyId: string, keySecret: string, order
   }
 }
 
+// ============ Resend Credit Guard ============
+
+/**
+ * Check if we're within the 1200-email limit for a 15-day window.
+ * Returns: { allowed: boolean, remaining: number }
+ * Priority emails (type: 'verification' | 'confirmation') always return allowed=true.
+ */
+export async function checkResendGuard(
+  sbUrl: string,
+  sbKey: string,
+  emailType: string,
+  limit = 1200,
+  windowDays = 15
+): Promise<{ allowed: boolean; remaining: number; total: number }> {
+  // Priority types bypass the guard entirely
+  const priorityTypes = ['verification', 'confirmation', 'order_confirmed', 'cod_verify'];
+  if (priorityTypes.includes(emailType)) return { allowed: true, remaining: -1, total: -1 };
+
+  if (!sbUrl || !sbKey) return { allowed: true, remaining: -1, total: -1 };
+
+  try {
+    const since = new Date(Date.now() - windowDays * 86400 * 1000).toISOString();
+    const res = await supabaseFetch(
+      sbUrl, sbKey,
+      `email_logs?sent_at=gte.${encodeURIComponent(since)}&select=id`,
+      { method: 'HEAD', headers: { 'Prefer': 'count=exact' } as any }
+    );
+    const total = parseInt(res.headers.get('content-range')?.split('/')?.[1] || '0', 10);
+    const remaining = Math.max(0, limit - total);
+    return { allowed: total < limit, remaining, total };
+  } catch {
+    return { allowed: true, remaining: -1, total: -1 };
+  }
+}
+
+/**
+ * Log a sent email to email_logs for quota tracking.
+ */
+export async function logResendEmail(
+  sbUrl: string,
+  sbKey: string,
+  email: string,
+  type: string,
+  orderId?: string
+): Promise<void> {
+  if (!sbUrl || !sbKey) return;
+  try {
+    await supabaseFetch(sbUrl, sbKey, 'email_logs', {
+      method: 'POST',
+      body: JSON.stringify({
+        email, type,
+        order_id: orderId || null,
+        sent_at: new Date().toISOString(),
+      }),
+    });
+  } catch (e) { console.error('logResendEmail error:', e); }
+}
+
 // ============ Resend email helper ============
 
 export async function sendResendEmail(
@@ -618,6 +694,65 @@ export async function sendResendEmail(
 }
 
 // ============ Email templates ============
+
+/** Rich "Order Confirmed" email — sent for prepaid after payment success */
+export function emailOrderConfirmed(orderId: string, name: string, items: any[], total: number): string {
+  const shortId = orderId.toUpperCase().slice(-8);
+  const itemRows = items.map((i: any) =>
+    `<tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-size:13px;color:#333">${i.name} <span style="color:#777;font-size:11px">(${i.size})</span></td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;text-align:right;font-size:13px;font-weight:700">Rs.${(i.lineTotal||i.unitPrice*i.quantity).toLocaleString('en-IN')}</td></tr>`
+  ).join('');
+  return `<div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:560px;margin:0 auto;background:#fff;border:1px solid #e5e7eb">
+    <div style="background:#0a0a0a;padding:40px;text-align:center">
+      <h1 style="color:#fff;font-size:22px;margin:0;letter-spacing:4px;text-transform:uppercase">DROP SECURED ✓</h1>
+      <p style="color:#a3a3a3;font-size:12px;margin:8px 0 0;letter-spacing:2px">INTRU.IN — LIMITED DROPS. NO RESTOCKS.</p>
+    </div>
+    <div style="padding:40px 36px">
+      <p style="font-size:16px;color:#0a0a0a;margin:0 0 8px">Hi ${name || 'there'},</p>
+      <p style="font-size:14px;color:#525252;line-height:1.7;margin:0 0 28px">Your payment has been verified. Your order <strong style="color:#0a0a0a">#IN-${shortId}</strong> is being prepared for dispatch. You'll receive a tracking update within 24 hours.</p>
+      <table style="width:100%;border-collapse:collapse;margin-bottom:20px">${itemRows}</table>
+      <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:700;color:#0a0a0a;padding-top:12px;border-top:2px solid #0a0a0a">
+        <span>Total Paid</span><span>Rs.${total.toLocaleString('en-IN')}</span>
+      </div>
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:16px;margin:28px 0;font-size:13px;color:#166534">
+        <strong>⚡ Prepaid Priority</strong> — Your order is in the dispatch queue. Expected delivery: 3-7 business days.
+      </div>
+      <p style="font-size:12px;color:#737373;line-height:1.6">Questions? Reply to this email or contact <a href="mailto:shop@intru.in" style="color:#0a0a0a;font-weight:700">shop@intru.in</a></p>
+    </div>
+    <div style="background:#f5f5f5;padding:24px;text-align:center;font-size:11px;color:#9ca3af">
+      <p style="margin:0">intru.in — Premium Indian Streetwear. Limited Drops, No Restocks.</p>
+    </div>
+  </div>`;
+}
+
+/** COD Verification Required email — replaces old emailCodReceived with idempotent verify link */
+export function emailCodVerificationRequired(orderId: string, name: string, items: any[], total: number): string {
+  const shortId = orderId.toUpperCase().slice(-8);
+  const verifyUrl = `https://intru.in/verify-order?id=${orderId}`;
+  return `<div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:560px;margin:0 auto;background:#fff;border:1px solid #e5e7eb">
+    <div style="background:#0a0a0a;padding:36px;text-align:center">
+      <h1 style="color:#fff;font-size:20px;margin:0;letter-spacing:4px;text-transform:uppercase">ACTION REQUIRED</h1>
+      <p style="color:#fcd34d;font-size:11px;margin:8px 0 0;letter-spacing:2px;font-weight:700">VERIFY YOUR COD ORDER TO START PRODUCTION</p>
+    </div>
+    <div style="padding:36px">
+      <p style="font-size:16px;color:#0a0a0a;margin:0 0 8px">Hi ${name || 'there'},</p>
+      <p style="font-size:14px;color:#525252;line-height:1.7;margin:0 0 24px">We've received your Cash on Delivery order <strong style="color:#0a0a0a">#IN-${shortId}</strong>. To prevent fraud and move your order into production, <strong>please verify this is a genuine order by clicking below.</strong></p>
+      <div style="text-align:center;margin:32px 0">
+        <a href="${verifyUrl}" style="background:#0a0a0a;color:#fff;padding:18px 40px;text-decoration:none;font-weight:700;letter-spacing:2px;text-transform:uppercase;font-size:13px;border-radius:4px;display:inline-block">CONFIRM MY ORDER →</a>
+      </div>
+      <div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:6px;padding:16px;margin:24px 0;font-size:12px;color:#92400e;line-height:1.6">
+        <strong>⚠️ Unverified orders are automatically cancelled after 24 hours.</strong> Click the button above to lock in your drop.
+      </div>
+      <div style="margin:24px 0;padding:20px;background:#f9fafb;border-radius:6px">
+        <p style="font-size:12px;font-weight:700;color:#0a0a0a;margin:0 0 8px">Order Summary:</p>
+        <p style="font-size:13px;color:#525252;margin:0">Total: <strong>Rs.${total.toLocaleString('en-IN')}</strong> (incl. Rs.99 COD/Shipping Fee)</p>
+      </div>
+      <p style="font-size:11px;color:#9ca3af;line-height:1.6;text-align:center">Button not working? Copy this link:<br><span style="color:#0a0a0a;word-break:break-all">${verifyUrl}</span></p>
+    </div>
+    <div style="background:#f5f5f5;padding:20px;text-align:center;font-size:11px;color:#9ca3af">
+      <p style="margin:0">intru.in — Limited Drops. No Restocks.</p>
+    </div>
+  </div>`;
+}
 
 export function emailDropSecured(orderId: string, items: any[], total: number): string {
   const shortId = orderId.toUpperCase().slice(-8);

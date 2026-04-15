@@ -1,5 +1,5 @@
 # INTRU.IN — Full System Literacy & Architecture Reference
-**Version**: v15.2 | **Date**: April 12, 2026 | **Production**: https://intru-genz.pages.dev (staging for intru.in) [AG]
+**Version**: v15.3 | **Date**: April 15, 2026 | **Production**: https://intru-genz.pages.dev (staging for intru.in) [AG]
 
 > This document is designed to be read by manager of e-commerce website AND used as a context prompt for AI assistants. It contains everything needed to understand, debug, fix, or extend the intru.in codebase.
 
@@ -56,7 +56,7 @@ webapp/
 │   └── schema.sql         # Complete Supabase schema (v6) — safe to re-run
 ├── migrations/
 │   └── 0001_initial_schema.sql  # D1 migration (unused — we use Supabase)
-├── migration_v2.sql       # v15.2 migrations: funnel_events, coupons tables [AG]
+├── migration_v2.sql       # v15.2+ migrations: view_stats, coupons, ratings, funnel_events, email_logs [AG]
 ├── seed.sql               # Test seed data
 ├── ecosystem.config.cjs   # PM2 config for local dev
 ├── wrangler.jsonc         # Cloudflare Pages config
@@ -253,24 +253,61 @@ ALTER TABLE orders ADD CONSTRAINT orders_status_check
 | view_count | INTEGER | Incremented on every visit |
 | last_viewed | TIMESTAMPTZ | |
 
-#### `funnel_events`
+#### `view_stats` (migration_v2.sql)
+| Column | Type | Notes |
+|--------|------|-------|
+| path | TEXT PK | e.g. '/', '/product/doodles-t-shirt' |
+| count | BIGINT | Atomic increment via `increment_view(target_path)` RPC |
+| last_viewed_at | TIMESTAMPTZ | Updated on every visit |
+
+**RPC**: `increment_view(page_path TEXT)` — uses ON CONFLICT DO UPDATE for atomic increment. Called via `c.executionCtx.waitUntil()` (zero TTFB impact).
+
+#### `funnel_events` (migration_v2.sql)
 | Column | Type | Notes |
 |--------|------|-------|
 | id | UUID PK | |
-| email | TEXT | Target user |
-| cart_subtotal | INTEGER | |
-| items | JSONB | Saved cart snapshot |
-| converted | BOOLEAN | Turned into a sale? |
-| created_at/updated_at | TIMESTAMPTZ | Used for 24h abandoned cart queries |
+| session_id | TEXT | Optional browser session |
+| email | TEXT | Identified user (null for anonymous) |
+| event_type | TEXT | CHECK: 'identify', 'add_to_cart', 'checkout_start', 'payment_success' |
+| product_id | TEXT | Product involved (for ATC events) |
+| metadata | JSONB | Flexible additional context |
+| created_at | TIMESTAMPTZ | Used for abandoned cart 24h queries |
 
-#### `coupons`
+#### `coupons` (migration_v2.sql)
 | Column | Type | Notes |
 |--------|------|-------|
-| code | TEXT PK | The uppercase code e.g. "WELCOME10" |
-| discount_type | TEXT | "percentage" or "fixed" |
-| discount_value | INTEGER | e.g., 10 (%), or 500 (INR) |
-| current_uses | INTEGER | Track claim counts |
-| max_uses | INTEGER | Nullable for infinity |
+| id | UUID PK | |
+| code | TEXT UNIQUE | Uppercase e.g. "WELCOME10" |
+| type | TEXT | CHECK: 'percent' or 'flat' |
+| value | NUMERIC | e.g., 10 (percent) or 500 (flat INR) |
+| min_total | NUMERIC | Minimum cart subtotal required |
+| is_active | BOOLEAN | Admin can deactivate |
+| expiry_at | TIMESTAMPTZ | Nullable = no expiry |
+| created_at | TIMESTAMPTZ | |
+
+#### `ratings` (migration_v2.sql)
+| Column | Type | Notes |
+|--------|------|-------|
+| id | UUID PK | |
+| product_id | TEXT | FK to products.id |
+| customer_name | TEXT | Display name |
+| rating | INTEGER | CHECK: 1-5 |
+| comment | TEXT | Optional review text |
+| is_approved | BOOLEAN | Only approved ratings are shown/calculated |
+| created_at | TIMESTAMPTZ | |
+
+**Logic**: If no approved ratings → pseudo-random 4.1–4.7 (seeded by productId). If ratings exist → avg floored at 4.0.
+
+#### `email_logs` (migration_v2.sql)
+| Column | Type | Notes |
+|--------|------|-------|
+| id | UUID PK | |
+| email | TEXT | Recipient |
+| type | TEXT | 'cod_verify', 'order_confirmed', 'abandoned_cart', 'manager_alert', 'newsletter' |
+| order_id | TEXT | Reference to orders.id |
+| sent_at | TIMESTAMPTZ | Used for 15-day rolling window guard |
+
+**Resend Credit Guard**: `checkResendGuard(type)` — counts email_logs in last 15 days. Priority types (verification, confirmation, cod_verify, order_confirmed) bypass. Non-priority blocked at 1200.
 
 #### Other Tables:
 - **`legal_pages`**: slug (PK), title, content (HTML), updated_at
@@ -316,7 +353,8 @@ ALTER TABLE orders ADD CONSTRAINT orders_status_check
 | POST | `/api/shipping-info` | `{addresses}` | `{addresses}` | For Razorpay Magic |
 | GET | `/api/user/orders` | `?email=` | `{success, orders[]}` | Customer order history (safe fields only — no PII) |
 | POST | `/api/coupons/validate` | `{code, total}` | `{valid, discount, final_total}` | Validate & apply coupon code |
-| POST | `/api/funnel/track` | `{email, items, subtotal}` | `{success}` | Record/update funnel event for abandoned cart |
+| POST | `/api/analytics/event` | `{event, meta, email, sessionId}` | `{ok:true}` | Log funnel event (zero TTFB — uses waitUntil) |
+| GET | `/verify-order` | `?id=ORDER_UUID` | HTML page | COD order verification (idempotent — only updates pending→verified once) |
 | GET | `/robots.txt` | — | Text | SEO crawl-control |
 | GET | `/sitemap.xml` | — | XML | SEO sitemap with product timestamps |
 
@@ -337,8 +375,9 @@ ALTER TABLE orders ADD CONSTRAINT orders_status_check
 | DELETE | `/api/admin/instagram-feed/:id` | Delete IG feed item |
 | POST | `/api/admin/upload` | Upload image to Cloudflare R2 (S3-compatible [AG]) |
 | GET | `/api/admin/analytics` | Fetch granular page/product view data |
-| GET | `/api/admin/abandoned-carts` | List emails with cart > 24h without purchase |
-| POST | `/api/admin/send-recovery` | Trigger abandoned cart recovery email (Resend) |
+| POST | `/api/admin/abandoned/trigger` | Bulk trigger: sends recovery emails to all carts >24h old (checks email_logs for dedup) |
+| POST | `/api/admin/abandoned/send-single` | **Phase2**: Send recovery email to ONE specific order email (with credit guard + dedup check) |
+| GET | `/api/admin/limits` | Estimate Supabase row usage, email count, storage |
 
 ### Page Routes:
 
@@ -351,6 +390,7 @@ ALTER TABLE orders ADD CONSTRAINT orders_status_check
 | `/about` | About page |
 | `/admin` | Admin panel (Konami code protected) |
 | `/auth/google/callback` | Google OAuth redirect callback |
+| `/verify-order` | COD order verification (idempotent, sends Order Confirmed email once) |
 | `*` | 404 page |
 
 ---
@@ -503,16 +543,27 @@ The system captures identity at the earliest possible intent (Add to Bag).
 - **Logic**: Upserts to `public.users`.
 - **UI Resume**: Uses `sessionStorage['intru_pending_atc']` to resume actions after login.
 
-### Analytics Tracking
-Built for Cloudflare Free Tier limits (zero extra worker invocations).
-- **Page Views**: `incrementView(env, target)` logged in `view_stats`.
-- **Funnel Events**: `logFunnelEvent(env, email, type, meta)` logged in `funnel_events`.
-- **Technique**: Uses `ctx.waitUntil()` to execute database writes after the response is sent to the user.
+### Analytics Tracking (Phase 2 — Zero-TTFB)
+Built for Cloudflare Free Tier limits — response is ALWAYS sent first, DB writes happen after.
+- **Page Views**: `incrementView(env, path)` — uses `c.executionCtx.waitUntil()`, writes to `view_stats` via `increment_view` RPC
+- **Funnel Events**: Client calls `POST /api/analytics/event` → server responds 200 instantly → `waitUntil` writes to `funnel_events`
+- **Admin View**: Analytics tab shows view_stats + funnel_events breakdown (identify/ATC/checkout/payment counts + recent events list)
+- **Technique**: `ctx.waitUntil(promise)` ensures promises run after HTTP response — ZERO TTFB impact guaranteed
 
-### Abandoned Cart Recovery
-- **Logic**: Identifies users who triggered `identify` or `add_to_cart` but NOT `order_placed` within 24 hours.
-- **Trigger**: `POST /api/admin/abandoned/trigger` (Manual trigger in Admin Panel).
-- **Service**: Resend API (noreply@intru.in) with high-converting "Drop Secured" templates.
+### Abandoned Cart Recovery (Phase 2 — Updated)
+- **Logic**: Identifies users who triggered `identify` funnel_event > 24h ago without a paid order.
+- **Manual Trigger**: Admin → Analytics tab → "Trigger Now" button → `POST /api/admin/abandoned/trigger`
+- **Per-Order Override**: Admin → Orders tab → "Send Recovery Email" button → `POST /api/admin/abandoned/send-single` (dedup via email_logs)
+- **Service**: Resend API with credit guard — abandoned_cart is non-priority (blocked at 1200/15d)
+- **⚠️ IMPORTANT — Cloudflare Cron Trigger**: Workers are stateless. For automated hourly execution, add to `wrangler.jsonc`:
+  ```jsonc
+  "triggers": { "crons": ["0 * * * *"] }
+  ```
+  Then add a `scheduled` export handler in `src/index.tsx`:
+  ```typescript
+  export default { fetch: app.fetch, scheduled: async (event, env, ctx) => { /* call trigger logic */ } }
+  ```
+  Without this, abandoned cart runs ONLY when manually triggered.
 
 ### Coupon System
 - **Endpoint**: `POST /api/coupons/validate`

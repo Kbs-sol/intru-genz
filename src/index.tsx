@@ -7,6 +7,8 @@ import {
   buildMagicLineItems, hmacSHA256, supabaseFetch,
   fetchProducts, fetchProductBySlug, fetchProductById, fetchLegalPages,
   sendResendEmail, emailDropSecured, emailCodReceived, emailCodManagerAlert,
+  emailOrderConfirmed, emailCodVerificationRequired,
+  checkResendGuard, logResendEmail,
   fetchStoreSetting, fetchAllStoreSettings, uploadToR2, incrementView, fetchAnalytics, fetchProductRatings
 } from './data'
 import { homePage } from './pages/home'
@@ -314,6 +316,122 @@ app.get('/confirm-order/:id', async (c: Context<{ Bindings: Bindings }>) => {
     </div></body></html>`);
 });
 
+// ============ COD VERIFY ORDER ROUTE — Idempotent [AG Phase2] ============
+// This is the link in the COD verification email.
+// IDEMPOTENCY: Only updates if status is 'pending'. Subsequent visits show the same success screen.
+// RATE LIMITING: The email is sent once (tracked via email_logs). This page itself is safe to revisit.
+
+app.get('/verify-order', async (c: Context<{ Bindings: Bindings }>) => {
+  const id = c.req.query('id');
+  if (!id) return c.redirect('/', 302);
+
+  const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+  const sbSvc = getEnv(c.env, 'SUPABASE_SERVICE_KEY');
+
+  let orderData: any = null;
+  let alreadyVerified = false;
+
+  if (sbUrl && sbSvc) {
+    try {
+      // Fetch current order state
+      const fetchRes = await supabaseFetch(sbUrl, sbSvc, `orders?id=eq.${encodeURIComponent(id)}&select=id,status,customer_name,customer_email,items,total`);
+      if (fetchRes.ok) {
+        const rows = await fetchRes.json() as any[];
+        orderData = rows[0] || null;
+      }
+
+      if (orderData) {
+        if (orderData.status === 'pending') {
+          // Idempotent: only update if still pending
+          await supabaseFetch(sbUrl, sbSvc, `orders?id=eq.${encodeURIComponent(id)}&status=eq.pending`, {
+            method: 'PATCH',
+            body: JSON.stringify({ status: 'verified', updated_at: new Date().toISOString() }),
+          });
+
+          // Send "Order Confirmed" email — happens once since we just changed status from pending
+          const resendKey = getEnv(c.env, 'RESEND_API_KEY');
+          const customerEmail = orderData.customer_email || '';
+          const customerName = orderData.customer_name || '';
+          const items = orderData.items || [];
+          const total = orderData.total || 0;
+
+          if (resendKey && customerEmail) {
+            const guard = await checkResendGuard(sbUrl, sbSvc, 'confirmation');
+            if (guard.allowed) {
+              try {
+                await sendResendEmail(resendKey, customerEmail,
+                  `Order Confirmed — #IN-${id.slice(-8).toUpperCase()}`,
+                  emailOrderConfirmed(id, customerName, items, total)
+                );
+                await logResendEmail(sbUrl, sbSvc, customerEmail, 'order_confirmed', id);
+              } catch (e) { console.error('COD verify email error:', e); }
+            }
+          }
+        } else {
+          alreadyVerified = true;
+        }
+      }
+    } catch (e) { console.error('Verify order error:', e); }
+  }
+
+  const shortId = id.slice(-8).toUpperCase();
+  return c.html(`<!DOCTYPE html><html lang="en"><head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>Order Verified — intru.in</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&family=Archivo+Black&display=swap" rel="stylesheet">
+    <style>
+      body{font-family:'Space Grotesk',sans-serif;background:#fafafa;color:#0a0a0a;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:24px;text-align:center}
+      .card{max-width:420px;width:100%;background:#fff;padding:52px 36px;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 4px 32px rgba(0,0,0,.06)}
+      .icon{width:72px;height:72px;background:#16a34a;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 28px;box-shadow:0 0 32px rgba(22,163,74,.25)}
+      .icon svg{width:32px;height:32px;fill:none;stroke:#fff;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+      h1{font-family:'Archivo Black',sans-serif;font-size:26px;text-transform:uppercase;letter-spacing:1px;margin:0 0 12px}
+      p{font-size:14px;color:#6b7280;line-height:1.7;margin:0 0 28px}
+      .oid{font-family:monospace;font-size:14px;font-weight:700;background:#f9fafb;border:1px solid #e5e7eb;padding:10px 20px;border-radius:6px;margin-bottom:32px;display:inline-block;letter-spacing:1px}
+      .btn{display:inline-block;padding:16px 36px;background:#0a0a0a;color:#fff;text-decoration:none;font-weight:700;letter-spacing:2px;text-transform:uppercase;font-size:12px;border-radius:6px;transition:background .2s}.btn:hover{background:#404040}
+    </style></head>
+    <body><div class="card">
+      <div class="icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+      <h1>${alreadyVerified ? 'Already Verified' : 'Order Verified!'}</h1>
+      <p>${alreadyVerified ? 'Your order was already confirmed. Our team is on it.' : 'Thank you! Your order has been confirmed and moved into our production queue. You\'ll receive a dispatch notification within 24 hours.'}</p>
+      <div class="oid">Order #IN-${shortId}</div><br>
+      <a href="/" class="btn">Back to Store</a>
+    </div></body></html>`);
+});
+
+// ============ ANALYTICS: Funnel Events [AG Phase2] ============
+// Called from the client-side via fetch('/api/analytics/event', {...})
+// Uses waitUntil pattern to ensure zero TTFB impact
+
+app.post('/api/analytics/event', async (c: Context<{ Bindings: Bindings }>) => {
+  const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+  const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY') || getEnv(c.env, 'SUPABASE_ANON_KEY');
+
+  // Always return 200 immediately — analytics must never block UI
+  const body = await c.req.json().catch(() => ({}));
+  const { event: eventType, meta, email, sessionId } = body;
+
+  c.executionCtx.waitUntil(
+    (async () => {
+      if (!sbUrl || !sbKey) return;
+      try {
+        await supabaseFetch(sbUrl, sbKey, 'funnel_events', {
+          method: 'POST',
+          body: JSON.stringify({
+            event_type: eventType || 'unknown',
+            product_id: meta?.pid || null,
+            email: email || null,
+            session_id: sessionId || null,
+            metadata: meta || null,
+            created_at: new Date().toISOString(),
+          }),
+        });
+      } catch (e) { console.error('Funnel event log error:', e); }
+    })()
+  );
+
+  return c.json({ ok: true });
+});
+
 // ============ API: Health ============
 
 app.get('/api/health', (c: Context<{ Bindings: Bindings }>) => {
@@ -534,27 +652,37 @@ app.post('/api/checkout/cod', async (c: Context<{ Bindings: Bindings }>) => {
       }
     }
 
-    // Send Resend emails for COD (send even without orderId — order was logically placed)
+    // Send Resend emails for COD — guarded by credit guard
     const resendKey = getEnv(c.env, 'RESEND_API_KEY');
-    if (resendKey) {
+    if (resendKey && userEmail) {
       const shortId = orderId ? orderId.slice(-8).toUpperCase() : ('COD' + Date.now().toString(36).slice(-5).toUpperCase());
-      // Email to customer
-      try {
-        await sendResendEmail(resendKey, userEmail,
-          `Action Required: Confirm your intru.in COD Order #${shortId}`,
-          emailCodReceived(orderId || shortId, userName, validatedItems, total)
-        );
-      } catch (e) { console.error('Resend customer email error:', e); }
+      const effectiveOrderId = orderId || shortId;
 
-      // Email to manager
-      try {
-        const managerEmail = await fetchStoreSetting(sbUrl, writeKey, 'MANAGER_EMAIL') || 'shop@intru.in';
-        const addrStr = [address.line1, address.line2, address.city, address.state, address.pincode].filter(Boolean).join(', ');
-        await sendResendEmail(resendKey, managerEmail,
-          `NEW COD ORDER - Action Required — ${userName} — Rs.${total}`,
-          emailCodManagerAlert(orderId || shortId, userName, userPhone, addrStr, validatedItems, total)
-        );
-      } catch (e) { console.error('Resend manager email error:', e); }
+      // COD Verify email is priority — always allowed
+      const guardResult = await checkResendGuard(sbUrl, writeKey, 'cod_verify');
+      if (guardResult.allowed) {
+        try {
+          await sendResendEmail(resendKey, userEmail,
+            `Action Required: Verify your intru.in Order #IN-${shortId}`,
+            emailCodVerificationRequired(effectiveOrderId, userName, validatedItems, total)
+          );
+          await logResendEmail(sbUrl, writeKey, userEmail, 'cod_verify', effectiveOrderId);
+        } catch (e) { console.error('COD verify email error:', e); }
+      }
+
+      // Manager alert — non-priority, subject to guard
+      const mgGuard = await checkResendGuard(sbUrl, writeKey, 'manager_alert');
+      if (mgGuard.allowed) {
+        try {
+          const managerEmail = await fetchStoreSetting(sbUrl, writeKey, 'MANAGER_EMAIL') || 'shop@intru.in';
+          const addrStr = [address.line1, address.line2, address.city, address.state, address.pincode].filter(Boolean).join(', ');
+          await sendResendEmail(resendKey, managerEmail,
+            `NEW COD ORDER — ${userName} — Rs.${total}`,
+            emailCodManagerAlert(effectiveOrderId, userName, userPhone, addrStr, validatedItems, total)
+          );
+          await logResendEmail(sbUrl, writeKey, managerEmail, 'manager_alert', effectiveOrderId);
+        } catch (e) { console.error('Manager alert email error:', e); }
+      }
     }
 
     return c.json({ success: true, orderId, total, codFee, ...(dbError ? { dbWarning: dbError } : {}) });
@@ -659,29 +787,37 @@ app.post('/api/payment/verify', async (c: Context<{ Bindings: Bindings }>) => {
       } catch (e) { console.error('Failed to update order:', e); }
     }
 
-    // Send emails for prepaid
+    // Send emails for prepaid — guarded by credit guard
     const resendKey = getEnv(c.env, 'RESEND_API_KEY');
     if (resendKey && customerEmail) {
-      // 1. Email to customer (Drop Secured)
-      try {
-        await sendResendEmail(resendKey, customerEmail,
-          'Drop Secured! — intru.in',
-          emailDropSecured(razorpay_order_id, orderItems, orderTotal)
-        );
-      } catch (e) { console.error('Resend customer email error:', e); }
+      // 1. Email to customer — Order Confirmed (priority, always sent)
+      const confGuard = await checkResendGuard(sbUrl, sbKey, 'confirmation');
+      if (confGuard.allowed) {
+        try {
+          await sendResendEmail(resendKey, customerEmail,
+            `Order Confirmed — #IN-${razorpay_order_id.slice(-8).toUpperCase()} | intru.in`,
+            emailOrderConfirmed(razorpay_order_id, customerName, orderItems, orderTotal)
+          );
+          await logResendEmail(sbUrl, sbKey, customerEmail, 'order_confirmed', razorpay_order_id);
+        } catch (e) { console.error('Order confirmed email error:', e); }
+      }
 
-      // 2. Email to manager (Payment Captured Alert)
-      try {
-        const managerEmail = await fetchStoreSetting(sbUrl, sbKey, 'MANAGER_EMAIL') || 'shop@intru.in';
-        const paymentData = {
-          id: razorpay_payment_id,
-          order_id: razorpay_order_id,
-          amount: orderTotal * 100, // in paise for the helper compatibility
-          email: customerEmail,
-          currency: 'INR'
-        };
-        await emailAdminPaymentAlert(resendKey, managerEmail, paymentData);
-      } catch (e) { console.error('Resend manager alert error:', e); }
+      // 2. Email to manager (Payment Alert) — non-priority, subject to guard
+      const mgGuard = await checkResendGuard(sbUrl, sbKey, 'manager_alert');
+      if (mgGuard.allowed) {
+        try {
+          const managerEmail = await fetchStoreSetting(sbUrl, sbKey, 'MANAGER_EMAIL') || 'shop@intru.in';
+          const paymentData = {
+            id: razorpay_payment_id,
+            order_id: razorpay_order_id,
+            amount: orderTotal * 100,
+            email: customerEmail,
+            currency: 'INR'
+          };
+          await emailAdminPaymentAlert(resendKey, managerEmail, paymentData);
+          await logResendEmail(sbUrl, sbKey, managerEmail, 'manager_alert', razorpay_order_id);
+        } catch (e) { console.error('Manager alert email error:', e); }
+      }
     }
 
     return c.json({
@@ -963,15 +1099,6 @@ app.post('/api/admin/upload', async (c: Context<{ Bindings: Bindings }>) => {
     return c.json({ success: true, url });
   } catch (e: any) {
     return c.json({ error: e.message || 'Upload failed' }, 500);
-  }
-})
-
-app.get('/api/admin/analytics', async (c: Context<{ Bindings: Bindings }>) => {
-  try {
-    const data = await fetchAnalytics(c.env);
-    return c.json({ analytics: data });
-  } catch (e: any) {
-    return c.json({ error: e.message || 'Failed to fetch analytics' }, 500);
   }
 })
 
@@ -1376,6 +1503,58 @@ app.post('/api/ai/chat', async (c: Context<{ Bindings: Bindings }>) => {
   }
 
   return c.json({ error: 'Stylist currently busy on a shoot. Try again later.', debug: debugInfo }, 503);
+});
+
+// ============ ADMIN: Per-Cart Abandoned Cart Trigger [AG Phase2] ============
+// Manual "Send Now" button per order in admin
+
+app.post('/api/admin/abandoned/send-single', async (c: Context<{ Bindings: Bindings }>) => {
+  const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+  const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY');
+  const resendKey = getEnv(c.env, 'RESEND_API_KEY');
+
+  if (!sbUrl || !sbKey || !resendKey) return c.json({ error: 'Services not configured' }, 500);
+
+  try {
+    const { orderId, email } = await c.req.json();
+    if (!orderId || !email) return c.json({ error: 'orderId and email required' }, 400);
+
+    // Resend Credit Guard — abandoned_cart is non-priority
+    const guard = await checkResendGuard(sbUrl, sbKey, 'abandoned_cart');
+    if (!guard.allowed) {
+      return c.json({ error: `Email quota exceeded (${guard.total}/1200 in 15 days). Only priority emails allowed.` }, 429);
+    }
+
+    // Check if already sent recently (prevent duplicates from rapid clicks)
+    const logCheck = await supabaseFetch(sbUrl, sbKey, `email_logs?email=eq.${encodeURIComponent(email)}&type=eq.abandoned_cart&order_id=eq.${encodeURIComponent(orderId)}`);
+    if (logCheck.ok) {
+      const existing = await logCheck.json() as any[];
+      if (existing.length > 0) {
+        return c.json({ error: 'Recovery email already sent for this order' }, 409);
+      }
+    }
+
+    const recoveryHtml = `
+      <div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:540px;margin:0 auto;background:#fff;border:1px solid #e5e7eb">
+        <div style="background:#0a0a0a;padding:36px;text-align:center">
+          <h1 style="color:#fff;font-size:20px;margin:0;letter-spacing:4px;text-transform:uppercase">YOUR DROP IS WAITING</h1>
+        </div>
+        <div style="padding:36px;text-align:center">
+          <p style="font-size:16px;color:#0a0a0a;margin:0 0 16px;font-weight:700">Still thinking?</p>
+          <p style="font-size:14px;color:#525252;line-height:1.7;margin:0 0 32px">You left something in your bag. Our drops are limited — once they're gone, they never restock. Don't miss out.</p>
+          <a href="https://intru.in" style="background:#0a0a0a;color:#fff;padding:18px 40px;text-decoration:none;font-weight:700;letter-spacing:2px;text-transform:uppercase;font-size:13px;border-radius:4px;display:inline-block">SECURE MY DROP →</a>
+          <p style="font-size:11px;color:#9ca3af;margin-top:24px">Use code <strong>BACKFORIT</strong> at checkout for a surprise.</p>
+        </div>
+        <div style="background:#f5f5f5;padding:20px;text-align:center;font-size:11px;color:#9ca3af">
+          intru.in — Limited Drops. No Restocks.
+        </div>
+      </div>`;
+
+    await sendResendEmail(resendKey, email, "Your Intru drop is waiting — don't miss out", recoveryHtml);
+    await logResendEmail(sbUrl, sbKey, email, 'abandoned_cart', orderId);
+
+    return c.json({ success: true });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
 });
 
 // ============ ADMIN: LIMITS & USAGE [AG] ============
