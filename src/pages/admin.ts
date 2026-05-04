@@ -103,11 +103,11 @@ export function adminPage(opts: {
 <div class="alog" id="alogin">
 <h1>Admin Panel</h1>
 <p>Enter the admin password to continue.</p>
-<form onsubmit="event.preventDefault();doLogin()">
+<form onsubmit="doLogin(); return false;">
 <input type="password" class="ainp" id="apwd" placeholder="Password" autocomplete="off">
 <button type="submit" class="abtn">Authenticate</button>
 </form>
-<p class="aerr" id="aerr">Incorrect password. Try again.</p>
+<p class="aerr" id="aerr" style="display:none"></p>
 </div>
 
 <div class="adsh" id="adsh">
@@ -535,12 +535,22 @@ var prods=${pj};var legals=${lj};var curLeg=0;var adminToken=null;
 
 function doLogin(){
   var pwd=document.getElementById('apwd').value;
+  var errEl=document.getElementById('aerr');
   fetch('/api/admin/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pwd})})
-  .then(function(r){return r.json()}).then(function(d){
-    if(d.success){adminToken=pwd;sessionStorage.setItem('iadm','1');sessionStorage.setItem('iadm_t',pwd);
-      document.getElementById('alogin').style.display='none';document.getElementById('adsh').style.display='block';initAdmin()}
-    else{document.getElementById('aerr').style.display='block';document.getElementById('apwd').value='';document.getElementById('apwd').focus()}
-  }).catch(function(){document.getElementById('aerr').style.display='block'});
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    if(d.success){
+      adminToken=pwd;sessionStorage.setItem('iadm','1');sessionStorage.setItem('iadm_t',pwd);
+      document.getElementById('alogin').style.display='none';document.getElementById('adsh').style.display='block';initAdmin();
+    } else {
+      errEl.style.display='block';
+      errEl.textContent=d.error||'Invalid password';
+      document.getElementById('apwd').value='';document.getElementById('apwd').focus();
+    }
+  }).catch(function(e){
+    errEl.style.display='block';
+    errEl.textContent='Connection error: '+e.message;
+  });
 }
 function doLogout(){sessionStorage.removeItem('iadm');sessionStorage.removeItem('iadm_t');location.reload()}
 if(sessionStorage.getItem('iadm')==='1'){document.addEventListener('DOMContentLoaded',function(){

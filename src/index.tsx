@@ -512,6 +512,7 @@ app.post('/api/checkout', async (c: Context<{ Bindings: Bindings }>) => {
         productId: product.id, name: product.name, size: item.size,
         quantity: qty, unitPrice: product.price, lineTotal,
         image: product.images[0] || '', slug: product.slug, description: product.description,
+        category: (product as any).category || '',
       });
     }
 
@@ -657,7 +658,8 @@ app.post('/api/checkout/cod', async (c: Context<{ Bindings: Bindings }>) => {
       validatedItems.push({
         productId: product.id, name: product.name, size: item.size,
         quantity: qty, unitPrice: product.price, lineTotal,
-        image: product.images[0] || '', slug: product.slug,
+        image: product.images[0] || '', slug: product.slug, description: product.description,
+        category: (product as any).category || '',
       });
     }
 
@@ -1215,7 +1217,8 @@ app.post('/api/auth/magic-link', async (c: Context<{ Bindings: Bindings }>) => {
 
 // ============ ADMIN SECURITY MIDDLEWARE [AG] ============
 app.use('/api/admin/*', async (c: Context<{ Bindings: Bindings }>, next: Next) => {
-  if (c.req.path === '/api/admin/auth') return await next();
+  const path = c.req.path.replace(/\/+$/, '');
+  if (path === '/api/admin/auth') return await next();
   const token = c.req.header('x-admin-token');
   const adminPwd = getEnv(c.env, 'ADMIN_PASSWORD', STORE_CONFIG.adminPassword);
   if (!token || token !== adminPwd) {
