@@ -515,9 +515,38 @@ app.post('/api/checkout', async (c: Context<{ Bindings: Bindings }>) => {
       });
     }
 
+    // ── Combo discount (server-side) ─────────────────────────
+    let comboDiscount = 0;
+    let appliedComboId: string | null = null;
+    try {
+      const comboRes = await supabaseFetch(sbUrl, sbKey, 'combos?is_active=eq.true&order=discount_value.desc');
+      if (comboRes.ok) {
+        const combos = await comboRes.json() as any[];
+        const distinctProducts = new Set(validatedItems.map((i: any) => i.productId)).size;
+        const cartCategories = new Set(validatedItems.map((i: any) => (i.category || '').toLowerCase()));
+        const cartProductIds = new Set(validatedItems.map((i: any) => i.productId));
+        for (const combo of combos) {
+          if (distinctProducts < combo.min_products) continue;
+          if (combo.min_subtotal && subtotal < combo.min_subtotal) continue;
+          if (combo.required_product_ids?.length) {
+            if (!combo.required_product_ids.every((pid: string) => cartProductIds.has(pid))) continue;
+          }
+          if (combo.required_categories?.length) {
+            if (!combo.required_categories.some((cat: string) => cartCategories.has(cat.toLowerCase()))) continue;
+          }
+          let disc = combo.discount_type === 'percent'
+            ? subtotal * (combo.discount_value / 100)
+            : combo.discount_value;
+          disc = Math.min(disc, subtotal);
+          if (disc > comboDiscount) { comboDiscount = disc; appliedComboId = combo.id; }
+        }
+      }
+    } catch (e) { console.error('Combo check error:', e); }
+    comboDiscount = Math.round(comboDiscount * 100) / 100;
+
     // Prepaid = free shipping always
     const shipping = 0;
-    const total = subtotal + shipping;
+    const total = Math.max(0, subtotal - comboDiscount) + shipping;
 
     const rzpKeyId = getEnv(c.env, 'RAZORPAY_KEY_ID');
     const rzpKeySecret = getEnv(c.env, 'RAZORPAY_KEY_SECRET');
@@ -550,9 +579,24 @@ app.post('/api/checkout', async (c: Context<{ Bindings: Bindings }>) => {
                 customer_phone: userPhone,
                 shipping_address: shippingAddress,
                 status: 'pending', payment_method: 'prepaid',
+                combo_discount: comboDiscount,
+                applied_combo_id: appliedComboId,
                 created_at: new Date().toISOString(),
               }),
             });
+            // Increment apply_count for the applied combo (read-then-write to avoid overwrite)
+            if (appliedComboId) {
+              supabaseFetch(sbUrl, writeKey, `combos?id=eq.${appliedComboId}&select=apply_count`)
+                .then(async r => {
+                  if (!r.ok) return;
+                  const rows = await r.json() as any[];
+                  const current = rows?.[0]?.apply_count ?? 0;
+                  return supabaseFetch(sbUrl, writeKey, `combos?id=eq.${appliedComboId}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ apply_count: current + 1 }),
+                  });
+                }).catch(() => {});
+            }
             if (!orderRes.ok) console.error('Prepaid order insert failed:', orderRes.status, await orderRes.text());
           } catch (e) { console.error('Failed to store order:', e); }
         }
@@ -563,6 +607,7 @@ app.post('/api/checkout', async (c: Context<{ Bindings: Bindings }>) => {
 
     return c.json({
       success: true, items: validatedItems, subtotal, shipping, total,
+      comboDiscount, appliedComboId,
       currency: 'INR', razorpayOrderId,
       prefill: { email: userEmail, contact: '' },
     });
@@ -616,9 +661,38 @@ app.post('/api/checkout/cod', async (c: Context<{ Bindings: Bindings }>) => {
       });
     }
 
+    // ── Combo discount (server-side) ─────────────────────────
+    let comboDiscountCod = 0;
+    let appliedComboIdCod: string | null = null;
+    try {
+      const comboRes = await supabaseFetch(sbUrl, sbKey, 'combos?is_active=eq.true&order=discount_value.desc');
+      if (comboRes.ok) {
+        const combos = await comboRes.json() as any[];
+        const distinctProducts = new Set(validatedItems.map((i: any) => i.productId)).size;
+        const cartCategories = new Set(validatedItems.map((i: any) => (i.category || '').toLowerCase()));
+        const cartProductIds = new Set(validatedItems.map((i: any) => i.productId));
+        for (const combo of combos) {
+          if (distinctProducts < combo.min_products) continue;
+          if (combo.min_subtotal && subtotal < combo.min_subtotal) continue;
+          if (combo.required_product_ids?.length) {
+            if (!combo.required_product_ids.every((pid: string) => cartProductIds.has(pid))) continue;
+          }
+          if (combo.required_categories?.length) {
+            if (!combo.required_categories.some((cat: string) => cartCategories.has(cat.toLowerCase()))) continue;
+          }
+          let disc = combo.discount_type === 'percent'
+            ? subtotal * (combo.discount_value / 100)
+            : combo.discount_value;
+          disc = Math.min(disc, subtotal);
+          if (disc > comboDiscountCod) { comboDiscountCod = disc; appliedComboIdCod = combo.id; }
+        }
+      }
+    } catch (e) { console.error('COD combo check error:', e); }
+    comboDiscountCod = Math.round(comboDiscountCod * 100) / 100;
+
     const codFee = 99;
     const shipping = 0;
-    const total = subtotal + shipping + codFee;
+    const total = Math.max(0, subtotal - comboDiscountCod) + shipping + codFee;
 
     let orderId = '';
     let dbError = '';
@@ -633,6 +707,8 @@ app.post('/api/checkout/cod', async (c: Context<{ Bindings: Bindings }>) => {
           customer_phone: userPhone,
           status: 'pending', payment_method: 'cod', cod_fee: codFee,
           shipping_address: address,
+          combo_discount: comboDiscountCod,
+          applied_combo_id: appliedComboIdCod,
           created_at: new Date().toISOString(),
         };
         const res = await supabaseFetch(sbUrl, writeKey, 'orders', {
@@ -642,6 +718,19 @@ app.post('/api/checkout/cod', async (c: Context<{ Bindings: Bindings }>) => {
         if (res.ok) {
           const rows = await res.json() as any[];
           orderId = rows?.[0]?.id || '';
+          // Increment apply_count for the applied combo
+          if (appliedComboIdCod) {
+            supabaseFetch(sbUrl, writeKey, `combos?id=eq.${appliedComboIdCod}&select=apply_count`)
+              .then(async r => {
+                if (!r.ok) return;
+                const crows = await r.json() as any[];
+                const current = crows?.[0]?.apply_count ?? 0;
+                return supabaseFetch(sbUrl, writeKey, `combos?id=eq.${appliedComboIdCod}`, {
+                  method: 'PATCH',
+                  body: JSON.stringify({ apply_count: current + 1 }),
+                });
+              }).catch(() => {});
+          }
         } else {
           dbError = await res.text();
           console.error('Supabase order insert failed:', res.status, dbError);
@@ -685,7 +774,7 @@ app.post('/api/checkout/cod', async (c: Context<{ Bindings: Bindings }>) => {
       }
     }
 
-    return c.json({ success: true, orderId, total, codFee, ...(dbError ? { dbWarning: dbError } : {}) });
+    return c.json({ success: true, orderId, total, codFee, comboDiscount: comboDiscountCod, appliedComboId: appliedComboIdCod, ...(dbError ? { dbWarning: dbError } : {}) });
   } catch (e: any) {
     return c.json({ error: e.message || 'COD checkout failed' }, 500);
   }
@@ -1259,6 +1348,136 @@ app.post('/api/coupons/validate', async (c: Context<{ Bindings: Bindings }>) => 
       }
     }
     return c.json({ error: 'Validation failed' }, 500);
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+// ============ COMBOS: Public Validation ============
+
+app.post('/api/combos/validate', async (c: Context<{ Bindings: Bindings }>) => {
+  try {
+    const { items } = await c.req.json();
+    if (!items || !Array.isArray(items) || items.length === 0)
+      return c.json({ combo: null, discount: 0 });
+
+    const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+    const sbKey = getEnv(c.env, 'SUPABASE_ANON_KEY') || getEnv(c.env, 'SUPABASE_SERVICE_KEY');
+    if (!sbUrl || !sbKey) return c.json({ combo: null, discount: 0 });
+
+    // fetch all active combos
+    const res = await supabaseFetch(sbUrl, sbKey, 'combos?is_active=eq.true&order=discount_value.desc');
+    if (!res.ok) return c.json({ combo: null, discount: 0 });
+    const combos = await res.json() as any[];
+
+    // Compute cart subtotal from items passed (client-side prices already validated server-side at checkout)
+    const subtotal: number = items.reduce((sum: number, i: any) => sum + (Number(i.unitPrice || 0) * Number(i.quantity || 1)), 0);
+    const distinctProducts = new Set(items.map((i: any) => i.productId)).size;
+    const cartCategories = new Set(items.map((i: any) => (i.category || '').toLowerCase()));
+    const cartProductIds = new Set(items.map((i: any) => i.productId));
+
+    let bestCombo: any = null;
+    let bestDiscount = 0;
+
+    for (const combo of combos) {
+      // min_products check
+      if (distinctProducts < combo.min_products) continue;
+      // min_subtotal check
+      if (combo.min_subtotal && subtotal < combo.min_subtotal) continue;
+      // required_product_ids check
+      if (combo.required_product_ids && Array.isArray(combo.required_product_ids) && combo.required_product_ids.length > 0) {
+        const allPresent = combo.required_product_ids.every((pid: string) => cartProductIds.has(pid));
+        if (!allPresent) continue;
+      }
+      // required_categories check
+      if (combo.required_categories && Array.isArray(combo.required_categories) && combo.required_categories.length > 0) {
+        const anyMatch = combo.required_categories.some((cat: string) => cartCategories.has(cat.toLowerCase()));
+        if (!anyMatch) continue;
+      }
+      // calculate discount
+      let disc = combo.discount_type === 'percent'
+        ? subtotal * (combo.discount_value / 100)
+        : combo.discount_value;
+      disc = Math.min(disc, subtotal); // never exceed subtotal
+      if (disc > bestDiscount) {
+        bestDiscount = disc;
+        bestCombo = combo;
+      }
+    }
+
+    return c.json({ combo: bestCombo, discount: Math.round(bestDiscount * 100) / 100 });
+  } catch (e: any) {
+    return c.json({ combo: null, discount: 0, error: e.message });
+  }
+});
+
+// ============ ADMIN: Combo CRUD ============
+
+app.get('/api/admin/combos', async (c: Context<{ Bindings: Bindings }>) => {
+  const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+  const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY') || getEnv(c.env, 'SUPABASE_ANON_KEY');
+  if (!sbUrl || !sbKey) return c.json({ error: 'Database not configured' }, 500);
+  try {
+    const res = await supabaseFetch(sbUrl, sbKey, 'combos?select=*&order=created_at.desc');
+    if (res.ok) return c.json({ success: true, combos: await res.json() });
+    return c.json({ error: 'Failed to fetch combos' }, 500);
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+app.post('/api/admin/combos', async (c: Context<{ Bindings: Bindings }>) => {
+  const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+  const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY');
+  if (!sbUrl || !sbKey) return c.json({ error: 'Database not configured' }, 500);
+  try {
+    const body = await c.req.json();
+    const { name, description, discount_type, discount_value, min_products, required_product_ids, required_categories, min_subtotal, is_active } = body;
+    if (!name || !discount_type || discount_value === undefined)
+      return c.json({ error: 'name, discount_type, discount_value required' }, 400);
+    const payload: any = {
+      name,
+      description: description || '',
+      discount_type,
+      discount_value: Number(discount_value),
+      min_products: Number(min_products) || 2,
+      required_product_ids: required_product_ids && required_product_ids.length ? required_product_ids : null,
+      required_categories: required_categories && required_categories.length ? required_categories : null,
+      min_subtotal: min_subtotal ? Number(min_subtotal) : null,
+      is_active: is_active !== false,
+      apply_count: 0,
+      created_at: new Date().toISOString(),
+    };
+    const res = await supabaseFetch(sbUrl, sbKey, 'combos', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      headers: { 'Prefer': 'return=representation' } as any,
+    });
+    if (res.ok) return c.json({ success: true });
+    return c.json({ error: await res.text() }, 500);
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+app.patch('/api/admin/combos/:id', async (c: Context<{ Bindings: Bindings }>) => {
+  const id = c.req.param('id');
+  const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+  const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY');
+  if (!sbUrl || !sbKey) return c.json({ error: 'Database not configured' }, 500);
+  try {
+    const body = await c.req.json();
+    const res = await supabaseFetch(sbUrl, sbKey, `combos?id=eq.${encodeURIComponent(id)}`, {
+      method: 'PATCH', body: JSON.stringify(body),
+    });
+    if (res.ok) return c.json({ success: true });
+    return c.json({ error: await res.text() }, 500);
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+app.delete('/api/admin/combos/:id', async (c: Context<{ Bindings: Bindings }>) => {
+  const id = c.req.param('id');
+  const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+  const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY');
+  if (!sbUrl || !sbKey) return c.json({ error: 'Database not configured' }, 500);
+  try {
+    const res = await supabaseFetch(sbUrl, sbKey, `combos?id=eq.${encodeURIComponent(id)}`, { method: 'DELETE' });
+    if (res.ok) return c.json({ success: true });
+    return c.json({ error: await res.text() }, 500);
   } catch (e: any) { return c.json({ error: e.message }, 500); }
 });
 

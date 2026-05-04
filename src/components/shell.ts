@@ -216,6 +216,12 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 .cpn-btn{background:var(--bk);color:var(--wh);border:none;padding:8px 16px;font-size:9px;font-weight:800;letter-spacing:1px;text-transform:uppercase;border-radius:4px}
 .cpn-tag{display:inline-flex;align-items:center;gap:6px;background:var(--g100);padding:4px 10px;border-radius:100px;font-size:10px;font-weight:700;margin-top:8px}
 .cpn-rem{cursor:pointer;opacity:0.6}.cpn-rem:hover{opacity:1}
+/* Combo-buy banner */
+.combo-banner{margin:0 24px 0;border-radius:8px;padding:12px 16px;display:none;align-items:center;gap:10px;font-size:12px;font-weight:700;background:linear-gradient(135deg,#0a0a0a 0%,#1c1c1c 100%);color:#fff;border:1px solid rgba(255,255,255,0.1);animation:fadeIn .4s var(--ease)}
+.combo-banner.visible{display:flex}
+.combo-banner i{font-size:16px;color:#eab308;flex-shrink:0}
+.combo-banner .combo-name{flex:1;line-height:1.3}
+.combo-badge{background:#eab308;color:#0a0a0a;font-size:9px;font-weight:900;padding:3px 8px;border-radius:100px;letter-spacing:.5px;white-space:nowrap;flex-shrink:0}
 .ftr{background:var(--bk);color:var(--wh);padding:80px 24px 40px}
 .ftri{max-width:1440px;margin:0 auto;display:grid;grid-template-columns:1.5fr .8fr .8fr .8fr;gap:64px}
 .ftrb h3{font-family:var(--head);font-size:24px;margin-bottom:16px;letter-spacing:-.04em;text-transform:uppercase}.ftrb p{color:var(--g400);font-size:14px;line-height:1.7;max-width:320px}
@@ -353,9 +359,17 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
   </div>
 </div>
 
+<!-- Combo-buy banner -->
+<div class="combo-banner" id="comboBanner">
+  <i class="fas fa-fire"></i>
+  <div class="combo-name" id="comboBannerText">Combo Applied!</div>
+  <span class="combo-badge" id="comboBadge"></span>
+</div>
+
 <div class="cftr" id="cf" style="display:none">
 <div id="fsProgress" style="display:none;font-size:11px;font-weight:600;padding:10px 16px;border-radius:6px;margin-bottom:12px;text-align:center;border:1px solid var(--g200);background:var(--g50)"></div>
 <div class="cst"><span>Subtotal</span><span id="csub">${STORE_CONFIG.currencySymbol}0</span></div>
+<div id="comboDiscRow" style="display:none" class="cst"><span style="color:#16a34a;display:flex;align-items:center;gap:4px"><i class="fas fa-fire" style="color:#eab308;font-size:10px"></i><span id="comboDiscLabel">Combo Discount</span></span><span id="comboDiscAmt" style="color:#16a34a;font-weight:700"></span></div>
 <div class="csh"><span>Shipping</span><span id="cshp">Calculated</span></div>
 <div class="ctl"><span>Total</span><span id="ctot">${STORE_CONFIG.currencySymbol}0</span></div>
 <div style="text-align:center"><span class="trust-badge"><i class="fas fa-shield-halved"></i> 100% Secure Checkout</span></div>
@@ -734,7 +748,7 @@ function startCartTimer(){
 /* ====== CART ENGINE ====== */
 var cart=JSON.parse(localStorage.getItem('ic')||'[]');
 
-function saveCart(){localStorage.setItem('ic',JSON.stringify(cart));renderCart()}
+function saveCart(){localStorage.setItem('ic',JSON.stringify(cart));renderCart();checkCombos();}
 
 function addToCart(productId,size,qty){
   if(!productId||!size){toast('Please select a size','err');return false}
@@ -802,6 +816,74 @@ function updateQty(productId,size,delta){
   if(item.q>10){item.q=10;toast('Max 10 per item','err')}saveCart();
 }
 
+/* ====== COMBO SYSTEM ====== */
+var activeCombo = null;      // { id, name, discount_type, discount_value, ... }
+var activeComboDiscount = 0; // computed discount in INR
+var _comboCheckTimer = null;
+
+function checkCombos() {
+  // Debounce: only fire 600ms after last cart change
+  if (_comboCheckTimer) clearTimeout(_comboCheckTimer);
+  _comboCheckTimer = setTimeout(_doComboCheck, 600);
+}
+
+function _doComboCheck() {
+  if (!cart.length) { _clearCombo(); return; }
+  // Build items array with unitPrice from PM
+  var items = cart.map(function(i){
+    var p = PM[i.p];
+    return { productId: i.p, quantity: i.q, unitPrice: p ? p.p : 0, category: p ? (p.cat || '') : '' };
+  });
+  fetch('/api/combos/validate', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ items: items })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    if (d.combo && d.discount > 0) {
+      activeCombo = d.combo;
+      activeComboDiscount = d.discount;
+      _showComboBanner();
+    } else {
+      _clearCombo();
+    }
+    renderCartTotals();
+  })
+  .catch(function(){ _clearCombo(); renderCartTotals(); });
+}
+
+var _comboPrevId = null; // track when a NEW combo fires (for toast)
+
+function _showComboBanner() {
+  var banner = document.getElementById('comboBanner');
+  var text   = document.getElementById('comboBannerText');
+  var badge  = document.getElementById('comboBadge');
+  if (!banner) return;
+  var discStr = activeCombo.discount_type === 'percent'
+    ? activeCombo.discount_value + '% OFF'
+    : fmt(activeCombo.discount_value) + ' OFF';
+  if (text)  text.textContent  = activeCombo.name + ' — combo applied!';
+  if (badge) badge.textContent = discStr;
+  /* Pulse + toast only when the combo changes (new combo or first apply) */
+  if (_comboPrevId !== activeCombo.id) {
+    _comboPrevId = activeCombo.id;
+    toast('\uD83D\uDD25 Combo deal activated: save ' + discStr + '!', 'ok-green');
+    banner.style.animation = 'none';
+    void banner.offsetWidth; /* reflow to re-trigger */
+    banner.style.animation = '';
+  }
+  banner.classList.add('visible');
+}
+
+function _clearCombo() {
+  if (activeCombo) _comboPrevId = null; /* reset so next apply toasts again */
+  activeCombo = null;
+  activeComboDiscount = 0;
+  var banner = document.getElementById('comboBanner');
+  if (banner) banner.classList.remove('visible');
+}
+
 /* ====== COUPON SYSTEM [AG v15.2] ====== */
 var appliedCoupon = null;
 
@@ -845,22 +927,39 @@ function removeCoupon(){
 
 function getCartTotals(){
   var sub=0;cart.forEach(function(i){var p=PM[i.p];if(p)sub+=p.p*i.q});
-  var discount = 0;
+  // coupon discount
+  var couponDisc = 0;
   if(appliedCoupon){
-    if(appliedCoupon.type === 'percent') discount = sub * (appliedCoupon.value / 100);
-    else discount = appliedCoupon.value;
+    if(appliedCoupon.type === 'percent') couponDisc = sub * (appliedCoupon.value / 100);
+    else couponDisc = appliedCoupon.value;
   }
+  // combo discount (real-time from API)
+  var comboDisc = activeComboDiscount || 0;
+  var discount = couponDisc + comboDisc;
   var discountedSub = Math.max(0, sub - discount);
   var codFee=payMode==='cod'?99:0;
-  var sh=0; 
-  return{subtotal:sub, discount:discount, discountedSub:discountedSub, shipping:sh, codFee:codFee, total:discountedSub+sh+codFee};
+  var sh=0;
+  return{subtotal:sub, couponDiscount:couponDisc, comboDiscount:comboDisc, discount:discount, discountedSub:discountedSub, shipping:sh, codFee:codFee, total:discountedSub+sh+codFee};
 }
 
 function renderCartTotals(){
   var t=getCartTotals();
   document.getElementById('csub').textContent=fmt(t.subtotal);
-  if(t.discount > 0){
-    document.getElementById('csub').innerHTML = '<span style="text-decoration:line-through;opacity:0.5;margin-right:8px">' + fmt(t.subtotal) + '</span>' + fmt(t.discountedSub);
+  if(t.couponDiscount > 0){
+    document.getElementById('csub').innerHTML = '<span style="text-decoration:line-through;opacity:0.5;margin-right:8px">' + fmt(t.subtotal) + '</span>' + fmt(t.subtotal - t.couponDiscount);
+  }
+  // Combo discount row
+  var comboRow = document.getElementById('comboDiscRow');
+  var comboAmt = document.getElementById('comboDiscAmt');
+  var comboLbl = document.getElementById('comboDiscLabel');
+  if(comboRow) {
+    if(t.comboDiscount > 0) {
+      comboRow.style.display = 'flex';
+      if(comboAmt) comboAmt.textContent = '−' + fmt(t.comboDiscount);
+      if(comboLbl) comboLbl.textContent = activeCombo ? activeCombo.name : 'Combo Discount';
+    } else {
+      comboRow.style.display = 'none';
+    }
   }
   
   var shText=payMode==='prepaid'?'FREE':'';
@@ -1252,6 +1351,15 @@ function showSuccessUI(orderId, type){
   html += '<div style="background:rgba(255,255,255,0.05);padding:20px;border-radius:12px;margin-bottom:32px;border:1px solid rgba(255,255,255,0.1)">';
   html += '<div style="font-size:10px;text-transform:uppercase;letter-spacing:2px;opacity:0.5;margin-bottom:4px">Order ID</div>';
   html += '<div style="font-family:monospace;font-size:20px;letter-spacing:1px;font-weight:700">'+shortId+'</div>';
+  /* Show combo savings if a combo was applied */
+  if (activeCombo && activeComboDiscount > 0) {
+    var discSaved = activeCombo.discount_type === 'percent'
+      ? activeCombo.discount_value + '% (' + fmt(activeComboDiscount) + ')'
+      : fmt(activeComboDiscount);
+    html += '<div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.1);font-size:11px;color:#fcd34d;font-weight:700;letter-spacing:.5px">';
+    html += '<i class="fas fa-fire" style="margin-right:6px"></i>COMBO SAVINGS: ' + discSaved + ' applied — ' + activeCombo.name;
+    html += '</div>';
+  }
   html += '</div>';
   
   html += '<button onclick="location.reload()" style="width:100%;padding:18px;background:#fff;color:#000;border:none;font-weight:700;letter-spacing:2px;text-transform:uppercase;border-radius:8px;cursor:pointer">Continue Shopping</button>';

@@ -117,6 +117,7 @@ export function adminPage(opts: {
 <button class="atab" onclick="showTab(this,'tana')">Analytics</button>
 <button class="atab" onclick="showTab(this,'tprod')">Products</button>
 <button class="atab" onclick="showTab(this,'tcpn')">🏷️ Coupons</button>
+<button class="atab" onclick="showTab(this,'tcombo')">🔥 Combos</button>
 <button class="atab" onclick="showTab(this,'tleg')">Legal</button>
 <button class="atab" onclick="showTab(this,'tsize')">Size Chart</button>
 <button class="atab" onclick="showTab(this,'tig')">IG Feed</button>
@@ -241,6 +242,72 @@ export function adminPage(opts: {
 <table class="otbl" style="min-width:700px">
 <thead><tr><th>Code</th><th>Type</th><th>Value</th><th>Min Total</th><th>Uses</th><th>Expiry</th><th>Status</th><th>Actions</th></tr></thead>
 <tbody id="cpnTbody"><tr><td colspan="8" style="text-align:center;padding:40px;color:var(--g400)">Loading...</td></tr></tbody>
+</table>
+</div>
+</div>
+
+<!-- Combo-Buy Tab -->
+<div class="apan" id="tcombo">
+<div class="sett-card" style="margin-bottom:20px;background:var(--g50)">
+<h4>🔥 Combo-Buy Deals</h4>
+<p>Create smart multi-product discount deals. When customers add qualifying products, a discount fires automatically — no coupon code needed. The best eligible combo wins (highest discount value).</p>
+</div>
+
+<!-- Create / Edit Combo form -->
+<div class="sett-card" style="margin-bottom:20px" id="comboFormCard">
+<h4 id="comboFormTitle">Create New Combo</h4>
+<div class="apc-row">
+  <div style="flex:2"><label>Combo Name <span style="font-weight:400;font-size:10px;color:var(--g400)">(shown in cart & admin)</span></label><input type="text" id="comboName" class="ainp" style="margin:0" placeholder="Any 2 Tees Deal"></div>
+  <div style="flex:1"><label>Status</label>
+  <select id="comboActive" class="ainp" style="margin:0">
+    <option value="true">Active</option>
+    <option value="false">Inactive</option>
+  </select></div>
+</div>
+<div class="apc-row">
+  <div style="flex:2"><label>Description <span style="font-weight:400;font-size:10px;color:var(--g400)">(internal note)</span></label><input type="text" id="comboDesc" class="ainp" style="margin:0" placeholder="Buy any 2 items and save 10%"></div>
+</div>
+<div class="apc-row">
+  <div style="flex:1"><label>Discount Type</label>
+  <select id="comboDiscType" class="ainp" style="margin:0" onchange="updateComboValueLabel()">
+    <option value="percent">Percentage (%)</option>
+    <option value="fixed">Fixed Amount (Rs.)</option>
+  </select></div>
+  <div style="flex:1"><label id="comboValueLabel">Discount Value (%)</label><input type="number" id="comboDiscValue" class="ainp" style="margin:0" placeholder="10" min="0"></div>
+  <div style="flex:1"><label>Min. Products in Cart</label><input type="number" id="comboMinProducts" class="ainp" style="margin:0" placeholder="2" min="2" value="2"></div>
+</div>
+<div class="apc-row">
+  <div style="flex:1"><label>Min. Subtotal (Rs.) <span style="font-weight:400;font-size:10px;color:var(--g400)">(0 = no min)</span></label><input type="number" id="comboMinSubtotal" class="ainp" style="margin:0" placeholder="0" min="0" value="0"></div>
+</div>
+<div class="apc-row">
+  <div style="flex:1">
+    <label>Required Products <span style="font-weight:400;font-size:10px;color:var(--g400)">(optional — all must be in cart; leave blank for any products)</span></label>
+    <div id="comboProdPicker" style="border:1.5px solid var(--g200);border-radius:4px;max-height:140px;overflow-y:auto;background:var(--wh);padding:8px 12px;display:flex;flex-direction:column;gap:4px"></div>
+    <input type="hidden" id="comboReqPids">
+    <div style="font-size:10px;color:var(--g400);margin-top:4px">Check the products that ALL must be in cart to trigger this combo.</div>
+  </div>
+</div>
+<div class="apc-row">
+  <div style="flex:1">
+    <label>Required Categories <span style="font-weight:400;font-size:10px;color:var(--g400)">(optional — comma-separated, e.g. tshirt,hoodie — at least one must match)</span></label>
+    <input type="text" id="comboReqCats" class="ainp" style="margin:0" placeholder="tshirt,hoodie — or leave blank">
+  </div>
+</div>
+<div style="display:flex;gap:10px;align-items:center;margin-top:12px">
+  <button class="asave" id="comboSubmitBtn" onclick="submitCombo()"><i class="fas fa-plus" id="comboSubmitIcon" style="margin-right:6px"></i><span id="comboSubmitLabel">Create Combo</span></button>
+  <button id="comboCancelEditBtn" class="arefresh" style="display:none" onclick="resetComboForm()">Cancel Edit</button>
+</div>
+</div>
+
+<!-- Existing Combos table -->
+<div style="display:flex;align-items:center;margin-bottom:16px">
+<h3 style="font-family:var(--head);font-size:16px;text-transform:uppercase;flex:1">Active &amp; Inactive Combos</h3>
+<button class="arefresh" onclick="loadCombos()"><i class="fas fa-sync-alt" style="margin-right:4px"></i>Refresh</button>
+</div>
+<div class="otbl-wrap">
+<table class="otbl" style="min-width:960px">
+<thead><tr><th>Name</th><th>Discount</th><th>Activation Rules</th><th>Uses</th><th>Created</th><th>Status</th><th>Actions</th></tr></thead>
+<tbody id="comboTbody"><tr><td colspan="6" style="text-align:center;padding:40px;color:var(--g400)">Loading...</td></tr></tbody>
 </table>
 </div>
 </div>
@@ -481,7 +548,7 @@ if(sessionStorage.getItem('iadm')==='1'){document.addEventListener('DOMContentLo
 
 function showTab(btn,id){document.querySelectorAll('.atab').forEach(function(t){t.classList.remove('act')});document.querySelectorAll('.apan').forEach(function(p){p.classList.remove('act')});btn.classList.add('act');document.getElementById(id).classList.add('act')}
 
-function initAdmin(){getAdminSettings();loadOrders();loadAnalytics();loadProducts();loadCoupons();initLegal();loadSizeChart();loadIgFeed();loadLimits();loadAIConfig()}
+function initAdmin(){getAdminSettings();loadOrders();loadAnalytics();loadProducts();loadCoupons();loadCombos();initLegal();loadSizeChart();loadIgFeed();loadLimits();loadAIConfig()}
 function getAdminSettings(){loadSettings()}
 
 /* ====== LIMITS [AG] ====== */
@@ -1018,6 +1085,250 @@ function deleteCoupon(code){
     if(d.success){ toast('Coupon deleted','ok-green'); loadCoupons(); }
     else { toast(d.error||'Failed','err'); }
   }).catch(function(e){ toast('Error: '+e.message,'err'); });
+}
+
+/* ====== COMBO-BUY MANAGEMENT [Combo Feature] ====== */
+var comboData = [];
+var editingComboId = null;
+
+function loadCombos(){
+  document.getElementById('comboTbody').innerHTML='<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--g400)"><i class="fas fa-circle-notch fa-spin"></i> Loading...</td></tr>';
+  fetch('/api/admin/combos',{headers:{'x-admin-token':sessionStorage.getItem('iadm_t')}})
+  .then(function(r){return r.json()})
+  .then(function(d){
+    comboData = d.combos || [];
+    renderCombos();
+    renderComboProdPicker([]); /* Initialize product picker after prods are loaded */
+  }).catch(function(){
+    document.getElementById('comboTbody').innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--red);padding:30px">Error loading combos. Check Supabase connection.</td></tr>';
+  });
+}
+
+function renderCombos(){
+  if(!comboData.length){
+    document.getElementById('comboTbody').innerHTML='<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--g400)">No combos yet. Create one above!</td></tr>';
+    return;
+  }
+  var h='';
+  comboData.forEach(function(c){
+    var discLabel = c.discount_type === 'percent'
+      ? c.discount_value + '% OFF'
+      : 'Rs.' + c.discount_value + ' OFF';
+    var discType = c.discount_type === 'percent' ? 'Percentage' : 'Fixed';
+
+    /* Build rules pills */
+    var ruleParts = [];
+    ruleParts.push('<span style="background:#e0e7ff;color:#3730a3;font-size:9px;font-weight:700;padding:2px 8px;border-radius:3px;white-space:nowrap">≥ ' + c.min_products + ' products</span>');
+    if(c.min_subtotal) ruleParts.push('<span style="background:#fef3c7;color:#92400e;font-size:9px;font-weight:700;padding:2px 8px;border-radius:3px;white-space:nowrap">Min ₹' + c.min_subtotal + '</span>');
+    if(c.required_product_ids && c.required_product_ids.length) {
+      /* Try to resolve names from prods */
+      var pidNames = c.required_product_ids.map(function(pid){
+        var p = prods.find(function(x){return x.id===pid});
+        return p ? p.name : pid.slice(-6);
+      });
+      ruleParts.push('<span style="background:#f3e8ff;color:#7c3aed;font-size:9px;font-weight:700;padding:2px 8px;border-radius:3px;white-space:nowrap" title="'+c.required_product_ids.join(', ')+'">Requires: '+pidNames.join(', ')+'</span>');
+    }
+    if(c.required_categories && c.required_categories.length)
+      ruleParts.push('<span style="background:#fce7f3;color:#9d174d;font-size:9px;font-weight:700;padding:2px 8px;border-radius:3px;white-space:nowrap">Cats: '+c.required_categories.join(', ')+'</span>');
+    var rules = '<div style="display:flex;flex-wrap:wrap;gap:4px;line-height:1.8">' + ruleParts.join('') + '</div>';
+
+    var statusBadge = c.is_active
+      ? '<span style="background:#d1fae5;color:#065f46;font-size:9px;font-weight:700;padding:2px 8px;border-radius:3px;text-transform:uppercase">Active</span>'
+      : '<span style="background:#fee2e2;color:#991b1b;font-size:9px;font-weight:700;padding:2px 8px;border-radius:3px;text-transform:uppercase">Inactive</span>';
+
+    var createdAt = c.created_at ? new Date(c.created_at).toLocaleDateString('en-IN', {day:'2-digit',month:'short',year:'numeric'}) : '—';
+
+    /* escape for inline onclick */
+    var safeId = c.id.replace(/'/g, '');
+    var safeName = (c.name||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+
+    h += '<tr>'
+      + '<td style="min-width:160px"><div style="font-weight:800;font-size:13px;letter-spacing:-.2px">' + (c.name||'') + '</div>'
+      + '<div style="font-size:10px;color:var(--g400);margin-top:2px;line-height:1.4">' + (c.description||'—') + '</div></td>'
+      + '<td style="min-width:110px"><div style="font-weight:800;font-size:16px;color:var(--bk)">' + discLabel + '</div>'
+      + '<div style="font-size:9px;color:var(--g400);text-transform:uppercase;letter-spacing:.5px;margin-top:2px">' + discType + '</div></td>'
+      + '<td style="min-width:220px">' + rules + '</td>'
+      + '<td style="font-weight:700;font-size:15px">' + (c.apply_count || 0) + '</td>'
+      + '<td style="font-size:11px;color:var(--g500)">' + createdAt + '</td>'
+      + '<td>' + statusBadge + '</td>'
+      + '<td style="min-width:220px">'
+      + '<div style="display:flex;flex-direction:column;gap:6px">'
+      + '<button class="asave" style="padding:5px 12px;font-size:9px" onclick="editCombo(\\x27' + safeId + '\\x27)"><i class="fas fa-pen" style="margin-right:4px"></i>Edit</button>'
+      + '<button class="asave" style="padding:5px 12px;font-size:9px;background:' + (c.is_active ? '#ef4444' : '#16a34a') + '" '
+      + 'onclick="toggleCombo(\\x27' + safeId + '\\x27,' + !c.is_active + ')">'
+      + (c.is_active ? '<i class="fas fa-ban" style="margin-right:4px"></i>Deactivate' : '<i class="fas fa-check" style="margin-right:4px"></i>Activate')
+      + '</button>'
+      + '<button style="padding:5px 12px;background:none;border:1.5px solid var(--red);color:var(--red);font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;border-radius:3px;cursor:pointer;font-family:inherit" '
+      + 'onclick="deleteCombo(\\x27' + safeId + '\\x27,\\x27' + safeName + '\\x27)"><i class="fas fa-trash" style="margin-right:4px"></i>Delete</button>'
+      + '</div>'
+      + '</td></tr>';
+  });
+  document.getElementById('comboTbody').innerHTML = h;
+}
+
+function updateComboValueLabel(){
+  var type = document.getElementById('comboDiscType').value;
+  var lbl = document.getElementById('comboValueLabel');
+  if(lbl) lbl.textContent = type === 'percent' ? 'Discount Value (%)' : 'Discount Value (Rs.)';
+}
+
+/* ── Product picker for combo form ── */
+function renderComboProdPicker(selectedIds){
+  var picker = document.getElementById('comboProdPicker');
+  if(!picker) return;
+  if(!prods || !prods.length){
+    picker.innerHTML = '<span style="font-size:11px;color:var(--g400);font-style:italic">No products loaded — save first then refresh</span>';
+    return;
+  }
+  var sel = selectedIds || [];
+  var h = '';
+  prods.forEach(function(p){
+    var checked = sel.indexOf(p.id) !== -1 ? 'checked' : '';
+    h += '<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;padding:2px 0">'
+      + '<input type="checkbox" value="'+p.id+'" '+checked+' onchange="syncComboPids()">'
+      + '<span><strong>'+p.name+'</strong> <span style="color:var(--g400);font-size:10px">'+p.id+'</span></span>'
+      + '</label>';
+  });
+  picker.innerHTML = h;
+}
+
+function syncComboPids(){
+  var picker = document.getElementById('comboProdPicker');
+  var hidden = document.getElementById('comboReqPids');
+  if(!picker || !hidden) return;
+  var checked = [];
+  picker.querySelectorAll('input[type=checkbox]:checked').forEach(function(cb){
+    checked.push(cb.value);
+  });
+  hidden.value = checked.join(',');
+}
+
+function resetComboForm(){
+  editingComboId = null;
+  document.getElementById('comboFormTitle').textContent = 'Create New Combo';
+  document.getElementById('comboSubmitLabel').textContent = 'Create Combo';
+  document.getElementById('comboSubmitIcon').className = 'fas fa-plus';
+  document.getElementById('comboCancelEditBtn').style.display = 'none';
+  /* clear fields */
+  ['comboName','comboDesc','comboDiscValue','comboReqPids','comboReqCats'].forEach(function(id){
+    var el = document.getElementById(id); if(el) el.value='';
+  });
+  document.getElementById('comboMinProducts').value = '2';
+  document.getElementById('comboMinSubtotal').value = '0';
+  document.getElementById('comboDiscType').value = 'percent';
+  document.getElementById('comboActive').value = 'true';
+  updateComboValueLabel();
+  renderComboProdPicker([]);
+  document.getElementById('comboFormCard').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function editCombo(id){
+  var c = comboData.find(function(x){ return x.id === id; });
+  if(!c){ toast('Combo not found','err'); return; }
+  editingComboId = id;
+  document.getElementById('comboFormTitle').textContent = 'Edit Combo: ' + (c.name || '');
+  document.getElementById('comboSubmitLabel').textContent = 'Save Changes';
+  document.getElementById('comboSubmitIcon').className = 'fas fa-save';
+  document.getElementById('comboCancelEditBtn').style.display = 'inline-block';
+  document.getElementById('comboName').value = c.name || '';
+  document.getElementById('comboDesc').value = c.description || '';
+  document.getElementById('comboDiscType').value = c.discount_type || 'percent';
+  document.getElementById('comboDiscValue').value = c.discount_value || '';
+  document.getElementById('comboMinProducts').value = c.min_products || 2;
+  document.getElementById('comboMinSubtotal').value = c.min_subtotal || 0;
+  document.getElementById('comboActive').value = c.is_active ? 'true' : 'false';
+  var selPids = (c.required_product_ids && c.required_product_ids.length) ? c.required_product_ids : [];
+  document.getElementById('comboReqPids').value = selPids.join(',');
+  document.getElementById('comboReqCats').value = (c.required_categories && c.required_categories.length) ? c.required_categories.join(',') : '';
+  updateComboValueLabel();
+  renderComboProdPicker(selPids);
+  document.getElementById('comboFormCard').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function submitCombo(){
+  var name = document.getElementById('comboName').value.trim();
+  var desc = document.getElementById('comboDesc').value.trim();
+  var discType = document.getElementById('comboDiscType').value;
+  var discValue = parseFloat(document.getElementById('comboDiscValue').value);
+  var minProducts = parseInt(document.getElementById('comboMinProducts').value) || 2;
+  var minSubtotal = parseFloat(document.getElementById('comboMinSubtotal').value) || 0;
+  var isActive = document.getElementById('comboActive').value === 'true';
+  var reqPidsRaw = document.getElementById('comboReqPids').value.trim();
+  var reqCatsRaw = document.getElementById('comboReqCats').value.trim();
+
+  if(!name){ toast('Combo name is required','err'); return; }
+  if(isNaN(discValue) || discValue < 0){ toast('Discount value must be ≥ 0','err'); return; }
+  if(discType === 'percent' && discValue > 100){ toast('Percentage cannot exceed 100','err'); return; }
+  if(minProducts < 2){ toast('Min. products must be at least 2','err'); return; }
+
+  var reqPids = reqPidsRaw ? reqPidsRaw.split(',').map(function(s){return s.trim();}).filter(Boolean) : null;
+  var reqCats = reqCatsRaw ? reqCatsRaw.split(',').map(function(s){return s.trim().toLowerCase();}).filter(Boolean) : null;
+
+  var payload = {
+    name: name,
+    description: desc,
+    discount_type: discType,
+    discount_value: discValue,
+    min_products: minProducts,
+    min_subtotal: minSubtotal > 0 ? minSubtotal : null,
+    is_active: isActive,
+    required_product_ids: reqPids,
+    required_categories: reqCats
+  };
+
+  var btn = document.getElementById('comboSubmitBtn');
+  btn.disabled = true;
+  btn.textContent = editingComboId ? 'Saving...' : 'Creating...';
+
+  var url = editingComboId ? '/api/admin/combos/' + encodeURIComponent(editingComboId) : '/api/admin/combos';
+  var method = editingComboId ? 'PATCH' : 'POST';
+
+  fetch(url, {
+    method: method,
+    headers: {'Content-Type':'application/json','x-admin-token':sessionStorage.getItem('iadm_t')},
+    body: JSON.stringify(payload)
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    if(d.success){
+      toast(editingComboId ? 'Combo updated!' : 'Combo "' + name + '" created!', 'ok-green');
+      resetComboForm();
+      loadCombos();
+    } else {
+      toast(d.error || 'Failed', 'err');
+    }
+  })
+  .catch(function(e){ toast('Error: ' + e.message, 'err'); })
+  .finally(function(){
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-plus" id="comboSubmitIcon" style="margin-right:6px"></i><span id="comboSubmitLabel">' + (editingComboId ? 'Save Changes' : 'Create Combo') + '</span>';
+  });
+}
+
+function toggleCombo(id, newState){
+  fetch('/api/admin/combos/' + encodeURIComponent(id), {
+    method: 'PATCH',
+    headers: {'Content-Type':'application/json','x-admin-token':sessionStorage.getItem('iadm_t')},
+    body: JSON.stringify({ is_active: newState })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    if(d.success){ toast('Combo ' + (newState ? 'activated' : 'deactivated'), 'ok-green'); loadCombos(); }
+    else { toast(d.error || 'Failed', 'err'); }
+  }).catch(function(e){ toast('Error: ' + e.message, 'err'); });
+}
+
+function deleteCombo(id, name){
+  if(!confirm('Permanently delete combo "' + name + '"?\nThis cannot be undone.')) return;
+  fetch('/api/admin/combos/' + encodeURIComponent(id), {
+    method: 'DELETE',
+    headers: {'x-admin-token':sessionStorage.getItem('iadm_t')}
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    if(d.success){ toast('Combo deleted', 'ok-green'); loadCombos(); }
+    else { toast(d.error || 'Failed to delete', 'err'); }
+  }).catch(function(e){ toast('Error: ' + e.message, 'err'); });
 }
 
 function updateMaintBadge(mode) {
