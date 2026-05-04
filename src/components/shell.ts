@@ -73,7 +73,7 @@ export function shell(
   const mcMsg = mc.message || '';
   const mcEta = mc.eta || '';
 
-  const pm = JSON.stringify(Object.fromEntries(products.map(p => [p.id, { id: p.id, n: p.name, s: p.slug, p: p.price, i: p.images, sz: p.sizes }])));
+  const pm = JSON.stringify(Object.fromEntries(products.map(p => [p.id, { id: p.id, n: p.name, s: p.slug, p: p.price, i: p.images, sz: p.sizes, cat: (p as any).category || '' }])));
   const sj = JSON.stringify({ cs: STORE_CONFIG.currencySymbol, ft: STORE_CONFIG.freeShippingThreshold, sc: STORE_CONFIG.shippingCost, rk: rpKey, magic: useMagic });
 
   return `<!DOCTYPE html><html lang="en"><head>
@@ -216,12 +216,41 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 .cpn-btn{background:var(--bk);color:var(--wh);border:none;padding:8px 16px;font-size:9px;font-weight:800;letter-spacing:1px;text-transform:uppercase;border-radius:4px}
 .cpn-tag{display:inline-flex;align-items:center;gap:6px;background:var(--g100);padding:4px 10px;border-radius:100px;font-size:10px;font-weight:700;margin-top:8px}
 .cpn-rem{cursor:pointer;opacity:0.6}.cpn-rem:hover{opacity:1}
-/* Combo-buy banner */
-.combo-banner{margin:0 24px 0;border-radius:8px;padding:12px 16px;display:none;align-items:center;gap:10px;font-size:12px;font-weight:700;background:linear-gradient(135deg,#0a0a0a 0%,#1c1c1c 100%);color:#fff;border:1px solid rgba(255,255,255,0.1);animation:fadeIn .4s var(--ease)}
+/* Combo-buy banner (cart drawer) */
+.combo-banner{margin:8px 0 4px;border-radius:10px;padding:14px 16px;display:none;align-items:center;gap:10px;font-size:12px;font-weight:700;background:linear-gradient(135deg,#0a0a0a 0%,#1a1a2e 100%);color:#fff;border:1px solid rgba(234,179,8,0.3);animation:comboPop .5s var(--eo);box-shadow:0 4px 20px rgba(234,179,8,0.15)}
+@keyframes comboPop{0%{opacity:0;transform:scale(0.95) translateY(6px)}60%{transform:scale(1.02)}100%{opacity:1;transform:scale(1) translateY(0)}}
 .combo-banner.visible{display:flex}
-.combo-banner i{font-size:16px;color:#eab308;flex-shrink:0}
-.combo-banner .combo-name{flex:1;line-height:1.3}
-.combo-badge{background:#eab308;color:#0a0a0a;font-size:9px;font-weight:900;padding:3px 8px;border-radius:100px;letter-spacing:.5px;white-space:nowrap;flex-shrink:0}
+.combo-banner i{font-size:18px;color:#eab308;flex-shrink:0;animation:firePulse 1.5s infinite alternate}
+@keyframes firePulse{from{transform:scale(1)}to{transform:scale(1.2)}}
+.combo-banner .combo-name{flex:1;line-height:1.4}
+.combo-banner .combo-name small{display:block;font-size:10px;font-weight:500;opacity:0.7;margin-top:1px}
+.combo-badge{background:linear-gradient(135deg,#eab308,#f59e0b);color:#0a0a0a;font-size:9px;font-weight:900;padding:4px 10px;border-radius:100px;letter-spacing:.5px;white-space:nowrap;flex-shrink:0;box-shadow:0 2px 8px rgba(234,179,8,0.4)}
+/* Combo promo bar (top of page, below nav) */
+.combo-promo-bar{background:linear-gradient(90deg,#0a0a0a 0%,#1a1a2e 50%,#0a0a0a 100%);color:#fff;padding:10px 24px;display:none;align-items:center;justify-content:center;gap:16px;font-size:11px;font-weight:700;letter-spacing:.5px;position:relative;overflow:hidden;border-bottom:1px solid rgba(234,179,8,0.2)}
+.combo-promo-bar::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(234,179,8,0.08),transparent);animation:shimmerBar 3s infinite}
+@keyframes shimmerBar{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+.combo-promo-bar.show{display:flex}
+.combo-promo-bar .cpb-item{display:flex;align-items:center;gap:8px;padding:0 16px;border-right:1px solid rgba(255,255,255,0.15)}
+.combo-promo-bar .cpb-item:last-child{border-right:none}
+.combo-promo-bar .cpb-badge{background:linear-gradient(135deg,#eab308,#f59e0b);color:#0a0a0a;font-size:8px;font-weight:900;padding:2px 7px;border-radius:100px;letter-spacing:.5px}
+.combo-promo-bar .cpb-close{position:absolute;right:12px;background:none;border:none;color:rgba(255,255,255,0.4);font-size:18px;cursor:pointer;padding:4px;display:flex;align-items:center;transition:color .2s}.combo-promo-bar .cpb-close:hover{color:#fff}
+@media(max-width:768px){.combo-promo-bar{padding:10px 40px 10px 16px;flex-wrap:wrap;justify-content:flex-start;gap:8px}.combo-promo-bar .cpb-item{padding:0 8px;border-right:none;border-bottom:1px solid rgba(255,255,255,0.1)}}
+/* Combo card on product/home pages */
+.combo-promo-card{background:linear-gradient(135deg,#0a0a0a,#1a1a2e);color:#fff;border-radius:12px;padding:20px 24px;margin:24px 0;display:none;align-items:flex-start;gap:16px;border:1px solid rgba(234,179,8,0.25);box-shadow:0 8px 32px rgba(0,0,0,0.12);animation:fadeIn .5s var(--eo)}
+.combo-promo-card.show{display:flex}
+.combo-promo-card .cpc-icon{width:44px;height:44px;background:linear-gradient(135deg,#eab308,#f59e0b);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;box-shadow:0 4px 12px rgba(234,179,8,0.35)}
+.combo-promo-card .cpc-body{flex:1}
+.combo-promo-card .cpc-title{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;color:#eab308}
+.combo-promo-card .cpc-desc{font-size:12px;font-weight:500;opacity:.8;line-height:1.5}
+.combo-promo-card .cpc-trust{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.combo-promo-card .cpc-trust span{font-size:10px;font-weight:700;color:rgba(255,255,255,0.6);display:flex;align-items:center;gap:4px}
+.combo-promo-card .cpc-trust i{color:#eab308;font-size:9px}
+/* Cart ATC combo nudge animation */
+@keyframes comboNudge{0%{opacity:0;transform:translateY(-8px)}20%{opacity:1;transform:translateY(0)}80%{opacity:1}100%{opacity:0;transform:translateY(-4px)}}
+.combo-atc-nudge{font-size:11px;font-weight:700;color:#eab308;background:rgba(234,179,8,0.1);border:1px solid rgba(234,179,8,0.25);border-radius:6px;padding:6px 10px;margin-top:8px;display:flex;align-items:center;gap:6px;animation:comboNudge 3s ease forwards}
+/* Combo highlight pulse on cart icon */
+@keyframes cartComboPulse{0%{box-shadow:0 0 0 0 rgba(234,179,8,0.6)}70%{box-shadow:0 0 0 10px rgba(234,179,8,0)}100%{box-shadow:0 0 0 0 rgba(234,179,8,0)}}
+.ncart.combo-active{animation:cartComboPulse 2s 3}
 .ftr{background:var(--bk);color:var(--wh);padding:80px 24px 40px}
 .ftri{max-width:1440px;margin:0 auto;display:grid;grid-template-columns:1.5fr .8fr .8fr .8fr;gap:64px}
 .ftrb h3{font-family:var(--head);font-size:24px;margin-bottom:16px;letter-spacing:-.04em;text-transform:uppercase}.ftrb p{color:var(--g400);font-size:14px;line-height:1.7;max-width:320px}
@@ -359,17 +388,40 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
   </div>
 </div>
 
-<!-- Combo-buy banner -->
+<!-- Combo-buy banner (cart drawer, shown when combo is active) -->
 <div class="combo-banner" id="comboBanner">
   <i class="fas fa-fire"></i>
-  <div class="combo-name" id="comboBannerText">Combo Applied!</div>
+  <div class="combo-name" id="comboBannerText">
+    <span>Combo Deal Applied!</span>
+    <small style="display:block;font-size:10px;font-weight:500;opacity:0.75;margin-top:2px">Auto-applied — no code needed</small>
+  </div>
   <span class="combo-badge" id="comboBadge"></span>
+</div>
+<!-- Combo unlock nudge (shown when close to unlocking a combo) -->
+<div id="comboNudge" style="display:none;margin:6px 0 0;padding:10px 14px;background:rgba(234,179,8,0.08);border:1px dashed rgba(234,179,8,0.4);border-radius:8px;font-size:11px;font-weight:700;color:#92400e;display:none;align-items:center;gap:8px">
+  <i class="fas fa-fire" style="color:#eab308"></i>
+  <span id="comboNudgeText">Add 1 more item to unlock a combo deal!</span>
 </div>
 
 <div class="cftr" id="cf" style="display:none">
 <div id="fsProgress" style="display:none;font-size:11px;font-weight:600;padding:10px 16px;border-radius:6px;margin-bottom:12px;text-align:center;border:1px solid var(--g200);background:var(--g50)"></div>
 <div class="cst"><span>Subtotal</span><span id="csub">${STORE_CONFIG.currencySymbol}0</span></div>
-<div id="comboDiscRow" style="display:none" class="cst"><span style="color:#16a34a;display:flex;align-items:center;gap:4px"><i class="fas fa-fire" style="color:#eab308;font-size:10px"></i><span id="comboDiscLabel">Combo Discount</span></span><span id="comboDiscAmt" style="color:#16a34a;font-weight:700"></span></div>
+<!-- Combo discount row (prominent gold) -->
+<div id="comboDiscRow" style="display:none;background:rgba(234,179,8,0.06);border-radius:6px;padding:6px 8px;margin:2px 0" class="cst">
+  <span style="color:#92400e;display:flex;align-items:center;gap:5px;font-weight:800">
+    <i class="fas fa-fire" style="color:#eab308;font-size:11px;animation:firePulse 1.5s infinite alternate"></i>
+    <span id="comboDiscLabel">Combo Discount</span>
+  </span>
+  <span id="comboDiscAmt" style="color:#16a34a;font-weight:800"></span>
+</div>
+<!-- Coupon discount row (discrete) -->
+<div id="couponDiscRow" style="display:none" class="cst">
+  <span style="color:var(--g500);display:flex;align-items:center;gap:5px;font-size:12px">
+    <i class="fas fa-tag" style="font-size:10px;color:var(--g400)"></i>
+    <span id="couponDiscLabel">Coupon</span>
+  </span>
+  <span id="couponDiscAmt" style="color:#16a34a;font-weight:700;font-size:12px"></span>
+</div>
 <div class="csh"><span>Shipping</span><span id="cshp">Calculated</span></div>
 <div class="ctl"><span>Total</span><span id="ctot">${STORE_CONFIG.currencySymbol}0</span></div>
 <div style="text-align:center"><span class="trust-badge"><i class="fas fa-shield-halved"></i> 100% Secure Checkout</span></div>
@@ -427,7 +479,12 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 })();
 </script>
 
-<main style="padding-top:72px">${body}</main>
+<!-- Combo Promo Bar (dynamic, injected by JS after fetching active combos) -->
+<div id="comboPromoBar" class="combo-promo-bar" style="margin-top:72px">
+  <div id="comboPromoBarItems" style="display:flex;align-items:center;gap:0;flex-wrap:wrap;justify-content:center"></div>
+  <button class="cpb-close" onclick="dismissComboBar()" aria-label="Close"><i class="fas fa-times"></i></button>
+</div>
+<main style="padding-top:0" id="mainContent">${body}</main>
 <footer class="ftr" id="contact"><div class="ftri">
 <div class="ftrb"><h3>INTRU.IN</h3><p>${STORE_CONFIG.description}</p>
 <p style="margin-top:16px;font-size:11px;color:var(--g400);line-height:1.7"><strong style="color:var(--g300)">Registered Office:</strong><br>Hyderabad, Telangana, India</p>
@@ -748,6 +805,34 @@ function startCartTimer(){
 /* ====== CART ENGINE ====== */
 var cart=JSON.parse(localStorage.getItem('ic')||'[]');
 
+/* ====== CART NAVIGATION GLITCH FIX (bfcache / history undo-redo) ====== */
+/* Re-sync cart from localStorage whenever the page becomes visible again
+   after navigation (back/forward/undo). This prevents stale cart counts. */
+window.addEventListener('pageshow', function(e) {
+  /* e.persisted = true means page was restored from bfcache */
+  var freshCart = JSON.parse(localStorage.getItem('ic') || '[]');
+  /* Only re-render if cart actually changed to avoid flicker */
+  if (JSON.stringify(freshCart) !== JSON.stringify(cart)) {
+    cart = freshCart;
+    renderCart();
+    checkCombos();
+  }
+  /* Also re-sync identity */
+  identifiedEmail = localStorage.getItem('intru_user_email') || '';
+  identifiedName  = localStorage.getItem('intru_user_name')  || '';
+  updateAccountBtn();
+});
+/* Also handle visibility changes (tab switch, app resume) */
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'visible') {
+    var freshCart = JSON.parse(localStorage.getItem('ic') || '[]');
+    if (JSON.stringify(freshCart) !== JSON.stringify(cart)) {
+      cart = freshCart;
+      renderCart();
+    }
+  }
+});
+
 function saveCart(){localStorage.setItem('ic',JSON.stringify(cart));renderCart();checkCombos();}
 
 function addToCart(productId,size,qty){
@@ -768,11 +853,32 @@ function addToCart(productId,size,qty){
   var existing=cart.find(function(i){return i.p===productId&&i.s===size});
   if(existing){if(existing.q+qty>10){toast('Max 10 per item','err');return false}existing.q+=qty}
   else{cart.push({p:productId,s:size,q:qty})}
-  saveCart();toast(p.n+' ('+size+') added to bag','ok');openCartDrawer();
+  saveCart();
+  /* Show combo nudge if cart now has 2+ distinct products */
+  _checkComboNudgeAfterAtc(productId);
+  toast(p.n+' ('+size+') added to bag','ok');
+  openCartDrawer();
   
   /* Trigger background analytics */
   fetch('/api/analytics/event',{method:'POST',body:JSON.stringify({event:'add_to_cart',meta:{pid:productId,sz:size}})}).catch(function(){});
   return true;
+}
+
+/* Show a combo nudge toast/indicator when cart reaches a combo threshold */
+function _checkComboNudgeAfterAtc(latestPid) {
+  var distinctCount = new Set(cart.map(function(i){ return i.p; })).size;
+  /* If we just reached 2 items, tease a potential combo */
+  if (distinctCount === 2 && _siteActiveCombos.length) {
+    var combo = _siteActiveCombos[0];
+    if (combo && combo.min_products <= 2) {
+      var discStr = combo.discount_type === 'percent'
+        ? combo.discount_value + '% OFF'
+        : 'Rs.' + Math.round(combo.discount_value) + ' OFF';
+      setTimeout(function() {
+        toast('\uD83D\uDD25 ' + combo.name + ': ' + discStr + ' applied!', 'ok-green');
+      }, 400);
+    }
+  }
 }
 
 function buyNow(productId,size){
@@ -828,7 +934,7 @@ function checkCombos() {
 }
 
 function _doComboCheck() {
-  if (!cart.length) { _clearCombo(); return; }
+  if (!cart.length) { _clearCombo(); _hideComboNudge(); return; }
   // Build items array with unitPrice from PM
   var items = cart.map(function(i){
     var p = PM[i.p];
@@ -841,16 +947,54 @@ function _doComboCheck() {
   })
   .then(function(r){ return r.json(); })
   .then(function(d){
+    /* Update site promo data whenever we get active combos back */
+    if (d.active_combos && d.active_combos.length && !_siteActiveCombos.length) {
+      _siteActiveCombos = d.active_combos;
+      if (!sessionStorage.getItem('intru_combo_bar_dismissed')) renderComboPromoBar();
+      renderComboPromoCards();
+    }
     if (d.combo && d.discount > 0) {
       activeCombo = d.combo;
       activeComboDiscount = d.discount;
       _showComboBanner();
+      _hideComboNudge();
     } else {
       _clearCombo();
+      /* Show nudge if user is 1 item away from a combo */
+      _showComboNudgeIfClose();
     }
     renderCartTotals();
   })
   .catch(function(){ _clearCombo(); renderCartTotals(); });
+}
+
+function _showComboNudgeIfClose() {
+  var nudge = document.getElementById('comboNudge');
+  if (!nudge || !_siteActiveCombos.length) return;
+  var distinctCount = new Set(cart.map(function(i){ return i.p; })).size;
+  /* Find the combo with the smallest min_products threshold we haven't hit yet */
+  var closest = null;
+  _siteActiveCombos.forEach(function(c) {
+    if (c.min_products > distinctCount) {
+      if (!closest || c.min_products < closest.min_products) closest = c;
+    }
+  });
+  if (closest && (closest.min_products - distinctCount) <= 2) {
+    var need = closest.min_products - distinctCount;
+    var discStr = closest.discount_type === 'percent'
+      ? closest.discount_value + '% OFF'
+      : 'Rs.' + Math.round(closest.discount_value) + ' OFF';
+    var txt = document.getElementById('comboNudgeText');
+    if (txt) txt.textContent = 'Add ' + need + ' more item' + (need > 1 ? 's' : '') + ' to unlock ' + closest.name + ' (' + discStr + ')!';
+    nudge.style.display = 'flex';
+  } else {
+    nudge.style.display = 'none';
+  }
+}
+
+function _hideComboNudge() {
+  var nudge = document.getElementById('comboNudge');
+  if (nudge) nudge.style.display = 'none';
 }
 
 var _comboPrevId = null; // track when a NEW combo fires (for toast)
@@ -863,15 +1007,22 @@ function _showComboBanner() {
   var discStr = activeCombo.discount_type === 'percent'
     ? activeCombo.discount_value + '% OFF'
     : fmt(activeCombo.discount_value) + ' OFF';
-  if (text)  text.textContent  = activeCombo.name + ' — combo applied!';
+  var savedStr = fmt(activeComboDiscount);
+  if (text) {
+    text.innerHTML = '<span style="font-weight:900;letter-spacing:.3px">' + activeCombo.name + '</span>'
+      + '<small>You save ' + savedStr + ' on this order \u2022 Applied automatically</small>';
+  }
   if (badge) badge.textContent = discStr;
   /* Pulse + toast only when the combo changes (new combo or first apply) */
   if (_comboPrevId !== activeCombo.id) {
     _comboPrevId = activeCombo.id;
-    toast('\uD83D\uDD25 Combo deal activated: save ' + discStr + '!', 'ok-green');
+    toast('\uD83D\uDD25 Combo deal: save ' + savedStr + '!', 'ok-green');
     banner.style.animation = 'none';
     void banner.offsetWidth; /* reflow to re-trigger */
-    banner.style.animation = '';
+    banner.style.animation = 'comboPop .5s var(--eo)';
+    /* Pulse the cart icon */
+    var cartBtn = document.querySelector('.ncart');
+    if (cartBtn) { cartBtn.classList.add('combo-active'); setTimeout(function(){ cartBtn.classList.remove('combo-active'); }, 6000); }
   }
   banner.classList.add('visible');
 }
@@ -883,6 +1034,84 @@ function _clearCombo() {
   var banner = document.getElementById('comboBanner');
   if (banner) banner.classList.remove('visible');
 }
+
+/* ====== ACTIVE COMBO PROMO BAR (site-wide) ====== */
+var _siteActiveCombos = [];
+var _comboBarDismissed = false;
+
+function loadSiteComboPromo() {
+  /* Skip if already dismissed this session */
+  if (sessionStorage.getItem('intru_combo_bar_dismissed')) return;
+  fetch('/api/combos/validate', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ items: [] }) /* empty → server returns active combos list */
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    /* Server returns active_combos list for promo bar purposes */
+    if (d.active_combos && d.active_combos.length) {
+      _siteActiveCombos = d.active_combos;
+      renderComboPromoBar();
+    }
+  }).catch(function(){});
+}
+
+function renderComboPromoBar() {
+  var bar = document.getElementById('comboPromoBar');
+  var items = document.getElementById('comboPromoBarItems');
+  if (!bar || !items || !_siteActiveCombos.length) return;
+  var html = '';
+  _siteActiveCombos.slice(0, 3).forEach(function(c) {
+    var discStr = c.discount_type === 'percent' ? c.discount_value + '% OFF' : 'Rs.' + Math.round(c.discount_value) + ' OFF';
+    html += '<div class="cpb-item">'
+      + '<i class="fas fa-fire" style="color:#eab308;font-size:13px"></i>'
+      + '<span>' + c.name + '</span>'
+      + '<span class="cpb-badge">' + discStr + '</span>'
+      + '</div>';
+  });
+  if (!html) return;
+  html += '<div class="cpb-item" style="border-right:none;opacity:0.6;font-size:10px">'
+    + '<i class="fas fa-shield-halved" style="color:#4ade80"></i>'
+    + '<span>Auto-applied at checkout</span></div>';
+  items.innerHTML = html;
+  bar.classList.add('show');
+}
+
+function dismissComboBar() {
+  sessionStorage.setItem('intru_combo_bar_dismissed', '1');
+  var bar = document.getElementById('comboPromoBar');
+  if (bar) { bar.style.opacity = '0'; bar.style.transition = 'opacity .3s'; setTimeout(function(){ bar.style.display = 'none'; }, 300); }
+}
+
+/* ====== COMBO PROMO CARDS (inline site sections) ====== */
+function renderComboPromoCards() {
+  /* Render combo cards in designated slots on any page */
+  var slots = document.querySelectorAll('.combo-promo-slot');
+  if (!slots.length || !_siteActiveCombos.length) return;
+  slots.forEach(function(slot) {
+    var html = '';
+    _siteActiveCombos.slice(0, 2).forEach(function(c) {
+      var discStr = c.discount_type === 'percent' ? c.discount_value + '% OFF' : 'Rs.' + Math.round(c.discount_value) + ' OFF';
+      var minStr = c.min_products >= 2 ? 'Buy any ' + c.min_products + '+ items' : 'Mix & match products';
+      html += '<div class="combo-promo-card show">'
+        + '<div class="cpc-icon"><i class="fas fa-fire"></i></div>'
+        + '<div class="cpc-body">'
+        + '<div class="cpc-title">\uD83D\uDD25 ' + c.name + ' &mdash; ' + discStr + '</div>'
+        + '<div class="cpc-desc">' + (c.description || minStr + ' and save automatically.') + '</div>'
+        + '<div class="cpc-trust">'
+        + '<span><i class="fas fa-check-circle"></i> Auto-applied at checkout</span>'
+        + '<span><i class="fas fa-lock"></i> No code needed</span>'
+        + '<span><i class="fas fa-star"></i> Limited time</span>'
+        + '</div>'
+        + '</div></div>';
+    });
+    if (html) { slot.innerHTML = html; slot.style.display = 'block'; }
+  });
+}
+
+/* Run promo bar on page load */
+setTimeout(loadSiteComboPromo, 800);
 
 /* ====== COUPON SYSTEM [AG v15.2] ====== */
 var appliedCoupon = null;
@@ -944,11 +1173,30 @@ function getCartTotals(){
 
 function renderCartTotals(){
   var t=getCartTotals();
-  document.getElementById('csub').textContent=fmt(t.subtotal);
-  if(t.couponDiscount > 0){
-    document.getElementById('csub').innerHTML = '<span style="text-decoration:line-through;opacity:0.5;margin-right:8px">' + fmt(t.subtotal) + '</span>' + fmt(t.subtotal - t.couponDiscount);
+  /* Subtotal line — show strikethrough only if there's a discount */
+  var subEl = document.getElementById('csub');
+  if (subEl) {
+    if (t.couponDiscount > 0 || t.comboDiscount > 0) {
+      subEl.innerHTML = '<span style="text-decoration:line-through;opacity:0.45;margin-right:8px;font-size:12px">'
+        + fmt(t.subtotal) + '</span><span style="color:#16a34a;font-weight:800">' + fmt(t.subtotal - t.couponDiscount) + '</span>';
+    } else {
+      subEl.textContent = fmt(t.subtotal);
+    }
   }
-  // Combo discount row
+  // Coupon discount row (discrete — existing tag UI handles the label)
+  var cpnRow = document.getElementById('couponDiscRow');
+  if (cpnRow) {
+    if (t.couponDiscount > 0 && appliedCoupon) {
+      cpnRow.style.display = 'flex';
+      var cpnAmt = document.getElementById('couponDiscAmt');
+      var cpnLbl = document.getElementById('couponDiscLabel');
+      if (cpnAmt) cpnAmt.textContent = '−' + fmt(t.couponDiscount);
+      if (cpnLbl) cpnLbl.textContent = appliedCoupon.code;
+    } else {
+      cpnRow.style.display = 'none';
+    }
+  }
+  // Combo discount row (prominent)
   var comboRow = document.getElementById('comboDiscRow');
   var comboAmt = document.getElementById('comboDiscAmt');
   var comboLbl = document.getElementById('comboDiscLabel');
@@ -1216,7 +1464,8 @@ function doPrepaidCheckout(){
     items:cart.map(function(i){return{productId:i.p,size:i.s,quantity:i.q}}),
     userEmail:identifiedEmail,userName:shipName,userPhone:shipPhone,
     address:shipAddress,
-    paymentMethod:'prepaid'
+    paymentMethod:'prepaid',
+    couponCode: appliedCoupon ? appliedCoupon.code : ''
   })})
   .then(function(r){return r.json()})
   .then(function(data){
@@ -1271,7 +1520,8 @@ function doCodCheckout(){
   fetch('/api/checkout/cod',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
     items:cart.map(function(i){return{productId:i.p,size:i.s,quantity:i.q}}),
     userEmail:identifiedEmail,userName:name,userPhone:phone,
-    address:{name:name,phone:phone,pincode:pincode,line1:addr,line2:addr2,city:city,state:state,country:'India'}
+    address:{name:name,phone:phone,pincode:pincode,line1:addr,line2:addr2,city:city,state:state,country:'India'},
+    couponCode: appliedCoupon ? appliedCoupon.code : ''
   })})
   .then(function(r){return r.json()})
   .then(function(d){
@@ -1299,7 +1549,8 @@ function doMagicCheckout(){
     items:cart.map(function(i){return{productId:i.p,size:i.s,quantity:i.q}}),
     userEmail:identifiedEmail,userName:shipName,userPhone:shipPhone,
     address:shipAddress,
-    paymentMethod:'magic'
+    paymentMethod:'magic',
+    couponCode: appliedCoupon ? appliedCoupon.code : ''
   })})
   .then(function(r){return r.json()})
   .then(function(data){

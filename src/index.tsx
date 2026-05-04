@@ -482,6 +482,7 @@ app.post('/api/checkout', async (c: Context<{ Bindings: Bindings }>) => {
     const userPhone = body.userPhone || '';
     const shippingAddress = body.address || null;
     const paymentMethod = body.paymentMethod || 'prepaid';
+    const couponCode: string = (body.couponCode || '').toUpperCase().trim();
 
     if (!items || !Array.isArray(items) || items.length === 0)
       return c.json({ error: 'No items in cart' }, 400);
@@ -545,9 +546,33 @@ app.post('/api/checkout', async (c: Context<{ Bindings: Bindings }>) => {
     } catch (e) { console.error('Combo check error:', e); }
     comboDiscount = Math.round(comboDiscount * 100) / 100;
 
+    // ── Coupon discount (server-side, applied after combo) ──────────────
+    let couponDiscount = 0;
+    let appliedCouponCode: string | null = null;
+    if (couponCode) {
+      try {
+        const couponRes = await supabaseFetch(sbUrl, sbKey, `coupons?code=eq.${encodeURIComponent(couponCode)}&is_active=eq.true`);
+        if (couponRes.ok) {
+          const coupons = await couponRes.json() as any[];
+          if (coupons.length > 0) {
+            const coupon = coupons[0];
+            const valid = (!coupon.expiry_at || new Date(coupon.expiry_at) >= new Date())
+              && (!coupon.min_total || subtotal >= coupon.min_total);
+            if (valid) {
+              couponDiscount = coupon.type === 'percent'
+                ? subtotal * (coupon.value / 100)
+                : coupon.value;
+              couponDiscount = Math.min(Math.round(couponDiscount * 100) / 100, subtotal);
+              appliedCouponCode = coupon.code;
+            }
+          }
+        }
+      } catch (e) { console.error('Prepaid coupon check error:', e); }
+    }
+
     // Prepaid = free shipping always
     const shipping = 0;
-    const total = Math.max(0, subtotal - comboDiscount) + shipping;
+    const total = Math.max(0, subtotal - comboDiscount - couponDiscount) + shipping;
 
     const rzpKeyId = getEnv(c.env, 'RAZORPAY_KEY_ID');
     const rzpKeySecret = getEnv(c.env, 'RAZORPAY_KEY_SECRET');
@@ -582,6 +607,8 @@ app.post('/api/checkout', async (c: Context<{ Bindings: Bindings }>) => {
                 status: 'pending', payment_method: 'prepaid',
                 combo_discount: comboDiscount,
                 applied_combo_id: appliedComboId,
+                coupon_discount: couponDiscount,
+                coupon_code: appliedCouponCode,
                 created_at: new Date().toISOString(),
               }),
             });
@@ -609,6 +636,7 @@ app.post('/api/checkout', async (c: Context<{ Bindings: Bindings }>) => {
     return c.json({
       success: true, items: validatedItems, subtotal, shipping, total,
       comboDiscount, appliedComboId,
+      couponDiscount, appliedCouponCode,
       currency: 'INR', razorpayOrderId,
       prefill: { email: userEmail, contact: '' },
     });
@@ -627,6 +655,7 @@ app.post('/api/checkout/cod', async (c: Context<{ Bindings: Bindings }>) => {
     const userName = body.userName || '';
     const userPhone = body.userPhone || '';
     const address = body.address || {};
+    const couponCodeCod: string = (body.couponCode || '').toUpperCase().trim();
 
     if (!items || !Array.isArray(items) || items.length === 0)
       return c.json({ error: 'No items in cart' }, 400);
@@ -692,9 +721,33 @@ app.post('/api/checkout/cod', async (c: Context<{ Bindings: Bindings }>) => {
     } catch (e) { console.error('COD combo check error:', e); }
     comboDiscountCod = Math.round(comboDiscountCod * 100) / 100;
 
+    // ── Coupon discount for COD ──────────────────────────────
+    let couponDiscountCod = 0;
+    let appliedCouponCodeCod: string | null = null;
+    if (couponCodeCod) {
+      try {
+        const couponRes = await supabaseFetch(sbUrl, sbKey, `coupons?code=eq.${encodeURIComponent(couponCodeCod)}&is_active=eq.true`);
+        if (couponRes.ok) {
+          const coupons = await couponRes.json() as any[];
+          if (coupons.length > 0) {
+            const coupon = coupons[0];
+            const valid = (!coupon.expiry_at || new Date(coupon.expiry_at) >= new Date())
+              && (!coupon.min_total || subtotal >= coupon.min_total);
+            if (valid) {
+              couponDiscountCod = coupon.type === 'percent'
+                ? subtotal * (coupon.value / 100)
+                : coupon.value;
+              couponDiscountCod = Math.min(Math.round(couponDiscountCod * 100) / 100, subtotal);
+              appliedCouponCodeCod = coupon.code;
+            }
+          }
+        }
+      } catch (e) { console.error('COD coupon check error:', e); }
+    }
+
     const codFee = 99;
     const shipping = 0;
-    const total = Math.max(0, subtotal - comboDiscountCod) + shipping + codFee;
+    const total = Math.max(0, subtotal - comboDiscountCod - couponDiscountCod) + shipping + codFee;
 
     let orderId = '';
     let dbError = '';
@@ -711,6 +764,8 @@ app.post('/api/checkout/cod', async (c: Context<{ Bindings: Bindings }>) => {
           shipping_address: address,
           combo_discount: comboDiscountCod,
           applied_combo_id: appliedComboIdCod,
+          coupon_discount: couponDiscountCod,
+          coupon_code: appliedCouponCodeCod,
           created_at: new Date().toISOString(),
         };
         const res = await supabaseFetch(sbUrl, writeKey, 'orders', {
@@ -1359,17 +1414,20 @@ app.post('/api/coupons/validate', async (c: Context<{ Bindings: Bindings }>) => 
 app.post('/api/combos/validate', async (c: Context<{ Bindings: Bindings }>) => {
   try {
     const { items } = await c.req.json();
-    if (!items || !Array.isArray(items) || items.length === 0)
-      return c.json({ combo: null, discount: 0 });
 
     const sbUrl = getEnv(c.env, 'SUPABASE_URL');
     const sbKey = getEnv(c.env, 'SUPABASE_ANON_KEY') || getEnv(c.env, 'SUPABASE_SERVICE_KEY');
-    if (!sbUrl || !sbKey) return c.json({ combo: null, discount: 0 });
+    if (!sbUrl || !sbKey) return c.json({ combo: null, discount: 0, active_combos: [] });
 
-    // fetch all active combos
+    // fetch all active combos (used for promo bar too)
     const res = await supabaseFetch(sbUrl, sbKey, 'combos?is_active=eq.true&order=discount_value.desc');
-    if (!res.ok) return c.json({ combo: null, discount: 0 });
+    if (!res.ok) return c.json({ combo: null, discount: 0, active_combos: [] });
     const combos = await res.json() as any[];
+
+    // If items is empty, just return the active combos list for promo bar purposes
+    const activeCombosSummary = combos.slice(0, 5).map((c: any) => ({ id: c.id, name: c.name, description: c.description, discount_type: c.discount_type, discount_value: c.discount_value, min_products: c.min_products }));
+    if (!items || !Array.isArray(items) || items.length === 0)
+      return c.json({ combo: null, discount: 0, active_combos: activeCombosSummary });
 
     // Compute cart subtotal from items passed (client-side prices already validated server-side at checkout)
     const subtotal: number = items.reduce((sum: number, i: any) => sum + (Number(i.unitPrice || 0) * Number(i.quantity || 1)), 0);
@@ -1406,7 +1464,7 @@ app.post('/api/combos/validate', async (c: Context<{ Bindings: Bindings }>) => {
       }
     }
 
-    return c.json({ combo: bestCombo, discount: Math.round(bestDiscount * 100) / 100 });
+    return c.json({ combo: bestCombo, discount: Math.round(bestDiscount * 100) / 100, active_combos: activeCombosSummary });
   } catch (e: any) {
     return c.json({ combo: null, discount: 0, error: e.message });
   }
