@@ -423,8 +423,12 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
   <span id="couponDiscAmt" style="color:#16a34a;font-weight:700;font-size:12px"></span>
 </div>
 <div class="csh"><span>Shipping</span><span id="cshp">Calculated</span></div>
+<!-- Total savings callout row (hidden until discount is active) -->
+<div id="totalSavingsRow" style="display:none;background:linear-gradient(135deg,#064e3b,#065f46);border-radius:6px;padding:8px 12px;margin:4px 0" class="cst">
+  <span id="totalSavingsAmt" style="color:#4ade80;font-weight:800;font-size:12px;display:flex;align-items:center;gap:6px;width:100%;justify-content:center"><i class="fas fa-check-circle"></i></span>
+</div>
 <div class="ctl"><span>Total</span><span id="ctot">${STORE_CONFIG.currencySymbol}0</span></div>
-<div style="text-align:center"><span class="trust-badge"><i class="fas fa-shield-halved"></i> 100% Secure Checkout</span></div>
+<div style="text-align:center"><span class="trust-badge"><i class="fas fa-shield-halved"></i> 100% Secure Checkout · Razorpay Encrypted</span></div>
 <button class="ccbtn" id="checkoutBtn" onclick="checkout()" style="display:none">Place Your Order <i class="fas fa-arrow-right" style="margin-left:8px;font-size:10px"></i></button>
 <p class="cpolicy">By placing an order, you agree to the intru.in <a href="/p/terms">Terms of Service</a> and our <a href="/p/returns">Store-Credit-only Refund Policy</a>.</p>
 </div></div>
@@ -806,31 +810,47 @@ function startCartTimer(){
 var cart=JSON.parse(localStorage.getItem('ic')||'[]');
 
 /* ====== CART NAVIGATION GLITCH FIX (bfcache / history undo-redo) ====== */
-/* Re-sync cart from localStorage whenever the page becomes visible again
-   after navigation (back/forward/undo). This prevents stale cart counts. */
-window.addEventListener('pageshow', function(e) {
-  /* e.persisted = true means page was restored from bfcache */
+/* Re-sync cart, coupon, and identity from localStorage whenever the page
+   becomes visible again after navigation (back/forward/undo/tab-switch).
+   This prevents stale cart counts and incorrect discount display. */
+function _resyncFromStorage(forceRender) {
   var freshCart = JSON.parse(localStorage.getItem('ic') || '[]');
-  /* Only re-render if cart actually changed to avoid flicker */
-  if (JSON.stringify(freshCart) !== JSON.stringify(cart)) {
+  var cartChanged = JSON.stringify(freshCart) !== JSON.stringify(cart);
+  if (cartChanged || forceRender) {
     cart = freshCart;
     renderCart();
     checkCombos();
   }
-  /* Also re-sync identity */
+  /* Re-sync applied coupon so discount doesn't vanish after navigation */
+  var storedCoupon = localStorage.getItem('intru_applied_coupon');
+  if (storedCoupon) {
+    try {
+      var parsedCoupon = JSON.parse(storedCoupon);
+      if (!appliedCoupon || appliedCoupon.code !== parsedCoupon.code) {
+        appliedCoupon = parsedCoupon;
+        renderAppliedCoupon();
+        renderCartTotals();
+      }
+    } catch(err) {}
+  } else if (appliedCoupon) {
+    /* Coupon cleared (e.g. in another tab) — clear here too */
+    appliedCoupon = null;
+    renderAppliedCoupon();
+    renderCartTotals();
+  }
+  /* Re-sync identity */
   identifiedEmail = localStorage.getItem('intru_user_email') || '';
   identifiedName  = localStorage.getItem('intru_user_name')  || '';
   updateAccountBtn();
+}
+
+window.addEventListener('pageshow', function(e) {
+  /* e.persisted = true → restored from bfcache (back/forward nav) */
+  _resyncFromStorage(!!e.persisted);
 });
-/* Also handle visibility changes (tab switch, app resume) */
+/* Tab-switch / app-resume */
 document.addEventListener('visibilitychange', function() {
-  if (document.visibilityState === 'visible') {
-    var freshCart = JSON.parse(localStorage.getItem('ic') || '[]');
-    if (JSON.stringify(freshCart) !== JSON.stringify(cart)) {
-      cart = freshCart;
-      renderCart();
-    }
-  }
+  if (document.visibilityState === 'visible') _resyncFromStorage(false);
 });
 
 function saveCart(){localStorage.setItem('ic',JSON.stringify(cart));renderCart();checkCombos();}
@@ -867,18 +887,20 @@ function addToCart(productId,size,qty){
 /* Show a combo nudge toast/indicator when cart reaches a combo threshold */
 function _checkComboNudgeAfterAtc(latestPid) {
   var distinctCount = new Set(cart.map(function(i){ return i.p; })).size;
-  /* If we just reached 2 items, tease a potential combo */
-  if (distinctCount === 2 && _siteActiveCombos.length) {
-    var combo = _siteActiveCombos[0];
-    if (combo && combo.min_products <= 2) {
+  var totalQty = cart.reduce(function(s,i){ return s + i.q; }, 0);
+  var effectiveCount = Math.max(distinctCount, totalQty);
+  if (!_siteActiveCombos.length) return;
+  /* Find any combo whose threshold we just hit exactly */
+  _siteActiveCombos.forEach(function(combo) {
+    if (combo.min_products === effectiveCount) {
       var discStr = combo.discount_type === 'percent'
         ? combo.discount_value + '% OFF'
         : 'Rs.' + Math.round(combo.discount_value) + ' OFF';
       setTimeout(function() {
-        toast('\uD83D\uDD25 ' + combo.name + ': ' + discStr + ' applied!', 'ok-green');
+        toast('\uD83D\uDD25 ' + combo.name + ': ' + discStr + ' — checking now!', 'ok-green');
       }, 400);
     }
-  }
+  });
 }
 
 function buyNow(productId,size){
@@ -972,15 +994,18 @@ function _showComboNudgeIfClose() {
   var nudge = document.getElementById('comboNudge');
   if (!nudge || !_siteActiveCombos.length) return;
   var distinctCount = new Set(cart.map(function(i){ return i.p; })).size;
+  /* Also count total quantity — 2x same product satisfies a buy-2 combo */
+  var totalQty = cart.reduce(function(s, i){ return s + i.q; }, 0);
+  var effectiveCount = Math.max(distinctCount, totalQty);
   /* Find the combo with the smallest min_products threshold we haven't hit yet */
   var closest = null;
   _siteActiveCombos.forEach(function(c) {
-    if (c.min_products > distinctCount) {
+    if (c.min_products > effectiveCount) {
       if (!closest || c.min_products < closest.min_products) closest = c;
     }
   });
-  if (closest && (closest.min_products - distinctCount) <= 2) {
-    var need = closest.min_products - distinctCount;
+  if (closest && (closest.min_products - effectiveCount) <= 2) {
+    var need = closest.min_products - effectiveCount;
     var discStr = closest.discount_type === 'percent'
       ? closest.discount_value + '% OFF'
       : 'Rs.' + Math.round(closest.discount_value) + ' OFF';
@@ -1130,6 +1155,8 @@ function applyCoupon(){
   .then(function(d){
     if(d.success && d.coupon){
       appliedCoupon = d.coupon;
+      /* Persist so coupon survives back/forward navigation */
+      localStorage.setItem('intru_applied_coupon', JSON.stringify(d.coupon));
       toast('Coupon applied: ' + d.coupon.code, 'ok-green');
       renderAppliedCoupon();
       renderCartTotals();
@@ -1149,6 +1176,7 @@ function renderAppliedCoupon(){
 
 function removeCoupon(){
   appliedCoupon = null;
+  localStorage.removeItem('intru_applied_coupon');
   document.getElementById('couponInput').value = '';
   renderAppliedCoupon();
   renderCartTotals();
@@ -1178,7 +1206,7 @@ function renderCartTotals(){
   if (subEl) {
     if (t.couponDiscount > 0 || t.comboDiscount > 0) {
       subEl.innerHTML = '<span style="text-decoration:line-through;opacity:0.45;margin-right:8px;font-size:12px">'
-        + fmt(t.subtotal) + '</span><span style="color:#16a34a;font-weight:800">' + fmt(t.subtotal - t.couponDiscount) + '</span>';
+        + fmt(t.subtotal) + '</span><span style="color:#16a34a;font-weight:800">' + fmt(t.subtotal - t.couponDiscount - t.comboDiscount) + '</span>';
     } else {
       subEl.textContent = fmt(t.subtotal);
     }
@@ -1196,7 +1224,7 @@ function renderCartTotals(){
       cpnRow.style.display = 'none';
     }
   }
-  // Combo discount row (prominent)
+  // Combo discount row (prominent gold)
   var comboRow = document.getElementById('comboDiscRow');
   var comboAmt = document.getElementById('comboDiscAmt');
   var comboLbl = document.getElementById('comboDiscLabel');
@@ -1207,6 +1235,18 @@ function renderCartTotals(){
       if(comboLbl) comboLbl.textContent = activeCombo ? activeCombo.name : 'Combo Discount';
     } else {
       comboRow.style.display = 'none';
+    }
+  }
+  /* Total savings callout row — show when any discount is active */
+  var totalDiscount = t.couponDiscount + t.comboDiscount;
+  var savingsRow = document.getElementById('totalSavingsRow');
+  if (savingsRow) {
+    if (totalDiscount > 0) {
+      savingsRow.style.display = 'flex';
+      var savingsAmt = document.getElementById('totalSavingsAmt');
+      if (savingsAmt) savingsAmt.textContent = 'You save ' + fmt(totalDiscount) + ' on this order!';
+    } else {
+      savingsRow.style.display = 'none';
     }
   }
   
@@ -1277,6 +1317,14 @@ function renderCart(){
   }
   document.getElementById('cmode').style.display=S.magic?'none':'flex';
   var html='';
+  /* Build per-item discount label when a combo is active */
+  var itemComboTag = '';
+  if (activeCombo && activeComboDiscount > 0) {
+    var cDiscStr = activeCombo.discount_type === 'percent'
+      ? activeCombo.discount_value + '% OFF'
+      : '\u20B9' + Math.round(activeComboDiscount) + ' saved';
+    itemComboTag = '<span style="display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:800;color:#92400e;background:rgba(234,179,8,0.12);border:1px solid rgba(234,179,8,0.3);border-radius:4px;padding:2px 6px;margin-top:4px;letter-spacing:.3px"><i class="fas fa-fire" style="color:#eab308;font-size:8px"></i>' + cDiscStr + '</span>';
+  }
   cart.forEach(function(item){
     var p=PM[item.p];if(!p)return;
     /* Event delegation: use data-* attributes instead of inline onclick */
@@ -1286,6 +1334,7 @@ function renderCart(){
         +'<div class="cnm">'+p.n+'</div>'
         +'<div class="cmt">Size: '+item.s+'</div>'
         +'<div class="cpr">'+fmt(p.p*item.q)+'</div>'
+        + (itemComboTag ? itemComboTag : '')
         +'<div class="cqty">'
           +'<button class="qb cart-qty-btn" data-pid="'+item.p+'" data-sz="'+item.s+'" data-delta="-1">&minus;</button>'
           +'<span>'+item.q+'</span>'
@@ -1608,8 +1657,18 @@ function showSuccessUI(orderId, type){
       ? activeCombo.discount_value + '% (' + fmt(activeComboDiscount) + ')'
       : fmt(activeComboDiscount);
     html += '<div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.1);font-size:11px;color:#fcd34d;font-weight:700;letter-spacing:.5px">';
-    html += '<i class="fas fa-fire" style="margin-right:6px"></i>COMBO SAVINGS: ' + discSaved + ' applied — ' + activeCombo.name;
+    html += '<i class="fas fa-fire" style="margin-right:6px"></i>COMBO SAVINGS: ' + discSaved + ' — ' + activeCombo.name;
     html += '</div>';
+  }
+  /* Show coupon savings if a coupon was applied */
+  if (appliedCoupon) {
+    var couponSaved = getCartTotals().couponDiscount;
+    if (couponSaved > 0) {
+      var couponDesc = appliedCoupon.type === 'percent' ? appliedCoupon.value + '% OFF' : fmt(couponSaved) + ' OFF';
+      html += '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.08);font-size:11px;color:#86efac;font-weight:700;letter-spacing:.5px">';
+      html += '<i class="fas fa-tag" style="margin-right:6px"></i>COUPON SAVINGS: ' + couponDesc + ' (' + appliedCoupon.code + ')';
+      html += '</div>';
+    }
   }
   html += '</div>';
   

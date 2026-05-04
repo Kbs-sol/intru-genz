@@ -525,10 +525,12 @@ app.post('/api/checkout', async (c: Context<{ Bindings: Bindings }>) => {
       if (comboRes.ok) {
         const combos = await comboRes.json() as any[];
         const distinctProducts = new Set(validatedItems.map((i: any) => i.productId)).size;
+        const totalItems = validatedItems.reduce((s: number, i: any) => s + (i.quantity || 1), 0);
+        const effectiveCount = Math.max(distinctProducts, totalItems);
         const cartCategories = new Set(validatedItems.map((i: any) => (i.category || '').toLowerCase()));
         const cartProductIds = new Set(validatedItems.map((i: any) => i.productId));
         for (const combo of combos) {
-          if (distinctProducts < combo.min_products) continue;
+          if (effectiveCount < combo.min_products) continue;
           if (combo.min_subtotal && subtotal < combo.min_subtotal) continue;
           if (combo.required_product_ids?.length) {
             if (!combo.required_product_ids.every((pid: string) => cartProductIds.has(pid))) continue;
@@ -584,7 +586,9 @@ app.post('/api/checkout', async (c: Context<{ Bindings: Bindings }>) => {
         const isMagic = paymentMethod === 'magic';
 
         if (isMagic) {
-          const { line_items, line_items_total } = buildMagicLineItems(validatedItems);
+          // Pass total discount so offer_price reflects discounted amount — Razorpay amount and line_items_total must match
+          const totalDiscountForLineItems = comboDiscount + couponDiscount;
+          const { line_items, line_items_total } = buildMagicLineItems(validatedItems, totalDiscountForLineItems);
           const rzpOrder = await createMagicCheckoutOrder(rzpKeyId, rzpKeySecret, total, receipt, line_items, line_items_total);
           razorpayOrderId = rzpOrder.id;
         } else {
@@ -700,10 +704,12 @@ app.post('/api/checkout/cod', async (c: Context<{ Bindings: Bindings }>) => {
       if (comboRes.ok) {
         const combos = await comboRes.json() as any[];
         const distinctProducts = new Set(validatedItems.map((i: any) => i.productId)).size;
+        const totalItems = validatedItems.reduce((s: number, i: any) => s + (i.quantity || 1), 0);
+        const effectiveCount = Math.max(distinctProducts, totalItems);
         const cartCategories = new Set(validatedItems.map((i: any) => (i.category || '').toLowerCase()));
         const cartProductIds = new Set(validatedItems.map((i: any) => i.productId));
         for (const combo of combos) {
-          if (distinctProducts < combo.min_products) continue;
+          if (effectiveCount < combo.min_products) continue;
           if (combo.min_subtotal && subtotal < combo.min_subtotal) continue;
           if (combo.required_product_ids?.length) {
             if (!combo.required_product_ids.every((pid: string) => cartProductIds.has(pid))) continue;
@@ -1432,6 +1438,8 @@ app.post('/api/combos/validate', async (c: Context<{ Bindings: Bindings }>) => {
     // Compute cart subtotal from items passed (client-side prices already validated server-side at checkout)
     const subtotal: number = items.reduce((sum: number, i: any) => sum + (Number(i.unitPrice || 0) * Number(i.quantity || 1)), 0);
     const distinctProducts = new Set(items.map((i: any) => i.productId)).size;
+    // totalItems counts total quantity across all line-items (supports "buy 2 of same product" combos)
+    const totalItems: number = items.reduce((sum: number, i: any) => sum + Number(i.quantity || 1), 0);
     const cartCategories = new Set(items.map((i: any) => (i.category || '').toLowerCase()));
     const cartProductIds = new Set(items.map((i: any) => i.productId));
 
@@ -1439,8 +1447,10 @@ app.post('/api/combos/validate', async (c: Context<{ Bindings: Bindings }>) => {
     let bestDiscount = 0;
 
     for (const combo of combos) {
-      // min_products check
-      if (distinctProducts < combo.min_products) continue;
+      // min_products check: satisfied by EITHER distinct product count OR total item quantity
+      // This allows "buy 2 of the same item" to satisfy a buy-2 combo
+      const effectiveCount = Math.max(distinctProducts, totalItems);
+      if (effectiveCount < combo.min_products) continue;
       // min_subtotal check
       if (combo.min_subtotal && subtotal < combo.min_subtotal) continue;
       // required_product_ids check

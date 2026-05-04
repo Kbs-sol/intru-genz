@@ -472,24 +472,48 @@ export interface MagicLineItem {
 }
 
 export function buildMagicLineItems(
-  validatedItems: { productId: string; name: string; size: string; quantity: number; unitPrice: number; lineTotal: number; image?: string; slug?: string; description?: string }[]
+  validatedItems: { productId: string; name: string; size: string; quantity: number; unitPrice: number; lineTotal: number; image?: string; slug?: string; description?: string }[],
+  totalDiscount: number = 0   // INR discount to distribute proportionally across line items
 ): { line_items: MagicLineItem[]; line_items_total: number } {
+  // Calculate full subtotal to compute each item's discount share proportionally
+  const fullSubtotal = validatedItems.reduce((s, i) => s + i.lineTotal, 0);
+  const discountPaise = Math.round(totalDiscount * 100);
+
   let lineItemsTotal = 0;
-  const line_items: MagicLineItem[] = validatedItems.map(item => {
-    const pricePaise = item.unitPrice * 100;
-    const totalPaise = item.lineTotal * 100;
-    lineItemsTotal += totalPaise;
+  let distributedPaise = 0;
+
+  const line_items: MagicLineItem[] = validatedItems.map((item, idx) => {
+    const pricePaise = Math.round(item.unitPrice * 100);
+    const lineTotalPaise = Math.round(item.lineTotal * 100);
+
+    // Distribute discount proportionally; give rounding remainder to last item
+    let itemDiscountPaise = 0;
+    if (discountPaise > 0 && fullSubtotal > 0) {
+      if (idx === validatedItems.length - 1) {
+        itemDiscountPaise = discountPaise - distributedPaise; // last item absorbs rounding
+      } else {
+        itemDiscountPaise = Math.round((item.lineTotal / fullSubtotal) * discountPaise);
+        distributedPaise += itemDiscountPaise;
+      }
+    }
+
+    // offer_price is per-unit after discount, rounded to avoid sub-paisa
+    const offerLinePaise = Math.max(0, lineTotalPaise - itemDiscountPaise);
+    const offerPricePerUnit = item.quantity > 0 ? Math.round(offerLinePaise / item.quantity) : pricePaise;
+
+    lineItemsTotal += offerLinePaise;
+
     return {
       type: 'e-commerce',
       sku: item.productId,
       variant_id: `${item.productId}_${item.size}`,
       price: pricePaise,
-      offer_price: pricePaise,  // same as price (no per-item discount)
-      tax_amount: 0,            // prices are tax-inclusive
+      offer_price: offerPricePerUnit,  // discounted per-unit price in paise
+      tax_amount: 0,                   // prices are tax-inclusive
       quantity: item.quantity,
       name: item.name,
       description: item.description || item.name,
-      weight: 250,              // ~250g per garment
+      weight: 250,                     // ~250g per garment
       image_url: item.image || '',
       product_url: `https://intru.in/product/${item.slug || item.productId}`,
     };
