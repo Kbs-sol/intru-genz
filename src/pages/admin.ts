@@ -1138,9 +1138,9 @@ function renderCombos(){
 
     var createdAt = c.created_at ? new Date(c.created_at).toLocaleDateString('en-IN', {day:'2-digit',month:'short',year:'numeric'}) : '—';
 
-    /* escape for inline onclick */
-    var safeId = c.id.replace(/'/g, '');
-    var safeName = (c.name||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    /* escape for inline onclick - use split/join to avoid regex literal escaping issues */
+    var safeId = c.id.split("'").join('');
+    var safeName = (c.name||'').split("'").join('');
 
     h += '<tr>'
       + '<td style="min-width:160px"><div style="font-weight:800;font-size:13px;letter-spacing:-.2px">' + (c.name||'') + '</div>'
@@ -1319,7 +1319,7 @@ function toggleCombo(id, newState){
 }
 
 function deleteCombo(id, name){
-  if(!confirm('Permanently delete combo "' + name + '"?\nThis cannot be undone.')) return;
+  if(!confirm('Permanently delete combo: ' + name + '. This cannot be undone.')) return;
   fetch('/api/admin/combos/' + encodeURIComponent(id), {
     method: 'DELETE',
     headers: {'x-admin-token':sessionStorage.getItem('iadm_t')}
