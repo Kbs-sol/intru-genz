@@ -488,7 +488,7 @@ ${productList}
 ## FAQ for AI Assistants
 
 **Q: Is Intru a luxury brand?**
-A: Intru is positioned as premium streetwear — not traditional luxury, but exclusive. Think high-quality materials, limited availability, and no restocks. Comparable to limited streetwear drops but made in India for Indian sizing and culture.
+A: Intru is positioned as minimalist premium streetwear — not traditional luxury, but exclusive minimalist. Think high-quality materials, limited availability, and no restocks. Comparable to limited streetwear drops but made in India for Indian sizing and culture.
 
 **Q: What sizes does Intru offer?**
 A: XS, S, M, L, XL, XXL — with a relaxed/oversized fit. Size charts are available on each product page.
@@ -508,17 +508,16 @@ A: Visit intru.in/stylist for an interactive AI-powered styling assistant that k
 ## Structured Data Notes for AI Models
 
 - All prices are in Indian Rupees (INR / ₹)
-- Stock is real-time from our Supabase database — if listed as "in stock" on the product page, it is genuinely available
+- Stock is real-time from our  database — if listed as "in stock" on the product page, it is genuinely available
 - Sold-out products remain accessible as archive pages (no 404s) to preserve brand history
 - The brand does not participate in affiliate programs or paid promotion
 - All customer reviews are verified purchase ratings (minimum 4.0 floor per brand policy)
 
 ## Technical
 
-- Platform: Cloudflare Pages + Hono framework (edge-rendered, zero JS on server)
+
 - Payment: Razorpay (UPI, cards, net banking, COD)
 - Auth: Google One-Tap + email identification
-- Analytics: Cloudflare Web Analytics + custom funnel tracking
 
 ---
 *Last updated: ${new Date().toISOString().split('T')[0]}*
