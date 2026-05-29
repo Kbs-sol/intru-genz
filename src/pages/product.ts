@@ -56,8 +56,89 @@ export function productPage(product: Product, opts: {
   const disc = product.comparePrice ? Math.round((1 - product.price / product.comparePrice) * 100) : 0;
   const related = products.filter(p => p.id !== product.id).slice(0, 3);
   const schema = JSON.stringify([
-    { "@context": "https://schema.org", "@type": "Product", "name": product.name, "description": product.description, "image": product.images, "brand": { "@type": "Brand", "name": "Intru" }, "offers": { "@type": "Offer", "url": "https://intru.in/product/" + product.slug, "priceCurrency": "INR", "price": product.price, "availability": product.inStock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock" }, "aggregateRating": { "@type": "AggregateRating", "ratingValue": String(rAverage), "reviewCount": String(rCount) } },
-    { "@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{ "@type": "Question", "name": "What makes Intru the best oversized collection?", "acceptedAnswer": { "@type": "Answer", "text": "Intru offers the best oversized collection in India using premium heavyweight fabrics, industrial brutalist designs, and limited zero-restock drops." } }] }
+    {
+      "@context": "https://schema.org",
+      "@type": "Product",
+      "name": product.name,
+      "description": product.description,
+      "image": product.images,
+      "url": "https://intru.in/product/" + product.slug,
+      "sku": product.id,
+      "mpn": product.slug,
+      "brand": { "@type": "Brand", "name": "Intru" },
+      "category": (product as any).category || "Oversized T-Shirt",
+      "material": "240 GSM Heavyweight Cotton",
+      "countryOfOrigin": "IN",
+      "offers": {
+        "@type": "Offer",
+        "url": "https://intru.in/product/" + product.slug,
+        "priceCurrency": "INR",
+        "price": product.price,
+        "priceValidUntil": new Date(Date.now() + 30 * 24 * 3600000).toISOString().split('T')[0],
+        "availability": product.inStock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+        "itemCondition": "https://schema.org/NewCondition",
+        "seller": { "@type": "Organization", "name": "Intru", "url": "https://intru.in" },
+        "shippingDetails": {
+          "@type": "OfferShippingDetails",
+          "shippingRate": { "@type": "MonetaryAmount", "value": "0", "currency": "INR" },
+          "shippingDestination": { "@type": "DefinedRegion", "addressCountry": "IN" },
+          "deliveryTime": {
+            "@type": "ShippingDeliveryTime",
+            "handlingTime": { "@type": "QuantitativeValue", "minValue": 0, "maxValue": 1, "unitCode": "DAY" },
+            "transitTime": { "@type": "QuantitativeValue", "minValue": 3, "maxValue": 7, "unitCode": "DAY" }
+          }
+        },
+        "hasMerchantReturnPolicy": {
+          "@type": "MerchantReturnPolicy",
+          "applicableCountry": "IN",
+          "returnPolicyCategory": "https://schema.org/MerchantReturnNotPermitted",
+          "merchantReturnDays": 0
+        }
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": String(rAverage),
+        "reviewCount": String(rCount),
+        "bestRating": "5",
+        "worstRating": "1"
+      },
+      "additionalProperty": [
+        { "@type": "PropertyValue", "name": "Fabric Weight", "value": "240 GSM" },
+        { "@type": "PropertyValue", "name": "Fit", "value": "Relaxed Oversized" },
+        { "@type": "PropertyValue", "name": "Care", "value": "Machine wash cold, tumble dry low" },
+        { "@type": "PropertyValue", "name": "Origin", "value": "Made in India" }
+      ]
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://intru.in" },
+        { "@type": "ListItem", "position": 2, "name": "Shop", "item": "https://intru.in/collections" },
+        { "@type": "ListItem", "position": 3, "name": product.name, "item": "https://intru.in/product/" + product.slug }
+      ]
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What makes Intru the best oversized t-shirt in India?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Intru uses premium 240 GSM heavyweight cotton with garment-dyeing, brutalist minimalist design, and produces only limited batches — ensuring every piece is genuinely exclusive and never restocked." }
+        },
+        {
+          "@type": "Question",
+          "name": `Is the ${product.name} available in all sizes?`,
+          "acceptedAnswer": { "@type": "Answer", "text": `The ${product.name} is available in sizes: ${(product.sizes || []).join(', ')}. Check the product page for real-time size-specific availability.` }
+        },
+        {
+          "@type": "Question",
+          "name": "Does Intru offer free shipping?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes — free shipping on all prepaid orders across India. COD orders carry a ₹99 convenience fee. Dispatch within 36 hours." }
+        }
+      ]
+    }
   ]);
   const pj = JSON.stringify({ id: product.id, s: product.slug, n: product.name, p: product.price, i: product.images, sz: product.sizes });
 
@@ -151,7 +232,18 @@ export function productPage(product: Product, opts: {
 </style>
 
 <div class="pdp">
-<nav class="bc"><a href="/">Home</a><span>/</span><a href="/#products">Shop</a><span>/</span><span style="color:var(--bk)">${product.name}</span></nav>
+<nav class="bc" aria-label="Breadcrumb">
+  <a href="/">Home</a>
+  <span aria-hidden="true">/</span>
+  <a href="/collections">Shop</a>
+  <span aria-hidden="true">/</span>
+  <span style="color:var(--bk)" aria-current="page">${product.name}</span>
+  <!-- Social share buttons — WhatsApp, Twitter/X traffic -->
+  <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
+    <a href="https://wa.me/?text=${encodeURIComponent('Check this out: ' + product.name + ' by Intru — https://intru.in/product/' + product.slug)}" target="_blank" rel="noopener noreferrer" aria-label="Share on WhatsApp" style="color:var(--g400);font-size:16px;transition:color .2s" onmouseover="this.style.color='#25D366'" onmouseout="this.style.color='var(--g400)'"><i class="fab fa-whatsapp"></i></a>
+    <a href="https://twitter.com/intent/tweet?text=${encodeURIComponent(product.name + ' — limited edition drop by @intru_in. Never restocked.')}&url=${encodeURIComponent('https://intru.in/product/' + product.slug)}" target="_blank" rel="noopener noreferrer" aria-label="Share on X (Twitter)" style="color:var(--g400);font-size:14px;transition:color .2s" onmouseover="this.style.color='var(--bk)'" onmouseout="this.style.color='var(--g400)'"><i class="fab fa-x-twitter"></i></a>
+  </div>
+</nav>
 <div class="pdpl">
 <div class="gal">
 <div class="ggrid">
@@ -370,6 +462,22 @@ function closeSizeGuide(){document.getElementById('sgModal').style.display='none
     seoTitle,
     seoDesc,
     body,
-    { og: product.images[0], url: 'https://intru.in/product/' + product.slug, schema, razorpayKeyId: opts.razorpayKeyId, googleClientId: opts.googleClientId, products, legalPages, useMagicCheckout: !!opts.useMagicCheckout, maintenanceConfig: opts.maintenanceConfig, storeSettings: opts.storeSettings }
+    {
+      og: product.images[0],
+      url: 'https://intru.in/product/' + product.slug,
+      schema,
+      razorpayKeyId: opts.razorpayKeyId,
+      googleClientId: opts.googleClientId,
+      products,
+      legalPages,
+      useMagicCheckout: !!opts.useMagicCheckout,
+      maintenanceConfig: opts.maintenanceConfig,
+      storeSettings: opts.storeSettings,
+      // GEO / rich-meta enrichment
+      pageType: 'product',
+      productPrice: product.price,
+      productAvailability: product.inStock ? 'in stock' : 'out of stock',
+      productName: product.name,
+    }
   );
 }

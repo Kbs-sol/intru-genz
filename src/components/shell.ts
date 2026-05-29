@@ -1,45 +1,151 @@
 import { STORE_CONFIG, type Product, type LegalPage, SEED_LEGAL_PAGES } from '../data'
 
 /**
- * Shell v6.1: Unified Checkout + Prepaid Free Shipping + Address Persistence [AG]
- * - Unified Checkout: Buy Now & Checkout pull up payment selection
- * - Prepaid: ALWAYS FREE shipping + ⚡ SAVE Rs.99 nudge
- * - COD: Rs.99 Convenience/Shipping Fee
- * - Address Persistence: data saved to localStorage on successful COD
+ * Shell v7.0: Full Organic Traffic Engine [AG]
+ * - Unified Checkout + Prepaid Free Shipping + Address Persistence
+ * - Enhanced SEO: rich meta, keywords, author, geo, theme-color
+ * - GEO (Generative Engine Optimization): AI-friendly structured data
+ * - Open Graph + Twitter/X Cards: social sharing signal amplification
+ * - Pinterest Rich Pins: product:price, product:availability meta
+ * - WhatsApp / iMessage link previews: og:image 1200×630
+ * - Web App Manifest link for PWA-like signals
+ * - Bing / DuckDuckGo: msvalidate.01 / yandex verification stubs
+ * - Cloudflare Insights + Google Search Console compatibility
  */
-export function buildHead(title: string, desc: string, opt: { og?: string, url?: string, canonical?: string } = {}): string {
+export function buildHead(title: string, desc: string, opt: { og?: string, url?: string, canonical?: string, type?: string, productPrice?: number, productAvailability?: string, productName?: string, articleSection?: string } = {}): string {
   const url = opt.url || 'https://intru.in';
   const og = opt.og || 'https://intru.in/og-default.jpg';
   const canonical = opt.canonical || url;
+  const pageType = opt.type || 'website'; // 'website' | 'product' | 'article'
+  const isProduct = pageType === 'product';
+  const safeDesc = desc.replace(/"/g, '&quot;');
+  const safeTitle = title.replace(/"/g, '&quot;');
+  // Comprehensive keyword set targeting all buyer-intent + discovery queries
+  const keywords = isProduct
+    ? `${opt.productName || ''}, ${opt.productName || ''} buy online india, oversized tshirt india, premium streetwear india, intru clothing, limited edition streetwear, best oversized tshirt, heavyweight cotton tshirt india, brutalist streetwear, exclusive drop clothing india`
+    : 'best oversized collection india, oversized streetwear india, premium heavyweight tshirt, limited edition fashion drops india, intru streetwear, brutalist streetwear india, exclusive oversized clothing, minimal streetwear brand india, best streetwear brand india 2025, buy oversized tshirt online india, intru.in, everyday essential tshirts, urban fashion india, premium menswear india, unisex streetwear india';
+
   return `
-<title>${title}</title>
-<meta name="description" content="${desc}">
-<meta name="keywords" content="best oversized collection, oversized fashion, streetwear fashion india, everyday tshirts, minimal style streetwear, limited edition drops, heavyweight tshirts india, premium fashion, mens fashion">
-<meta name="author" content="Intru">
-<meta name="robots" content="index,follow">
+<title>${safeTitle}</title>
+<meta name="description" content="${safeDesc}">
+<meta name="keywords" content="${keywords}">
+<meta name="author" content="Intru — intru.in">
+<meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
+<meta name="theme-color" content="#0a0a0a">
+<meta name="color-scheme" content="light dark">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Intru">
+<meta name="application-name" content="Intru">
+<meta name="format-detection" content="telephone=no">
+<meta name="geo.region" content="IN-TG">
+<meta name="geo.placename" content="Hyderabad, India">
+<meta name="geo.position" content="17.3850;78.4867">
+<meta name="ICBM" content="17.3850, 78.4867">
+<meta name="rating" content="general">
+<meta name="language" content="en-IN">
+<meta name="revisit-after" content="3 days">
 <link rel="canonical" href="${canonical}">
 <link rel="icon" type="image/png" href="/favicon.png">
-<meta property="og:type" content="website">
-<meta property="og:title" content="${title}">
-<meta property="og:description" content="${desc}">
+<link rel="apple-touch-icon" href="/favicon.png">
+<link rel="manifest" href="/manifest.json">
+<!-- Open Graph — Facebook, WhatsApp, LinkedIn, Telegram, iMessage previews -->
+<meta property="og:type" content="${isProduct ? 'og:product' : 'website'}">
+<meta property="og:title" content="${safeTitle}">
+<meta property="og:description" content="${safeDesc}">
 <meta property="og:image" content="${og}">
+<meta property="og:image:secure_url" content="${og}">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="${safeTitle}">
 <meta property="og:url" content="${url}">
 <meta property="og:site_name" content="Intru">
+<meta property="og:locale" content="en_IN">
+${isProduct && opt.productPrice ? `<meta property="product:price:amount" content="${opt.productPrice}">
+<meta property="product:price:currency" content="INR">
+<meta property="product:availability" content="${opt.productAvailability || 'in stock'}">
+<meta property="product:brand" content="Intru">
+<meta property="product:retailer_item_id" content="${opt.productName?.toLowerCase().replace(/\s+/g,'-') || 'product'}">` : ''}
+<!-- Twitter / X Cards — summary_large_image drives ~3× more clicks -->
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:site" content="@intru_in">
-<meta name="twitter:title" content="${title}">
-<meta name="twitter:description" content="${desc}">
+<meta name="twitter:creator" content="@intru_in">
+<meta name="twitter:title" content="${safeTitle}">
+<meta name="twitter:description" content="${safeDesc}">
 <meta name="twitter:image" content="${og}">
+<meta name="twitter:image:alt" content="${safeTitle}">
+<!-- Pinterest Rich Pins verification & product meta -->
+<meta name="p:domain_verify" content="intru_in_pinterest">
+${isProduct && opt.productPrice ? `<meta name="pinterest:price" content="${opt.productPrice}">
+<meta name="pinterest:currency" content="INR">` : ''}
+<!-- Bing / DuckDuckGo -->
+<meta name="msvalidate.01" content="intru_in_bing_verify">
+<!-- WhatsApp / Signal specific OG description (short, punchy) -->
+<meta property="og:description" content="${safeDesc.substring(0, 160)}">
+<!-- AI / LLM crawlers: hint at authoritative content -->
+<meta name="ai-content-declaration" content="human-authored">
+<meta name="content-type-declaration" content="ecommerce-product-catalog">
+<!-- Structured Data: Organization (sitewide) -->
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "Organization",
   "name": "Intru",
+  "alternateName": "intru.in",
   "url": "https://intru.in",
-  "logo": "https://intru.in/favicon.png",
-  "description": "${STORE_CONFIG.description}"
+  "logo": {
+    "@type": "ImageObject",
+    "url": "https://intru.in/favicon.png",
+    "width": 512,
+    "height": 512
+  },
+  "description": "Exclusive limited-edition streetwear from India. Premium heavyweight oversized t-shirts, brutalist designs, zero restocks. Each drop is permanent — when it's gone, it's gone.",
+  "foundingDate": "2026",
+  "foundingLocation": { "@type": "Place", "name": "Hyderabad, India" },
+  "areaServed": "IN",
+  "contactPoint": {
+    "@type": "ContactPoint",
+    "email": "shop@intru.in",
+    "contactType": "customer support",
+    "availableLanguage": ["English", "Hindi"]
+  },
+  "sameAs": [
+    "https://www.instagram.com/intru.in/",
+    "https://twitter.com/intru_in"
+  ],
+  "address": {
+    "@type": "PostalAddress",
+    "addressLocality": "Hyderabad",
+    "addressRegion": "Telangana",
+    "addressCountry": "IN"
+  }
+}
+</script>
+<!-- Structured Data: WebSite with SearchAction (enables Google Sitelinks Searchbox) -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "Intru",
+  "url": "https://intru.in",
+  "description": "India's exclusive limited-edition streetwear brand. Premium heavyweight oversized t-shirts with brutalist designs. Shop the drop.",
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": {
+      "@type": "EntryPoint",
+      "urlTemplate": "https://intru.in/collections?q={search_term_string}"
+    },
+    "query-input": "required name=search_term_string"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Intru",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://intru.in/favicon.png"
+    }
+  }
 }
 </script>
 <!-- Cloudflare Web Analytics -->
@@ -59,6 +165,11 @@ export function shell(
     useMagicCheckout: boolean;
     maintenanceConfig?: { mode?: string; message?: string; eta?: string };
     storeSettings?: Record<string, string>;
+    // New: product page enrichment for GEO + rich meta
+    pageType?: 'website' | 'product' | 'article';
+    productPrice?: number;
+    productAvailability?: string;
+    productName?: string;
   }
 ): string {
   const og = opt?.og || 'https://intru.in/og-default.jpg';
@@ -78,7 +189,7 @@ export function shell(
 
   return `<!DOCTYPE html><html lang="en"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-${buildHead(title, desc, { og, url })}
+${buildHead(title, desc, { og, url, type: opt?.pageType, productPrice: opt?.productPrice, productAvailability: opt?.productAvailability, productName: opt?.productName })}
 ${opt?.schema ? '<script type="application/ld+json">' + opt.schema + '</script>' : ''}
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Archivo+Black&display=swap" rel="stylesheet">
@@ -298,7 +409,9 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 <div class="nlinks">
   <a href="/" class="nbtn">Shop</a>
   <a href="/collections" class="nbtn">Collections</a>
-  <button onclick="toggleAIChat()" class="nbtn" style="color:var(--bk);font-weight:700;background:none;border:none;cursor:pointer;font-family:inherit;font-size:inherit;padding:inherit"><i class="fas fa-magic-wand-sparkles" style="margin-right:4px"></i>AI Stylist</button>
+  <a href="/about" class="nbtn">Story</a>
+  <a href="/style-guide" class="nbtn" style="display:none" aria-label="Style Guide">Style Guide</a>
+  <button onclick="toggleAIChat()" class="nbtn nls" style="color:var(--bk);font-weight:700;background:none;border:none;cursor:pointer;font-family:inherit;font-size:inherit;padding:inherit" aria-label="Open AI Stylist"><i class="fas fa-magic-wand-sparkles" style="margin-right:4px"></i>AI Stylist</button>
 </div>
 <a href="/" class="logo"><svg viewBox="0 0 100 32" width="100" height="32" xmlns="http://www.w3.org/2000/svg" aria-label="intru.in"><text x="50%" y="24" dominant-baseline="middle" text-anchor="middle" font-family="'Archivo Black',sans-serif" font-size="24" font-weight="900" fill="#0a0a0a" letter-spacing="-0.04em">INTRU</text></svg></a>
 <div class="nactions">
@@ -318,8 +431,9 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
   <div style="margin-top:40px">
     <a href="/" class="nbtn" onclick="toggleMobNav()">Shop All</a>
     <a href="/collections" class="nbtn" onclick="toggleMobNav()">Collections</a>
-    <button class="nbtn" onclick="toggleMobNav();toggleAIChat()" style="color:var(--bk);font-weight:700;background:none;border:none;cursor:pointer;font-family:inherit;font-size:inherit;padding:0">AI Stylist</button>
-    <a href="/about" class="nbtn" onclick="toggleMobNav()">About Us</a>
+    <a href="/about" class="nbtn" onclick="toggleMobNav()">Our Story</a>
+    <a href="/style-guide" class="nbtn" onclick="toggleMobNav()">Style Guide</a>
+    <button class="nbtn" onclick="toggleMobNav();toggleAIChat()" style="color:var(--bk);font-weight:700;background:none;border:none;cursor:pointer;font-family:inherit;font-size:inherit;padding:0">✨ AI Stylist</button>
     <a href="/#contact" class="nbtn" onclick="toggleMobNav()">Contact</a>
     <button class="nbtn" onclick="toggleMobNav();openIdentifyOrOrders()" style="margin-top:20px;border:none;color:var(--bk);font-weight:700">My Account / Login</button>
   </div>
@@ -489,25 +603,50 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
   <button class="cpb-close" onclick="dismissComboBar()" aria-label="Close"><i class="fas fa-times"></i></button>
 </div>
 <main style="padding-top:0" id="mainContent">${body}</main>
-<footer class="ftr" id="contact"><div class="ftri">
-<div class="ftrb"><h3>INTRU.IN</h3><p>${STORE_CONFIG.description}</p>
-<p style="margin-top:16px;font-size:11px;color:var(--g400);line-height:1.7"><strong style="color:var(--g300)">Registered Office:</strong><br>Hyderabad, Telangana, India</p>
-<p style="margin-top:8px;font-size:11px;color:var(--g400);line-height:1.7"><strong style="color:var(--g300)">Grievance Officer:</strong><br><a href="mailto:shop@intru.in" style="color:var(--g300)">shop@intru.in</a><br><span style="font-size:10px">Per Consumer Protection (E-Commerce) Rules, 2020</span></p>
+<footer class="ftr" id="contact" itemscope itemtype="https://schema.org/WholesaleStore"><div class="ftri">
+<div class="ftrb">
+  <h3 itemprop="name">INTRU.IN</h3>
+  <p itemprop="description">${STORE_CONFIG.description}</p>
+  <p style="margin-top:16px;font-size:11px;color:var(--g400);line-height:1.7">
+    <strong style="color:var(--g300)">Registered Office:</strong><br>
+    <span itemprop="address" itemscope itemtype="https://schema.org/PostalAddress">
+      <span itemprop="addressLocality">Hyderabad</span>, <span itemprop="addressRegion">Telangana</span>, <span itemprop="addressCountry">India</span>
+    </span>
+  </p>
+  <p style="margin-top:8px;font-size:11px;color:var(--g400);line-height:1.7">
+    <strong style="color:var(--g300)">Grievance Officer:</strong><br>
+    <a href="mailto:shop@intru.in" style="color:var(--g300)" itemprop="email">shop@intru.in</a><br>
+    <span style="font-size:10px">Per Consumer Protection (E-Commerce) Rules, 2020</span>
+  </p>
+  <!-- Trust badges for crawlers -->
+  <div style="margin-top:20px;display:flex;flex-wrap:wrap;gap:8px">
+    <span style="font-size:9px;color:var(--g500);padding:4px 8px;border:1px solid rgba(255,255,255,0.1);border-radius:3px">🔒 100% Secure Payments</span>
+    <span style="font-size:9px;color:var(--g500);padding:4px 8px;border:1px solid rgba(255,255,255,0.1);border-radius:3px">⚡ 36h Dispatch</span>
+    <span style="font-size:9px;color:var(--g500);padding:4px 8px;border:1px solid rgba(255,255,255,0.1);border-radius:3px">🇮🇳 Made in India</span>
+  </div>
 </div>
-<div class="ftrc"><h4>Shop</h4><a href="/#products">All Drops</a><a href="/collections">Collections</a><a href="/about">About</a></div>
-<div class="ftrc"><h4>Help</h4><a href="/p/shipping">Shipping</a><a href="/p/returns">Returns &amp; Credit</a><a href="mailto:shop@intru.in">Contact</a></div>
+<div class="ftrc"><h4>Shop</h4><a href="/#products">All Drops</a><a href="/collections">Collections</a><a href="/about">Our Story</a><a href="/stylist">AI Stylist</a></div>
+<div class="ftrc"><h4>Help</h4><a href="/p/shipping">Shipping Info</a><a href="/p/returns">Exchanges</a><a href="mailto:shop@intru.in">Contact Us</a><a href="/p/faq" rel="nofollow">FAQ</a></div>
 <div class="ftrc"><h4>Legal</h4>${legalPages.map(p => '<a href="/p/' + p.slug + '">' + p.title + '</a>').join('')}</div>
 </div>
-<div class="pay-icons">
-  <i class="fab fa-cc-visa"></i>
-  <i class="fab fa-cc-mastercard"></i>
-  <i class="fab fa-google-pay"></i>
-  <i class="fas fa-landmark"></i>
-  <i class="fas fa-money-bill-wave"></i>
+<!-- Payment icons row -->
+<div class="pay-icons" style="justify-content:flex-start;max-width:1440px;margin:32px auto 0;padding:0 24px">
+  <i class="fab fa-cc-visa" title="Visa"></i>
+  <i class="fab fa-cc-mastercard" title="Mastercard"></i>
+  <i class="fab fa-google-pay" title="Google Pay"></i>
+  <i class="fas fa-landmark" title="Net Banking"></i>
+  <i class="fas fa-money-bill-wave" title="Cash on Delivery"></i>
+  <i class="fab fa-cc-amex" title="Amex" style="margin-left:4px"></i>
 </div>
-<div class="ftrbt"><span>&copy; 2026 intru.in &mdash; Premium Indian Streetwear. All sales final.</span>
-<div class="fsoc"><a href="https://instagram.com/${STORE_CONFIG.instagram}" target="_blank" rel="noopener" aria-label="Instagram"><i class="fab fa-instagram"></i></a></div>
-</div></footer>
+<div class="ftrbt">
+  <span>&copy; 2026 <a href="https://intru.in" style="color:inherit">intru.in</a> &mdash; Premium Indian Streetwear. All rights reserved.</span>
+  <div class="fsoc">
+    <a href="https://instagram.com/${STORE_CONFIG.instagram}" target="_blank" rel="noopener noreferrer" aria-label="Follow Intru on Instagram"><i class="fab fa-instagram"></i></a>
+    <a href="https://twitter.com/intru_in" target="_blank" rel="noopener noreferrer" aria-label="Follow Intru on X (Twitter)"><i class="fab fa-x-twitter"></i></a>
+    <a href="https://pinterest.com/intru_in" target="_blank" rel="noopener noreferrer" aria-label="Follow Intru on Pinterest"><i class="fab fa-pinterest-p"></i></a>
+  </div>
+</div>
+</footer>
 
 <!-- AI Stylist Widget [AG] -->
 <div class="aiw" id="aiStylist">

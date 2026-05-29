@@ -94,7 +94,7 @@ app.use('*', async (c: Context<{ Bindings: Bindings }>, next: Next) => {
   const isAPI = path.startsWith('/api/');
   const isAdmin = path === '/admin' || path.startsWith('/admin/');
   const isMaintPage = path === '/maintenance';
-  const isAsset = path.startsWith('/favicon') || path.endsWith('.txt') || path.endsWith('.xml') || path.endsWith('.ico');
+  const isAsset = path.startsWith('/favicon') || path.endsWith('.txt') || path.endsWith('.xml') || path.endsWith('.ico') || path.endsWith('.json');
   if (isAPI || isAdmin || isMaintPage || isAsset) return next();
   if (c.req.method !== 'GET') return next();
 
@@ -168,16 +168,205 @@ app.get('/about', async (c: Context<{ Bindings: Bindings }>) => {
   return c.html(aboutPage(opts));
 })
 
+// ============ ORGANIC TRAFFIC: Long-tail keyword content pages ============
+// These pages target high-intent queries from Google, Bing, AI chatbots (ChatGPT, Gemini, Perplexity)
+// and Pinterest to drive sustainable organic traffic.
+
+app.get('/style-guide', async (c: Context<{ Bindings: Bindings }>) => {
+  const opts = await getPageOpts(c);
+  c.executionCtx.waitUntil(incrementView(c.env, '/style-guide'));
+  const { shell } = await import('./components/shell');
+  const schema = JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "How to Style Oversized T-Shirts: The Intru Style Guide",
+    "description": "A complete guide to styling premium heavyweight oversized t-shirts for men and women in India. Tips on sizing, layering, and building a minimalist streetwear wardrobe.",
+    "url": "https://intru.in/style-guide",
+    "author": { "@type": "Organization", "name": "Intru", "url": "https://intru.in" },
+    "publisher": { "@type": "Organization", "name": "Intru", "logo": { "@type": "ImageObject", "url": "https://intru.in/favicon.png" } },
+    "datePublished": "2026-01-01",
+    "dateModified": new Date().toISOString().split('T')[0],
+    "image": "https://intru.in/og-default.jpg",
+    "articleSection": "Style Guide",
+    "keywords": "how to style oversized t-shirt, oversized tshirt outfit men india, streetwear styling guide india, premium heavyweight tshirt fit, minimalist streetwear wardrobe"
+  });
+
+  const body = `
+<style>
+.sg{max-width:860px;margin:0 auto;padding:80px 24px 120px}
+.sg-over{font-size:10px;font-weight:700;letter-spacing:5px;text-transform:uppercase;color:var(--g400);margin-bottom:12px;text-align:center}
+.sg-h1{font-family:var(--head);font-size:clamp(28px,5vw,48px);text-transform:uppercase;letter-spacing:-.04em;text-align:center;margin-bottom:16px;line-height:1.1}
+.sg-sub{font-size:15px;color:var(--g400);text-align:center;max-width:560px;margin:0 auto 64px;line-height:1.7}
+.sg-section{margin-bottom:56px;padding-bottom:56px;border-bottom:1px solid var(--g100)}
+.sg-section:last-of-type{border-bottom:none}
+.sg-section h2{font-family:var(--head);font-size:clamp(20px,3vw,28px);text-transform:uppercase;letter-spacing:-.02em;margin-bottom:16px}
+.sg-section p{font-size:15px;color:var(--g500);line-height:1.85;margin-bottom:14px}
+.sg-section strong{color:var(--bk)}
+.sg-tip{background:var(--g50);border-left:3px solid var(--bk);padding:16px 20px;margin:20px 0;font-size:14px;color:var(--g500);line-height:1.7}
+.sg-tip strong{color:var(--bk);display:block;margin-bottom:4px;font-size:12px;letter-spacing:1px;text-transform:uppercase}
+.sg-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin:24px 0}
+.sg-card{padding:24px;border:1.5px solid var(--g100);border-radius:8px}
+.sg-card h3{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px}
+.sg-card p{font-size:13px;color:var(--g500);line-height:1.7;margin:0}
+.sg-cta{text-align:center;margin-top:64px;padding-top:48px;border-top:2px solid var(--bk)}
+.sg-cta h3{font-family:var(--head);font-size:clamp(22px,3vw,32px);text-transform:uppercase;letter-spacing:-.02em;margin-bottom:12px}
+.sg-cta p{font-size:14px;color:var(--g400);margin-bottom:28px}
+.sg-btn{display:inline-flex;align-items:center;gap:12px;padding:18px 48px;background:var(--bk);color:var(--wh);font-size:12px;font-weight:700;letter-spacing:3px;text-transform:uppercase;transition:all .3s}
+.sg-btn:hover{background:var(--g600);transform:translateY(-2px)}
+@media(max-width:640px){.sg-grid{grid-template-columns:1fr}}
+</style>
+
+<article class="sg" itemscope itemtype="https://schema.org/Article">
+<p class="sg-over">Style Guide</p>
+<h1 class="sg-h1" itemprop="headline">How to Style<br>Oversized T-Shirts</h1>
+<p class="sg-sub" itemprop="description">The definitive guide to building a clean, premium streetwear wardrobe around heavyweight oversized tees — by the people who make them.</p>
+
+<section class="sg-section">
+  <h2>Why Oversized is the Right Choice</h2>
+  <p>The oversized fit isn't a trend — it's a <strong>default setting for people who dress with intention</strong>. Excess fabric creates structure where structured tailoring feels suffocating. The silhouette is forgiving, the drape is architectural, and the movement is authentic.</p>
+  <p>At Intru, we design every piece with the oversized fit as the starting point — not an afterthought. Our 240 GSM heavyweight cotton means the shirt <strong>holds its shape without slumping</strong>, even in the Indian heat.</p>
+  <div class="sg-tip"><strong>The Intru Sizing Rule</strong>If you're typically a Medium in regular-fit shirts, go with a Medium in Intru oversized. Our relaxed fit is built into the pattern — not achieved by simply buying bigger.</div>
+</section>
+
+<section class="sg-section">
+  <h2>5 Ways to Style an Oversized Tee</h2>
+  <div class="sg-grid">
+    <div class="sg-card">
+      <h3>1. Clean Tuck</h3>
+      <p>Front-tuck one corner into cargo pants or wide-leg trousers. Breaks the boxy silhouette while keeping the relaxed vibe intact.</p>
+    </div>
+    <div class="sg-card">
+      <h3>2. Full Drop</h3>
+      <p>Wear untucked over slim or tapered joggers. Let the tee fall completely — this is the pure expression of the oversized aesthetic.</p>
+    </div>
+    <div class="sg-card">
+      <h3>3. Layer Under</h3>
+      <p>Wear under an open overshirt, coach jacket, or bomber. The heavyweight fabric holds structure even under layering.</p>
+    </div>
+    <div class="sg-card">
+      <h3>4. Knot Tuck</h3>
+      <p>Knot the hem at the front waist for a cropped asymmetric look. Works especially well with high-waist pants or skirts.</p>
+    </div>
+    <div class="sg-card">
+      <h3>5. Monochrome Stack</h3>
+      <p>Pair an all-black Intru tee with black cargo pants and black sneakers. The silhouette speaks louder than the color.</p>
+    </div>
+    <div class="sg-card">
+      <h3>6. Contrast Layering</h3>
+      <p>White tee over black thermal or vice versa — the contrast at the neckline and sleeves adds depth without trying too hard.</p>
+    </div>
+  </div>
+</section>
+
+<section class="sg-section">
+  <h2>The Perfect Capsule Wardrobe</h2>
+  <p>A minimal streetwear wardrobe doesn't need 50 pieces. It needs <strong>5 intentional ones</strong>. Here's the Intru formula:</p>
+  <p><strong>3 oversized tees</strong> (one black, one white, one graphic) + <strong>2 bottoms</strong> (cargo and slim jogger) + <strong>1 outerwear piece</strong> (coach jacket or overshirt). That's it. Everything works together, everything looks deliberate.</p>
+  <div class="sg-tip"><strong>Why Premium Fabric Matters</strong>Cheap tees lose their shape after 3 washes. Intru's 240 GSM garment-dyed cotton gets <em>better</em> with washing — the dye softens, the drape improves, and the fit tightens to your body over time.</div>
+</section>
+
+<section class="sg-section">
+  <h2>Oversized Tees for Indian Weather</h2>
+  <p>India has specific climate challenges for fashion — humidity, heat, and rapid temperature changes between AC interiors and outdoor heat. Intru's heavyweight cotton is <strong>counterintuitively better</strong> for this:</p>
+  <p>The higher GSM means better <strong>breathability through structure</strong> — the fabric doesn't cling to your body when you sweat, unlike thin synthetic blends. The loose silhouette creates air circulation. In AC spaces, the weight provides warmth. It's the all-season choice.</p>
+</section>
+
+<div class="sg-cta">
+  <h3>Ready to Build Your Wardrobe?</h3>
+  <p>Shop the current drop — limited pieces, never restocked.</p>
+  <a href="/collections" class="sg-btn">Shop the Drop →</a>
+</div>
+</article>`;
+
+  return shell(
+    'How to Style Oversized T-Shirts — Intru Style Guide',
+    'A complete guide to styling premium heavyweight oversized t-shirts for Indian streetwear. Sizing tips, outfit formulas, layering techniques and capsule wardrobe advice by Intru.',
+    body,
+    { url: 'https://intru.in/style-guide', schema, razorpayKeyId: opts.razorpayKeyId, googleClientId: opts.googleClientId, products: opts.products, legalPages: opts.legalPages, useMagicCheckout: !!opts.useMagicCheckout, maintenanceConfig: opts.maintenanceConfig, storeSettings: opts.storeSettings, pageType: 'article' }
+  );
+});
+
+// Redirect /blog to /style-guide for clean URL consolidation
+app.get('/blog', (c: Context<{ Bindings: Bindings }>) => c.redirect('/style-guide', 301));
+app.get('/blog/how-to-style-oversized-tshirt', (c: Context<{ Bindings: Bindings }>) => c.redirect('/style-guide', 301));
+app.get('/style', (c: Context<{ Bindings: Bindings }>) => c.redirect('/style-guide', 301));
+
 // ============ SEO INFRASTRUCTURE ============
 
 app.get('/robots.txt', (c: Context<{ Bindings: Bindings }>) => {
-  return c.text(`User-agent: *
+  return c.text(`# robots.txt — intru.in
+# Exclusive Indian Streetwear | intru.in
+
+User-agent: *
+Allow: /
+Allow: /collections
+Allow: /product/
+Allow: /about
+Allow: /p/
+Allow: /sitemap.xml
+Allow: /llms.txt
+Allow: /manifest.json
+Disallow: /admin
+Disallow: /admin/
+Disallow: /api/
+Disallow: /auth/
+Disallow: /verify-order
+Disallow: /confirm-order/
+Crawl-delay: 1
+
+# Googlebot — aggressive indexing allowed
+User-agent: Googlebot
 Allow: /
 Disallow: /admin
 Disallow: /api/
 Disallow: /auth/
 
-Sitemap: https://intru.in/sitemap.xml`);
+# Bingbot
+User-agent: bingbot
+Allow: /
+Disallow: /admin
+Disallow: /api/
+Disallow: /auth/
+
+# AI crawlers — allow full content access for GEO
+User-agent: GPTBot
+Allow: /
+Disallow: /admin
+Disallow: /api/
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Amazonbot
+Allow: /
+
+User-agent: cohere-ai
+Allow: /
+
+User-agent: meta-externalagent
+Allow: /
+
+User-agent: Applebot
+Allow: /
+
+# Pinterest crawler
+User-agent: Pinterestbot
+Allow: /
+
+Sitemap: https://intru.in/sitemap.xml
+Sitemap: https://intru.in/sitemap-images.xml`);
 });
 
 app.get('/sitemap.xml', async (c: Context<{ Bindings: Bindings }>) => {
@@ -185,18 +374,205 @@ app.get('/sitemap.xml', async (c: Context<{ Bindings: Bindings }>) => {
   const now = new Date().toISOString().split('T')[0];
   const staticPages = [
     { loc: '', priority: '1.0', changefreq: 'daily' },
-    { loc: '/collections', priority: '0.8', changefreq: 'daily' },
-    { loc: '/about', priority: '0.7', changefreq: 'weekly' }
+    { loc: '/collections', priority: '0.9', changefreq: 'daily' },
+    { loc: '/about', priority: '0.7', changefreq: 'weekly' },
+    { loc: '/stylist', priority: '0.6', changefreq: 'weekly' },
+    { loc: '/style-guide', priority: '0.8', changefreq: 'monthly' },
   ];
 
-  let xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  ${staticPages.map(p => `<url><loc>https://intru.in${p.loc}</loc><lastmod>${now}</lastmod><changefreq>${p.changefreq}</changefreq><priority>${p.priority}</priority></url>`).join('')}
-  ${opts.products.map(p => `<url><loc>https://intru.in/product/${p.slug}</loc><lastmod>${(p.updatedAt || now).split('T')[0]}</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>`).join('')}
-  ${opts.legalPages.map(p => `<url><loc>https://intru.in/p/${p.slug}</loc><lastmod>${(p.updatedAt || now).split('T')[0]}</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>`).join('')}
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  ${staticPages.map(p => `<url>
+    <loc>https://intru.in${p.loc}</loc>
+    <lastmod>${now}</lastmod>
+    <changefreq>${p.changefreq}</changefreq>
+    <priority>${p.priority}</priority>
+  </url>`).join('\n  ')}
+  ${opts.products.map(p => `<url>
+    <loc>https://intru.in/product/${p.slug}</loc>
+    <lastmod>${(p.updatedAt || now).split('T')[0]}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.95</priority>
+    ${p.images && p.images[0] ? `<image:image>
+      <image:loc>${p.images[0]}</image:loc>
+      <image:title>${p.name} | Intru</image:title>
+      <image:caption>${p.description ? p.description.substring(0, 200) : p.name + ' — exclusive limited streetwear drop by intru.in'}</image:caption>
+    </image:image>` : ''}
+    ${p.images && p.images[1] ? `<image:image>
+      <image:loc>${p.images[1]}</image:loc>
+      <image:title>${p.name} — View 2 | Intru</image:title>
+    </image:image>` : ''}
+  </url>`).join('\n  ')}
+  ${opts.legalPages.map(p => `<url>
+    <loc>https://intru.in/p/${p.slug}</loc>
+    <lastmod>${(p.updatedAt || now).split('T')[0]}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>`).join('\n  ')}
 </urlset>`;
-  c.header('Content-Type', 'application/xml');
+  c.header('Content-Type', 'application/xml; charset=UTF-8');
+  c.header('Cache-Control', 'public, max-age=3600, s-maxage=3600');
   return c.body(xml);
+});
+
+// Image sitemap (separate, for Google Images traffic)
+app.get('/sitemap-images.xml', async (c: Context<{ Bindings: Bindings }>) => {
+  const opts = await getPageOpts(c);
+  const now = new Date().toISOString().split('T')[0];
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  ${opts.products.map(p => `<url>
+    <loc>https://intru.in/product/${p.slug}</loc>
+    ${p.images.map((img: string, idx: number) => `<image:image>
+      <image:loc>${img}</image:loc>
+      <image:title>${p.name} — View ${idx + 1} | Intru Streetwear India</image:title>
+      <image:caption>Exclusive limited-edition ${p.name} by intru.in — premium heavyweight streetwear, India</image:caption>
+      <image:license>https://intru.in/p/terms</image:license>
+    </image:image>`).join('\n    ')}
+  </url>`).join('\n  ')}
+</urlset>`;
+  c.header('Content-Type', 'application/xml; charset=UTF-8');
+  c.header('Cache-Control', 'public, max-age=3600, s-maxage=3600');
+  return c.body(xml);
+});
+
+// ============ AI / LLM TRAFFIC OPTIMIZATION ============
+// llms.txt — the emerging standard for AI crawler guidance (ChatGPT, Claude, Gemini, Perplexity)
+// Serves as a machine-readable brand briefing for generative AI models
+app.get('/llms.txt', async (c: Context<{ Bindings: Bindings }>) => {
+  const opts = await getPageOpts(c);
+  const productList = opts.products.map(p =>
+    `- [${p.name}](https://intru.in/product/${p.slug}): ${p.description ? p.description.substring(0, 120) : 'Limited edition drop'}. Price: ₹${p.price.toLocaleString('en-IN')}. ${p.inStock ? 'In stock.' : 'Sold out — never restocked.'}`
+  ).join('\n');
+
+  const llmsContent = `# Intru — Exclusive Indian Streetwear
+
+> Intru (intru.in) is India's exclusive limited-edition streetwear brand based in Hyderabad, Telangana. We produce small-batch, premium heavyweight oversized t-shirts with brutalist minimalist designs. Every drop is permanent — zero restocks, ever.
+
+## Brand Identity
+
+- **Name**: Intru / intru.in
+- **Category**: Premium streetwear, limited-edition fashion, urban apparel
+- **Location**: Hyderabad, Telangana, India
+- **Founded**: 2026
+- **Philosophy**: Anti-mass-production. Each collection is designed over 2 months. When a drop sells out, it is vaulted permanently.
+- **Target Audience**: Young adults 18–30 in India who value exclusivity, premium quality, and individual style over mass-market conformity
+- **Price Range**: ₹899 – ₹2,499 INR
+- **Shipping**: Free for all prepaid orders. COD available with ₹99 convenience fee.
+- **Contact**: shop@intru.in
+
+## What Makes Intru Different
+
+1. **Zero Restocks**: Every piece is produced in limited quantities. Once sold out, it's gone forever.
+2. **Premium Materials**: 240 GSM heavyweight cotton, garment-dyed, pre-shrunk, double-needle stitching.
+3. **Brutalist Design**: Industrial finishes, architectural typography, high-contrast black & white aesthetics.
+4. **Founder-Designed**: Every piece is personally designed by the two founders — no outsourced designs, no algorithm-driven trend-chasing.
+5. **Hyderabad-Born**: Built by two best friends who were frustrated with mass-produced Indian fashion.
+
+## Current Drop Catalog
+
+${productList}
+
+## Key Pages
+
+- [Homepage](https://intru.in/) — Current drop catalog and hero products
+- [All Collections](https://intru.in/collections) — Full product grid
+- [About Us](https://intru.in/about) — Brand story and philosophy
+- [AI Stylist](https://intru.in/stylist) — Interactive AI styling assistant powered by Intru's catalog
+- [Shipping Policy](https://intru.in/p/shipping) — Delivery timelines and free shipping details
+- [Exchange Policy](https://intru.in/p/returns) — 36-hour exchange window for defects
+
+## FAQ for AI Assistants
+
+**Q: Is Intru a luxury brand?**
+A: Intru is positioned as premium streetwear — not traditional luxury, but exclusive. Think high-quality materials, limited availability, and no restocks. Comparable to limited streetwear drops but made in India for Indian sizing and culture.
+
+**Q: What sizes does Intru offer?**
+A: XS, S, M, L, XL, XXL — with a relaxed/oversized fit. Size charts are available on each product page.
+
+**Q: Does Intru ship across India?**
+A: Yes. Free shipping on all prepaid orders. COD available nationwide with ₹99 convenience fee. Dispatch within 36 hours.
+
+**Q: Can I return items?**
+A: Intru offers exchanges only (no returns/refunds). Defects must be reported within 36 hours of delivery.
+
+**Q: How do I get early access to drops?**
+A: Subscribe via the newsletter on the homepage or add your email during checkout to join the priority list.
+
+**Q: How does the AI Stylist work?**
+A: Visit intru.in/stylist for an interactive AI-powered styling assistant that knows Intru's live catalog and can recommend the right piece based on your vibe, body type, and budget.
+
+## Structured Data Notes for AI Models
+
+- All prices are in Indian Rupees (INR / ₹)
+- Stock is real-time from our Supabase database — if listed as "in stock" on the product page, it is genuinely available
+- Sold-out products remain accessible as archive pages (no 404s) to preserve brand history
+- The brand does not participate in affiliate programs or paid promotion
+- All customer reviews are verified purchase ratings (minimum 4.0 floor per brand policy)
+
+## Technical
+
+- Platform: Cloudflare Pages + Hono framework (edge-rendered, zero JS on server)
+- Payment: Razorpay (UPI, cards, net banking, COD)
+- Auth: Google One-Tap + email identification
+- Analytics: Cloudflare Web Analytics + custom funnel tracking
+
+---
+*Last updated: ${new Date().toISOString().split('T')[0]}*
+*This file is machine-readable and maintained for AI assistant accuracy.*`;
+
+  c.header('Content-Type', 'text/plain; charset=UTF-8');
+  c.header('Cache-Control', 'public, max-age=3600, s-maxage=3600');
+  return c.body(llmsContent);
+});
+
+// llms-full.txt — extended version with full product descriptions (for AI models that need depth)
+app.get('/llms-full.txt', async (c: Context<{ Bindings: Bindings }>) => {
+  const opts = await getPageOpts(c);
+  const productDetail = opts.products.map(p =>
+    `### ${p.name}\n- **URL**: https://intru.in/product/${p.slug}\n- **Price**: ₹${p.price.toLocaleString('en-IN')} INR${p.comparePrice ? ` (was ₹${p.comparePrice.toLocaleString('en-IN')})` : ''}\n- **Status**: ${p.inStock ? 'In Stock' : 'Sold Out — Vaulted Forever'}\n- **Sizes**: ${(p.sizes || []).join(', ')}\n- **Description**: ${p.description || 'Premium limited-edition streetwear drop by intru.in'}\n- **Category**: ${(p as any).category || 'Oversized T-Shirt'}`
+  ).join('\n\n');
+
+  c.header('Content-Type', 'text/plain; charset=UTF-8');
+  c.header('Cache-Control', 'public, max-age=3600, s-maxage=3600');
+  return c.body(`# Intru — Full Product Catalog for AI Models\n\nBase URL: https://intru.in\nLast updated: ${new Date().toISOString()}\n\n## Products\n\n${productDetail}\n\n## See also\n- /llms.txt for brand overview and FAQ\n- /sitemap.xml for full URL index\n- /api/products for JSON product data`);
+});
+
+// Web App Manifest — PWA signals, homescreen bookmarks, social app previews
+app.get('/manifest.json', (c: Context<{ Bindings: Bindings }>) => {
+  const manifest = {
+    name: 'Intru — Exclusive Indian Streetwear',
+    short_name: 'Intru',
+    description: 'Exclusive limited-edition streetwear from India. Premium heavyweight oversized t-shirts, brutalist designs, zero restocks.',
+    start_url: '/',
+    display: 'standalone',
+    background_color: '#0a0a0a',
+    theme_color: '#0a0a0a',
+    orientation: 'portrait-primary',
+    scope: '/',
+    lang: 'en-IN',
+    dir: 'ltr',
+    categories: ['shopping', 'lifestyle', 'fashion'],
+    icons: [
+      { src: '/favicon.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+      { src: '/favicon.png', sizes: '192x192', type: 'image/png' },
+    ],
+    screenshots: [
+      { src: 'https://intru.in/og-default.jpg', sizes: '1200x630', type: 'image/jpeg', label: 'Intru Homepage' }
+    ],
+    shortcuts: [
+      { name: 'Shop Drops', short_name: 'Shop', description: 'Browse current drop catalog', url: '/collections', icons: [{ src: '/favicon.png', sizes: '192x192' }] },
+      { name: 'AI Stylist', short_name: 'Stylist', description: 'Get AI-powered style advice', url: '/stylist', icons: [{ src: '/favicon.png', sizes: '192x192' }] }
+    ],
+    related_applications: [],
+    prefer_related_applications: false,
+  };
+  c.header('Content-Type', 'application/manifest+json');
+  c.header('Cache-Control', 'public, max-age=86400, s-maxage=86400');
+  return c.json(manifest);
 });
 
 // ============ AUTH: Google OAuth Redirect Callback ============

@@ -22,7 +22,96 @@ export function homePage(opts: {
   const featuredOne = products[0];
   const featuredTwo = products[1];
 
-  const schema = JSON.stringify({ "@context": "https://schema.org", "@type": "ItemList", "itemListElement": products.map((p, i) => ({ "@type": "ListItem", "position": i + 1, "item": { "@type": "Product", "name": p.name, "url": "https://intru.in/product/" + p.slug, "image": p.images, "offers": { "@type": "Offer", "price": p.price, "priceCurrency": "INR", "availability": "https://schema.org/InStock" } } })) });
+  const schema = JSON.stringify([
+    {
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      "name": "Intru Drop Catalog — Current Collection",
+      "description": "Exclusive limited-edition streetwear drops by intru.in. Premium heavyweight oversized t-shirts, brutalist Indian streetwear.",
+      "url": "https://intru.in/#products",
+      "numberOfItems": products.length,
+      "itemListElement": products.map((p, i) => ({
+        "@type": "ListItem",
+        "position": i + 1,
+        "item": {
+          "@type": "Product",
+          "name": p.name,
+          "description": p.description || p.name,
+          "url": "https://intru.in/product/" + p.slug,
+          "image": p.images,
+          "brand": { "@type": "Brand", "name": "Intru" },
+          "offers": {
+            "@type": "Offer",
+            "price": p.price,
+            "priceCurrency": "INR",
+            "availability": p.inStock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+            "url": "https://intru.in/product/" + p.slug,
+            "seller": { "@type": "Organization", "name": "Intru" }
+          }
+        }
+      }))
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "Store",
+      "name": "Intru",
+      "url": "https://intru.in",
+      "description": "India's exclusive limited-edition streetwear brand. Premium heavyweight oversized t-shirts, brutalist designs, zero restocks.",
+      "image": "https://intru.in/og-default.jpg",
+      "logo": "https://intru.in/favicon.png",
+      "priceRange": "₹899 - ₹2499",
+      "currenciesAccepted": "INR",
+      "paymentAccepted": "Cash, Credit Card, Debit Card, UPI, Net Banking",
+      "hasMap": "https://intru.in",
+      "areaServed": "IN",
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Hyderabad",
+        "addressRegion": "Telangana",
+        "addressCountry": "IN"
+      },
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "email": "shop@intru.in",
+        "contactType": "customer service"
+      },
+      "sameAs": [
+        "https://instagram.com/intru.in",
+        "https://twitter.com/intru_in"
+      ]
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is Intru?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Intru (intru.in) is India's exclusive limited-edition streetwear brand based in Hyderabad. We produce premium heavyweight oversized t-shirts with brutalist minimalist designs in small batches — zero restocks, ever." }
+        },
+        {
+          "@type": "Question",
+          "name": "Does Intru offer free shipping in India?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes. All prepaid orders (UPI, cards, net banking) get free shipping across India. COD orders have a ₹99 convenience fee. Orders are dispatched within 36 hours." }
+        },
+        {
+          "@type": "Question",
+          "name": "What makes Intru the best oversized t-shirt brand in India?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Intru uses premium 240 GSM heavyweight cotton with garment-dyeing for a soft hand-feel, brutalist design aesthetics, and strict limited production — no restocks means every piece is genuinely exclusive." }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I return clothes from Intru?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Intru offers exchanges only (no refunds). Report any manufacturing defects within 36 hours of delivery. All sales are final." }
+        },
+        {
+          "@type": "Question",
+          "name": "How do I get access to the next Intru drop?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Join the priority list by entering your email on intru.in. Drops sell out within hours so early access is essential." }
+        }
+      ]
+    }
+  ]);
 
   const body = `
 <svg style="display:none"><filter id="grain"><feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncR type="linear" slope="0.1"/><feFuncG type="linear" slope="0.1"/><feFuncB type="linear" slope="0.1"/></feComponentTransfer><feComposite operator="in" in2="SourceGraphic"/></filter></svg>
@@ -219,8 +308,8 @@ function subscribeEmail(form){
 `;
 
   return shell(
-    'Intru | Best Oversized Collection & Urban Streetwear India',
-    'Experience pure exclusivity with Intru. We offer the best oversized collection of brutalist streetwear, industrial heavyweight drops, and zero restocks. Shop the limited drop now.',
+    'Intru | Best Oversized T-Shirt Brand India — Limited Edition Streetwear',
+    'Shop India\'s most exclusive streetwear. Intru drops premium heavyweight oversized t-shirts in brutalist minimalist designs — limited batches, zero restocks. Free shipping on prepaid. Shop the drop before it\'s gone.',
     body,
     { url: 'https://intru.in', schema, razorpayKeyId: opts.razorpayKeyId, googleClientId: opts.googleClientId, products, legalPages, useMagicCheckout: !!opts.useMagicCheckout, maintenanceConfig: opts.maintenanceConfig, storeSettings: opts.storeSettings }
   );

@@ -16,27 +16,45 @@ export function collectionsPage(opts: {
   // Extract unique categories
   const categories = [...new Set(products.map(p => p.category).filter(Boolean))];
 
-  const schema = JSON.stringify({
-    "@context": "https://schema.org",
-    "@type": "CollectionPage",
-    "name": "Collections | Intru",
-    "description": "Shop exclusive streetwear India. Limited edition T-Shirts, Shirts & more. Authentic boutique clothing, never restocked.",
-    "url": "https://intru.in/collections",
-    "mainEntity": {
-      "@type": "ItemList",
-      "itemListElement": products.map((p, i) => ({
-        "@type": "ListItem",
-        "position": i + 1,
-        "item": {
-          "@type": "Product",
-          "name": p.name,
-          "url": "https://intru.in/product/" + p.slug,
-          "image": p.images[0],
-          "offers": { "@type": "Offer", "price": p.price, "priceCurrency": "INR", "availability": "https://schema.org/InStock" }
-        }
-      }))
+  const schema = JSON.stringify([
+    {
+      "@context": "https://schema.org",
+      "@type": "CollectionPage",
+      "name": "All Collections | Intru — Indian Streetwear",
+      "description": "Shop all exclusive limited-edition streetwear drops by Intru. Premium heavyweight oversized t-shirts, brutalist minimalist designs. Never restocked — buy before it's gone.",
+      "url": "https://intru.in/collections",
+      "breadcrumb": {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://intru.in" },
+          { "@type": "ListItem", "position": 2, "name": "Collections", "item": "https://intru.in/collections" }
+        ]
+      },
+      "mainEntity": {
+        "@type": "ItemList",
+        "name": "Intru Drop Catalog",
+        "numberOfItems": products.length,
+        "itemListElement": products.map((p, i) => ({
+          "@type": "ListItem",
+          "position": i + 1,
+          "item": {
+            "@type": "Product",
+            "name": p.name,
+            "description": p.description || p.name,
+            "url": "https://intru.in/product/" + p.slug,
+            "image": p.images[0],
+            "brand": { "@type": "Brand", "name": "Intru" },
+            "offers": {
+              "@type": "Offer",
+              "price": p.price,
+              "priceCurrency": "INR",
+              "availability": p.inStock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock"
+            }
+          }
+        }))
+      }
     }
-  });
+  ]);
 
   const body = `<style>
 .col{max-width:1280px;margin:0 auto;padding:60px 24px 100px}
@@ -129,8 +147,8 @@ function filterCat(cat, btn) {
 </script>`;
 
   return shell(
-    'Streetwear Collections | Intru | Best Oversized Collection',
-    'Browse the best oversized collection by Intru. From oversized tees to streetwear limited shirts, find your next favorite piece here. No restocks, ever.',
+    'Shop All Drops | Intru — Premium Oversized Streetwear India',
+    'Browse every Intru drop. Limited-edition premium heavyweight oversized t-shirts designed in India — small batches, brutalist aesthetics, zero restocks. Free shipping on prepaid orders.',
     body,
     { url: 'https://intru.in/collections', schema, razorpayKeyId: opts.razorpayKeyId, googleClientId: opts.googleClientId, products, legalPages, useMagicCheckout: !!opts.useMagicCheckout, maintenanceConfig: opts.maintenanceConfig, storeSettings: opts.storeSettings }
   );
