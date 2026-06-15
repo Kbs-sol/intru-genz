@@ -357,6 +357,17 @@ var selectedSize=null;
 var carSlide=0;
 var lbIdx=0;
 
+/* Funnel: view_item (GA4 ecommerce) — fires once on product page load */
+(function(){
+  function _fireView(){
+    if(typeof window.track==='function'){
+      window.track('view_item',{currency:'INR',value:P.p,items:[{item_id:P.id,item_name:P.n,price:P.p}]});
+    }else{setTimeout(_fireView,400);}
+  }
+  if(document.readyState!=='loading')_fireView();
+  else document.addEventListener('DOMContentLoaded',_fireView);
+})();
+
 function selSz(btn){
   document.querySelectorAll('.szbtn').forEach(function(b){b.classList.remove('sel')});
   btn.classList.add('sel');

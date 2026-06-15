@@ -41,6 +41,15 @@ async function getPageOpts(c: Context<{ Bindings: Bindings }>) {
   const { products } = await fetchProducts(sbUrl, sbSvc, sbAnon);
   const { pages: legalPages } = await fetchLegalPages(sbUrl, sbSvc, sbAnon);
   const storeSettings = await fetchAllStoreSettings(sbUrl, sbKey);
+  // Analytics IDs: store-settings win; fall back to Cloudflare env vars.
+  if (!storeSettings.GA4_MEASUREMENT_ID) {
+    const envGa = getEnv(c.env, 'GA_MEASUREMENT_ID');
+    if (envGa) storeSettings.GA4_MEASUREMENT_ID = envGa;
+  }
+  if (!storeSettings.CLARITY_PROJECT_ID) {
+    const envCl = getEnv(c.env, 'CLARITY_PROJECT_ID');
+    if (envCl) storeSettings.CLARITY_PROJECT_ID = envCl;
+  }
   const mMode = storeSettings.MAINTENANCE_MODE || 'off';
   return {
     razorpayKeyId: getEnv(c.env, 'RAZORPAY_KEY_ID', STORE_CONFIG.razorpayKeyId),
@@ -1350,6 +1359,7 @@ app.post('/api/payment/verify', async (c: Context<{ Bindings: Bindings }>) => {
     return c.json({
       success: true, orderId: razorpay_order_id,
       razorpayPaymentId: razorpay_payment_id,
+      total: orderTotal,
       message: 'Payment verified and order confirmed.',
     });
   } catch (e: any) {
