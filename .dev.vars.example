@@ -41,3 +41,13 @@ ADMIN_PASSWORD=intru2026admin
 # Razorpay Webhook Secret (for /api/webhooks/razorpay endpoint)
 # Set this in Razorpay Dashboard → Webhooks → Secret
 RAZORPAY_WEBHOOK_SECRET=
+
+# ===========================================
+# Analytics (OPTIONAL — preferred path is Admin → Settings → Analytics)
+# These env vars are only fallbacks if the store-setting is empty.
+#   GA4:     Admin Settings key GA4_MEASUREMENT_ID  (e.g. G-XXXXXXXXXX)
+#   Clarity: Admin Settings key CLARITY_PROJECT_ID  (e.g. abcd1234ef)
+# When both the setting and env var are empty, analytics is fully disabled.
+# ===========================================
+GA_MEASUREMENT_ID=
+CLARITY_PROJECT_ID=

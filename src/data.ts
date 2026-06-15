@@ -30,6 +30,9 @@ export interface Env {
   RESEND_API_KEY: string;
   R2_ACCESS_KEY_ID: string;
   R2_SECRET_ACCESS_KEY: string;
+  // Analytics (optional; store-settings take precedence, these are env fallbacks)
+  GA_MEASUREMENT_ID: string;
+  CLARITY_PROJECT_ID: string;
 }
 
 // ============ STORE CONFIG (static — never changes at runtime) ============

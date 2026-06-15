@@ -12,7 +12,49 @@ import { STORE_CONFIG, type Product, type LegalPage, SEED_LEGAL_PAGES } from '..
  * - Bing / DuckDuckGo: msvalidate.01 / yandex verification stubs
  * - Cloudflare Insights + Google Search Console compatibility
  */
-export function buildHead(title: string, desc: string, opt: { og?: string, url?: string, canonical?: string, type?: string, productPrice?: number, productAvailability?: string, productName?: string, articleSection?: string } = {}): string {
+/**
+ * Build analytics loader markup. Renders nothing unless an ID is configured,
+ * so the site is always safe to deploy with analytics "off".
+ * - GA4 (gtag.js): standard ecommerce event collection + revenue attribution
+ * - Microsoft Clarity: heatmaps + session recordings for CRO insight
+ * A small `window.track()` helper unifies gtag + clarity + the internal
+ * /api/analytics/event pipeline so every funnel hook reports once.
+ */
+function buildAnalytics(ga4Id?: string, clarityId?: string): string {
+  const ga = (ga4Id || '').trim();
+  const clarity = (clarityId || '').trim();
+  const gaSnippet = ga ? `
+<!-- Google Analytics 4 (GA4) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=${ga}"></script>
+<script>
+window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}
+gtag('js',new Date());
+gtag('config','${ga}',{anonymize_ip:true,send_page_view:true});
+</script>` : '';
+  const claritySnippet = clarity ? `
+<!-- Microsoft Clarity -->
+<script type="text/javascript">
+(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y)})(window,document,"clarity","script","${clarity}");
+</script>` : '';
+  // Unified tracking helper — always defined so funnel hooks never throw.
+  const helper = `
+<!-- Intru unified analytics helper -->
+<script>
+window.track=function(name,params){
+  try{params=params||{};
+    if(typeof window.gtag==='function'){window.gtag('event',name,params);}
+    if(typeof window.clarity==='function'){window.clarity('event',name);}
+    if(navigator&&navigator.sendBeacon){
+      var b=new Blob([JSON.stringify({event:name,meta:params})],{type:'application/json'});
+      navigator.sendBeacon('/api/analytics/event',b);
+    }
+  }catch(e){}
+};
+</script>`;
+  return gaSnippet + claritySnippet + helper;
+}
+
+export function buildHead(title: string, desc: string, opt: { og?: string, url?: string, canonical?: string, type?: string, productPrice?: number, productAvailability?: string, productName?: string, articleSection?: string, ga4Id?: string, clarityId?: string } = {}): string {
   const url = opt.url || 'https://intru.in';
   const og = opt.og || 'https://intru.in/og-default.jpg';
   const canonical = opt.canonical || url;
@@ -150,7 +192,8 @@ ${isProduct && opt.productPrice ? `<meta name="pinterest:price" content="${opt.p
 </script>
 <!-- Cloudflare Web Analytics -->
 <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "76ec4808383a48e7ba66288f6ea0317e"}'></script>
-<!-- End Cloudflare Web Analytics -->`;
+<!-- End Cloudflare Web Analytics -->
+${buildAnalytics(opt.ga4Id, opt.clarityId)}`;
 }
 
 export function shell(
@@ -170,6 +213,9 @@ export function shell(
     productPrice?: number;
     productAvailability?: string;
     productName?: string;
+    // Analytics IDs (config-driven; empty = analytics disabled)
+    ga4Id?: string;
+    clarityId?: string;
   }
 ): string {
   const og = opt?.og || 'https://intru.in/og-default.jpg';
@@ -183,13 +229,17 @@ export function shell(
   const mcMode = mc.mode || 'off';
   const mcMsg = mc.message || '';
   const mcEta = mc.eta || '';
+  // Resolve analytics IDs: explicit opt → store settings (admin-managed). Empty = disabled.
+  const ss = opt?.storeSettings || {};
+  const ga4Id = opt?.ga4Id || ss.GA4_MEASUREMENT_ID || '';
+  const clarityId = opt?.clarityId || ss.CLARITY_PROJECT_ID || '';
 
   const pm = JSON.stringify(Object.fromEntries(products.map(p => [p.id, { id: p.id, n: p.name, s: p.slug, p: p.price, i: p.images, sz: p.sizes, cat: (p as any).category || '' }])));
   const sj = JSON.stringify({ cs: STORE_CONFIG.currencySymbol, ft: STORE_CONFIG.freeShippingThreshold, sc: STORE_CONFIG.shippingCost, rk: rpKey, magic: useMagic });
 
   return `<!DOCTYPE html><html lang="en"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-${buildHead(title, desc, { og, url, type: opt?.pageType, productPrice: opt?.productPrice, productAvailability: opt?.productAvailability, productName: opt?.productName })}
+${buildHead(title, desc, { og, url, type: opt?.pageType, productPrice: opt?.productPrice, productAvailability: opt?.productAvailability, productName: opt?.productName, ga4Id, clarityId })}
 ${opt?.schema ? '<script type="application/ld+json">' + opt.schema + '</script>' : ''}
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Archivo+Black&display=swap" rel="stylesheet">
@@ -701,6 +751,7 @@ function mntDismissBanner() {
 <script>
 /* ====== CONFIG ====== */
 window.STORE_PRODUCTS = ${JSON.stringify(opt?.products || [])};
+window.__EXIT_INTENT = ${ss.EXIT_INTENT_ENABLED === 'false' ? 'false' : 'true'};
 var S=${sj};
 var PM=${pm};
 var payMode='prepaid';
@@ -1018,8 +1069,11 @@ function addToCart(productId,size,qty){
   toast(p.n+' ('+size+') added to bag','ok');
   openCartDrawer();
   
-  /* Trigger background analytics */
+  /* Trigger background + GA4/Clarity analytics */
   fetch('/api/analytics/event',{method:'POST',body:JSON.stringify({event:'add_to_cart',meta:{pid:productId,sz:size}})}).catch(function(){});
+  if(typeof window.track==='function'){
+    window.track('add_to_cart',{currency:'INR',value:(p.p||0)*qty,items:[{item_id:productId,item_name:p.n,item_variant:size,price:p.p,quantity:qty}]});
+  }
   return true;
 }
 
@@ -1608,6 +1662,26 @@ function quickAddToCart(productId,size){
 /* ====== BUY NOW (unified) ====== */
 
 /* ====== CHECKOUT ====== */
+/* Snapshot of cart taken at begin_checkout — used for accurate purchase attribution
+   because the cart is cleared on success before the purchase event fires. */
+var _purchaseSnapshot=null;
+/* GA4 purchase event — the single most important revenue signal.
+   Falls back to the snapshot value when the server does not echo a total. */
+function trackPurchase(orderId,serverTotal,snap,method){
+  if(typeof window.track!=='function')return;
+  try{
+    var val=(serverTotal!=null&&!isNaN(serverTotal))?Number(serverTotal):((snap&&snap.value)||0);
+    window.track('purchase',{
+      transaction_id:orderId||'',
+      currency:'INR',
+      value:val,
+      coupon:(snap&&snap.coupon)||'',
+      payment_type:method||'',
+      items:(snap&&snap.items)||[]
+    });
+  }catch(e){}
+}
+
 function checkout(){
   if(!cart.length){toast('Your bag is empty','err');return}
   /* Silent Identity: if not identified, show overlay */
@@ -1623,6 +1697,19 @@ function checkout(){
   var btn=document.getElementById('checkoutBtn');
   if(btn){btn.disabled=true;btn.textContent='CREATING ORDER...';}
   orderToastFired=false;
+
+  /* Funnel: snapshot cart for purchase attribution + begin_checkout (GA4 ecommerce) */
+  try{
+    var _bt=getCartTotals();
+    _purchaseSnapshot={
+      value:(_bt&&_bt.total)||0,
+      items:cart.map(function(i){var _p=PM[i.p]||{};return{item_id:i.p,item_name:_p.n,item_variant:i.s,price:_p.p,quantity:i.q}}),
+      coupon: appliedCoupon ? appliedCoupon.code : ''
+    };
+    if(typeof window.track==='function'){
+      window.track('begin_checkout',{currency:'INR',value:_purchaseSnapshot.value,coupon:_purchaseSnapshot.coupon,items:_purchaseSnapshot.items});
+    }
+  }catch(e){}
 
   /* If Magic Checkout is ON, always use Razorpay Magic flow */
   if(S.magic){doMagicCheckout();return}
@@ -1669,7 +1756,7 @@ function doPrepaidCheckout(){
         fetch('/api/payment/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
           razorpay_order_id:response.razorpay_order_id,razorpay_payment_id:response.razorpay_payment_id,razorpay_signature:response.razorpay_signature
         })}).then(function(r){return r.json()}).then(function(vd){
-          if(vd.success){cart=[];saveCart();toggleCart();if(!orderToastFired){orderToastFired=true;toast('Drop secured! Order: '+(vd.orderId||'').slice(-8).toUpperCase()+'. Check email.','ok-green')}}
+          if(vd.success){trackPurchase(vd.orderId,vd.total,_purchaseSnapshot,'prepaid');cart=[];saveCart();toggleCart();if(!orderToastFired){orderToastFired=true;toast('Drop secured! Order: '+(vd.orderId||'').slice(-8).toUpperCase()+'. Check email.','ok-green')}}
           else{toast('Verification failed: '+(vd.error||''),'err')}
         }).catch(function(e){toast('Error: '+e.message,'err')}).finally(function(){resetBtn()});
       }
@@ -1713,7 +1800,7 @@ function doCodCheckout(){
   })})
   .then(function(r){return r.json()})
   .then(function(d){
-    if(d.success){cart=[];saveCart();toggleCart();renderCart();showSuccessUI(d.orderId,'cod')}
+    if(d.success){trackPurchase(d.orderId,d.total,_purchaseSnapshot,'cod');cart=[];saveCart();toggleCart();renderCart();showSuccessUI(d.orderId,'cod')}
     else{toast(d.error||'COD failed','err')}
   }).catch(function(e){toast('Error: '+e.message,'err')})
   .finally(function(){resetBtn()});
@@ -1754,7 +1841,7 @@ function doMagicCheckout(){
         fetch('/api/payment/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
           razorpay_order_id:response.razorpay_order_id,razorpay_payment_id:response.razorpay_payment_id,razorpay_signature:response.razorpay_signature
         })}).then(function(r){return r.json()}).then(function(vd){
-          if(vd.success){cart=[];saveCart();toggleCart();renderCart();showSuccessUI(vd.orderId,'prepaid')}
+          if(vd.success){trackPurchase(vd.orderId,vd.total,_purchaseSnapshot,'prepaid');cart=[];saveCart();toggleCart();renderCart();showSuccessUI(vd.orderId,'prepaid')}
           else{toast('Verification failed','err')}
         }).catch(function(e){toast('Error: '+e.message,'err')}).finally(function(){resetBtn()});
       }
@@ -2005,5 +2092,47 @@ function handleAdminUpload(inputId, bucket, statusId, btnId, lastUrlId, lastDivI
       fileInput.value = '';
     });
 }
+
+/* ====== CRO + ENGAGEMENT ANALYTICS [revenue] ====== */
+(function(){
+  /* 1) Scroll-depth milestones — surfaces where visitors disengage (GA4 + Clarity) */
+  var _depths=[25,50,75,90],_hit={};
+  function _onScroll(){
+    var h=document.documentElement,b=document.body;
+    var st=h.scrollTop||b.scrollTop, sh=(h.scrollHeight||b.scrollHeight)-h.clientHeight;
+    if(sh<=0)return;
+    var pct=Math.round(st/sh*100);
+    _depths.forEach(function(d){
+      if(pct>=d&&!_hit[d]){_hit[d]=1;if(typeof window.track==='function')window.track('scroll_depth',{percent:d});}
+    });
+  }
+  window.addEventListener('scroll',_onScroll,{passive:true});
+
+  /* 2) Exit-intent recovery — desktop only, fires once per session.
+        Re-uses the existing identity/email gate to capture abandoners. */
+  var EXIT_ON = (typeof window.__EXIT_INTENT!=='undefined') ? !!window.__EXIT_INTENT : true;
+  function _exitFired(){return sessionStorage.getItem('intru_exit_shown')==='1';}
+  function _maybeExit(e){
+    if(!EXIT_ON||_exitFired())return;
+    /* only when leaving from the top of the viewport (toward tab/close) */
+    if(e.clientY>0)return;
+    /* skip if already identified (they're engaged) or cart is open */
+    if(typeof identifiedEmail!=='undefined'&&identifiedEmail)return;
+    sessionStorage.setItem('intru_exit_shown','1');
+    if(typeof window.track==='function')window.track('exit_intent_shown',{has_items:(typeof cart!=='undefined'&&cart.length>0)});
+    if(typeof openIdentify==='function'){openIdentify();}
+    if(typeof toast==='function'){toast('Wait — get early access to the next drop. Drop your email.','ok');}
+  }
+  if(window.matchMedia&&window.matchMedia('(min-width:769px)').matches){
+    document.addEventListener('mouseout',function(e){if(!e.relatedTarget&&!e.toElement)_maybeExit(e);});
+  }
+
+  /* 3) First-purchase-intent timing — engaged-but-not-bought signal */
+  var _engaged=false;
+  setTimeout(function(){
+    if(_engaged)return;_engaged=true;
+    if((window.scrollY||0)>200&&typeof window.track==='function')window.track('engaged_session',{seconds:30});
+  },30000);
+})();
 </script></body></html>`;
 }

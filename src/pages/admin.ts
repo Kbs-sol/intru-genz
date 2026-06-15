@@ -395,6 +395,24 @@ export function adminPage(opts: {
 <button class="asave" onclick="saveSetting('COD_FEE',document.getElementById('settCodFee').value)">Save</button></div>
 </div>
 <div class="sett-card">
+<h4>Analytics & Insights</h4>
+<p>Connect Google Analytics 4 and Microsoft Clarity. Leave blank to disable. Changes apply on next page load — no redeploy needed.</p>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;gap:8px;align-items:center">
+<input class="ainp" id="settGa4" style="margin:0;flex:1" placeholder="GA4 Measurement ID (e.g. G-XXXXXXXXXX)">
+<button class="asave" onclick="saveSetting('GA4_MEASUREMENT_ID',document.getElementById('settGa4').value.trim())">Save</button></div>
+<div style="display:flex;gap:8px;align-items:center">
+<input class="ainp" id="settClarity" style="margin:0;flex:1" placeholder="Microsoft Clarity Project ID (e.g. abcd1234ef)">
+<button class="asave" onclick="saveSetting('CLARITY_PROJECT_ID',document.getElementById('settClarity').value.trim())">Save</button></div>
+<div class="sett-toggle" style="margin-top:6px">
+<label>Exit-Intent OFF</label>
+<label class="switch"><input type="checkbox" id="settExitIntent" checked onchange="saveSetting('EXIT_INTENT_ENABLED',this.checked?'true':'false')"><span class="slider"></span></label>
+<label>Exit-Intent Recovery ON</label>
+</div>
+<p style="font-size:11px;color:var(--g400);margin:2px 0 0">Shows the email-capture prompt to desktop visitors about to leave — recovers abandoning traffic.</p>
+</div>
+</div>
+<div class="sett-card">
 <h4>Site Maintenance</h4>
 <p>Show a banner alerting customers about ongoing maintenance (e.g., missing images) while still allowing orders.</p>
 <div class="sett-toggle" style="margin-bottom:12px">
@@ -923,6 +941,9 @@ function loadSettings(){
     document.getElementById('settMagic').checked=s.USE_MAGIC_CHECKOUT==='true';
     document.getElementById('settManager').value=s.MANAGER_EMAIL||'shop@intru.in';
     document.getElementById('settCodFee').value=s.COD_FEE||'99';
+    var _ga=document.getElementById('settGa4'); if(_ga)_ga.value=s.GA4_MEASUREMENT_ID||'';
+    var _cl=document.getElementById('settClarity'); if(_cl)_cl.value=s.CLARITY_PROJECT_ID||'';
+    var _ei=document.getElementById('settExitIntent'); if(_ei)_ei.checked=s.EXIT_INTENT_ENABLED!=='false';
     document.getElementById('settIgFeed').checked=s.INSTAGRAM_FEED_ENABLED!=='false';
     const settSizeGuide = document.getElementById('settSizeGuide');
     if (settSizeGuide) settSizeGuide.checked=s.SIZE_GUIDE_ENABLED!=='false';

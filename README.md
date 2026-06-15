@@ -295,10 +295,31 @@ npx wrangler pages secret put RAZORPAY_WEBHOOK_SECRET --project-name intru-in
 - **Data Privacy Patch**: Restricted `/api/user/orders` to block `shipping_address` or `customer_phone` from API responses to prevent unauthenticated PII leakage.
 - **Zero-Friction Checkout**: Added universal `autocomplete` standard tags to the COD form to trigger native iOS/Chrome/Safari saved address autofill securely.
 
+## v16 Changes — GA4 + Microsoft Clarity & Revenue CRO
+### Third-Party Analytics (config-driven, privacy-safe)
+- **Google Analytics 4**: `gtag.js` injected only when a Measurement ID is configured. IP anonymization on by default.
+- **Microsoft Clarity**: heatmaps + session recordings injected only when a Project ID is configured.
+- **Zero hardcoded IDs**: configure from **Admin → Settings → Analytics** (`GA4_MEASUREMENT_ID`, `CLARITY_PROJECT_ID`). Falls back to Cloudflare env vars `GA_MEASUREMENT_ID` / `CLARITY_PROJECT_ID`. Empty = fully disabled (safe no-op).
+- **No redeploy needed** — IDs are read from store settings at render time.
+
+### Full GA4 E-commerce Funnel (drives revenue decisions)
+A unified `window.track()` helper forwards every funnel event to GA4 **and** Clarity **and** the existing internal `/api/analytics/event` pipeline (via `sendBeacon`).
+- `view_item` — product page load
+- `add_to_cart` — with item id, variant (size), price, quantity, value
+- `begin_checkout` — full cart snapshot + coupon + value
+- `purchase` — **accurate revenue**: `/api/payment/verify` now returns `total`; fired for prepaid, Magic Checkout, and COD with `transaction_id`, `value`, `coupon`, `payment_type`, and line items.
+
+### Conversion Rate Optimization (revenue lift)
+- **Exit-intent recovery** (desktop, toggleable via `EXIT_INTENT_ENABLED`): re-uses the email-capture gate to recover abandoning visitors; fires `exit_intent_shown`.
+- **Scroll-depth tracking** (`scroll_depth` 25/50/75/90%): pinpoints where visitors disengage.
+- **Engaged-session signal** (`engaged_session`): flags high-intent visitors who haven't converted — ideal for remarketing audiences.
+
+> **How this increases sales:** GA4 + Clarity reveal *where* the funnel leaks (e.g. drop-off between `add_to_cart` and `begin_checkout`), Clarity recordings show *why*, and the `purchase` event with revenue lets you measure ROI per channel/campaign and build remarketing/lookalike audiences. Exit-intent directly recovers otherwise-lost visitors.
+
 ## Deployment
 - **Platform**: Cloudflare Pages
 - **Status**: ✅ Active
-- **Last Updated**: 2026-04-12 (v15.2) — Funnel logic and Abandoned Carts.
+- **Last Updated**: 2026-06-15 (v16) — GA4 + Clarity analytics, GA4 ecommerce funnel, exit-intent CRO.
 
 ## Full System Documentation
 
