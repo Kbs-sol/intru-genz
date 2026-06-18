@@ -254,7 +254,7 @@ export function shell(
   // GTM container (config-driven). Default to the brand container; admins can
   // override via the GTM_CONTAINER_ID store setting / Cloudflare env, or set it
   // to 'off'/'' to disable. GTM is independent of GA4 — both can run together.
-  const gtmRaw = (opt?.gtmId ?? ss.GTM_CONTAINER_ID ?? 'GTM-N8HVMK62');
+  const gtmRaw = (opt?.gtmId ?? ss.GTM_CONTAINER_ID ?? 'GTM-PCQCS3JV');
   const gtmId = (gtmRaw === 'off') ? '' : (gtmRaw || '');
 
   const pm = JSON.stringify(Object.fromEntries(products.map(p => [p.id, { id: p.id, n: p.name, s: p.slug, p: p.price, i: p.images, sz: p.sizes, cat: (p as any).category || '' }])));
