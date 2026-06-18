@@ -956,7 +956,7 @@ function loadSettings(){
     document.getElementById('settCodFee').value=s.COD_FEE||'99';
     var _ga=document.getElementById('settGa4'); if(_ga)_ga.value=s.GA4_MEASUREMENT_ID||'';
     var _cl=document.getElementById('settClarity'); if(_cl)_cl.value=s.CLARITY_PROJECT_ID||'';
-    var _gtm=document.getElementById('settGtm'); if(_gtm)_gtm.value=(s.GTM_CONTAINER_ID!==undefined?s.GTM_CONTAINER_ID:'GTM-N8HVMK62');
+    var _gtm=document.getElementById('settGtm'); if(_gtm)_gtm.value=(s.GTM_CONTAINER_ID!==undefined?s.GTM_CONTAINER_ID:'GTM-PCQCS3JV');
     var _ei=document.getElementById('settExitIntent'); if(_ei)_ei.checked=s.EXIT_INTENT_ENABLED!=='false';
     document.getElementById('settIgFeed').checked=s.INSTAGRAM_FEED_ENABLED!=='false';
     const settSizeGuide = document.getElementById('settSizeGuide');
