@@ -1,0 +1,54 @@
+name: Daily AI Sales Agent
+
+# Runs once a day, hits the protected /api/ai/sales-report endpoint on the
+# live site. The endpoint pulls the last 7 days of data from Supabase,
+# computes the conversion funnel, asks the LLM (or heuristic fallback) for
+# sales-improvement actions, emails the manager (Resend) and stores the
+# report in the ai_sales_reports table.
+#
+# Required GitHub Actions secret:
+#   AI_AGENT_CRON_SECRET  -> must equal the Cloudflare secret CRON_SECRET
+# Optional repo/Actions variable:
+#   SITE_URL              -> defaults to https://intru-genz.pages.dev
+
+on:
+  schedule:
+    - cron: '30 3 * * *'   # 03:30 UTC daily (~09:00 IST — good morning report)
+  workflow_dispatch:        # allow manual trigger from the Actions tab
+    inputs:
+      days:
+        description: 'Analysis window in days'
+        required: false
+        default: '7'
+
+jobs:
+  run-sales-agent:
+    name: Generate daily sales report
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger AI sales agent
+        env:
+          CRON_SECRET: ${{ secrets.AI_AGENT_CRON_SECRET }}
+          SITE_URL: ${{ vars.SITE_URL || 'https://intru-genz.pages.dev' }}
+          DAYS: ${{ github.event.inputs.days || '7' }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::error::Missing secret AI_AGENT_CRON_SECRET. Add it in repo Settings → Secrets and Variables → Actions (must match the Cloudflare CRON_SECRET)."
+            exit 1
+          fi
+          echo "Hitting $SITE_URL/api/ai/sales-report (days=$DAYS)"
+          HTTP_CODE=$(curl -s -o response.json -w "%{http_code}" \
+            "$SITE_URL/api/ai/sales-report?days=$DAYS" \
+            -H "Authorization: Bearer $CRON_SECRET")
+          echo "HTTP $HTTP_CODE"
+          echo "----- Response -----"
+          cat response.json || true
+          echo ""
+          echo "--------------------"
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "::error::Sales agent returned HTTP $HTTP_CODE"
+            exit 1
+          fi
+          # Surface a one-line summary in the job log
+          node -e "try{const r=require('./response.json');console.log('Summary:', r.summary||'(none)');console.log('Emailed:', r.emailed, '| Stored:', r.stored, '| Model:', r.model);}catch(e){console.log('Could not parse summary');}"
+          echo "Daily AI sales agent completed."

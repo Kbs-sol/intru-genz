@@ -19,6 +19,7 @@ import { collectionsPage } from './pages/collections'
 import { aboutPage } from './pages/about'
 import { stylistPage } from './pages/stylist'
 import { maintenancePage } from './pages/maintenance'
+import { runDailySalesAgent, computeSalesMetrics } from './ai-sales-agent'
 
 type Bindings = Env & { [key: string]: string }
 
@@ -818,6 +819,52 @@ app.post('/api/analytics/event', async (c: Context<{ Bindings: Bindings }>) => {
 
   return c.json({ ok: true });
 });
+
+// ============ API: Daily AI Sales Agent ============
+// Triggered once a day by a GitHub Actions cron:
+//   GET /api/ai/sales-report?key=<CRON_SECRET>[&days=7][&dry=1]
+// Protected by CRON_SECRET (or admin password). Computes the funnel,
+// asks the LLM (or heuristic fallback) for sales-improvement actions,
+// emails the manager and stores the report. `dry=1` skips email/store.
+async function authorizeCron(c: Context<{ Bindings: Bindings }>): Promise<boolean> {
+  const cronSecret = getEnv(c.env, 'CRON_SECRET');
+  const adminPwd = getEnv(c.env, 'ADMIN_PASSWORD', STORE_CONFIG.adminPassword);
+  const provided = c.req.query('key')
+    || (c.req.header('authorization') || '').replace(/^Bearer\s+/i, '')
+    || c.req.header('x-cron-key')
+    || '';
+  if (cronSecret && provided === cronSecret) return true;
+  if (provided && provided === adminPwd) return true; // allow admin to trigger manually
+  return false;
+}
+
+app.get('/api/ai/sales-report', async (c: Context<{ Bindings: Bindings }>) => {
+  if (!(await authorizeCron(c))) return c.json({ error: 'unauthorized' }, 401);
+  const days = Math.min(90, Math.max(1, parseInt(c.req.query('days') || '7', 10) || 7));
+  const dry = c.req.query('dry') === '1';
+  try {
+    if (dry) {
+      const metrics = await computeSalesMetrics(c.env as any, days);
+      return c.json({ ok: true, dryRun: true, metrics });
+    }
+    const result = await runDailySalesAgent(c.env as any, days);
+    return c.json(result);
+  } catch (e: any) {
+    return c.json({ ok: false, error: e?.message || 'sales agent failed' }, 500);
+  }
+})
+
+// Admin: list stored AI sales reports (history)
+app.get('/api/admin/sales-reports', async (c: Context<{ Bindings: Bindings }>) => {
+  const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+  const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY') || getEnv(c.env, 'SUPABASE_ANON_KEY');
+  if (!sbUrl || !sbKey) return c.json({ reports: [] });
+  try {
+    const res = await supabaseFetch(sbUrl, sbKey, 'ai_sales_reports?select=*&order=created_at.desc&limit=30');
+    if (!res.ok) return c.json({ reports: [] });
+    return c.json({ reports: await res.json() });
+  } catch { return c.json({ reports: [] }); }
+})
 
 // ============ API: Health ============
 

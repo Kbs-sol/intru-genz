@@ -317,10 +317,35 @@ A unified `window.track()` helper forwards every funnel event to GA4 **and** Cla
 
 > **How this increases sales:** GA4 + Clarity reveal *where* the funnel leaks (e.g. drop-off between `add_to_cart` and `begin_checkout`), Clarity recordings show *why*, and the `purchase` event with revenue lets you measure ROI per channel/campaign and build remarketing/lookalike audiences. Exit-intent directly recovers otherwise-lost visitors.
 
+## v16.2 — Daily AI Sales Agent
+An autonomous agent runs **once a day** to analyse the funnel and recommend concrete actions to increase sales.
+
+**How it works**
+1. A GitHub Actions cron (`.github/workflows/ai-sales-agent.yml`, 03:30 UTC ≈ 09:00 IST) hits the protected endpoint `GET /api/ai/sales-report?key=<CRON_SECRET>`.
+2. The endpoint (`src/ai-sales-agent.ts`) pulls the last 7 days from Supabase (`view_stats`, `funnel_events`, `orders`, `products`, `coupons`), computes the conversion funnel + KPIs, and identifies the biggest leak (browse→cart, cart→checkout, checkout→purchase) and zero-converting products.
+3. It asks an **OpenAI-compatible LLM** (`OPENAI_API_KEY`) for prioritised, store-specific recommendations. **If no key is set, a built-in heuristic engine produces useful recommendations** — the agent never fails silently.
+4. It **emails the manager** (`MANAGER_EMAIL`, via the existing Resend integration) and **stores the report** in the `ai_sales_reports` table.
+
+**Endpoints**
+- `GET /api/ai/sales-report?key=<CRON_SECRET|admin_password>&days=7[&dry=1]` — run the agent (`dry=1` = compute metrics only, no email/store).
+- `GET /api/admin/sales-reports` — list the last 30 stored reports (admin).
+
+**Admin UI:** Admin → Settings → **AI Sales Agent** card — "Run sales report now" button + collapsible report history.
+
+**Required/optional secrets (Cloudflare):**
+| Secret | Required | Purpose |
+|--------|----------|---------|
+| `CRON_SECRET` | ✅ | Protects the cron endpoint. Must match the GitHub secret `AI_AGENT_CRON_SECRET`. |
+| `OPENAI_API_KEY` | optional | Enables richer LLM recommendations (else heuristic fallback). |
+| `OPENAI_BASE_URL` / `OPENAI_MODEL` | optional | Override endpoint / model (default `gpt-4o-mini`). |
+| `MANAGER_EMAIL` | optional | Report recipient (defaults to `shop@intru.in`). |
+
+**DB migration:** run the appended `ai_sales_reports` block in `migration_v2.sql` (Supabase SQL Editor).
+
 ## Deployment
 - **Platform**: Cloudflare Pages
 - **Status**: ✅ Active
-- **Last Updated**: 2026-06-15 (v16) — GA4 + Clarity analytics, GA4 ecommerce funnel, exit-intent CRO.
+- **Last Updated**: 2026-06-18 (v16.2) — GA4 secret-name fix (`GA4_MEASUREMENT_ID`), daily AI sales agent, dead-code cleanup.
 
 ## Full System Documentation
 

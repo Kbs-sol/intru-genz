@@ -413,6 +413,16 @@ export function adminPage(opts: {
 </div>
 </div>
 <div class="sett-card">
+<h4>AI Sales Agent</h4>
+<p>Runs automatically once a day (GitHub Actions cron) to analyse your funnel and email sales-improvement recommendations to the manager. You can also run it on demand here.</p>
+<div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+<button class="asave" style="flex:0 0 auto" onclick="runSalesAgent()">Run sales report now</button>
+<span id="salesAgentStatus" style="font-size:12px;color:var(--g400)"></span>
+</div>
+<div id="salesReportsList" style="font-size:12px;color:var(--g500)"></div>
+<p style="font-size:11px;color:var(--g400);margin:8px 0 0">Tip: set Cloudflare secrets <code>CRON_SECRET</code> (required) and <code>OPENAI_API_KEY</code> (optional — enables richer LLM recommendations; without it a built-in heuristic engine is used).</p>
+</div>
+<div class="sett-card">
 <h4>Site Maintenance</h4>
 <p>Show a banner alerting customers about ongoing maintenance (e.g., missing images) while still allowing orders.</p>
 <div class="sett-toggle" style="margin-bottom:12px">
@@ -953,10 +963,44 @@ function loadSettings(){
     var mEta=document.getElementById('settMaintEta'); if(mEta) mEta.value=s.MAINTENANCE_ETA||'';
     if(typeof updateMaintBadge === 'function') updateMaintBadge(s.MAINTENANCE_MODE||'off');
   }).catch(function(){});
+  if(typeof loadSalesReports==='function') loadSalesReports();
 }
 function saveSetting(key,val){
   fetch('/api/admin/settings/'+encodeURIComponent(key),{method:'PUT',headers:{'Content-Type':'application/json','x-admin-token':sessionStorage.getItem('iadm_t')},body:JSON.stringify({value:val})})
   .then(function(r){return r.json()}).then(function(d){if(d.success){toast(key+' updated','ok-green')}else{toast('Failed','err')}}).catch(function(e){toast('Error: '+e.message,'err')});
+}
+
+/* ====== AI SALES AGENT [AG] ====== */
+function runSalesAgent(){
+  var st=document.getElementById('salesAgentStatus'); if(st)st.textContent='Running…';
+  var pwd=sessionStorage.getItem('iadm_t')||'';
+  fetch('/api/ai/sales-report?days=7&key='+encodeURIComponent(pwd))
+   .then(function(r){return r.json()})
+   .then(function(d){
+     if(d&&d.ok){
+       if(st)st.textContent='Done — '+(d.emailed?'emailed':'not emailed')+', '+(d.stored?'saved':'not saved')+' ('+(d.model||'')+')';
+       toast('Sales report generated','ok-green');
+       loadSalesReports();
+     } else {
+       if(st)st.textContent='Failed: '+((d&&d.error)||'unknown');
+       toast('Sales agent failed','err');
+     }
+   }).catch(function(e){if(st)st.textContent='Error: '+e.message;toast('Error','err')});
+}
+function loadSalesReports(){
+  var box=document.getElementById('salesReportsList'); if(!box)return;
+  fetch('/api/admin/sales-reports',{headers:{'x-admin-token':sessionStorage.getItem('iadm_t')}})
+   .then(function(r){return r.json()})
+   .then(function(d){
+     var rows=(d&&d.reports)||[];
+     if(!rows.length){box.innerHTML='<em style="color:var(--g400)">No reports yet. Run one above or wait for the daily run.</em>';return}
+     box.innerHTML=rows.slice(0,8).map(function(rep){
+       var dt=new Date(rep.created_at||rep.report_date).toLocaleDateString();
+       var sum=(rep.summary||'').replace(/</g,'&lt;');
+       var recs=(rep.recommendations||'').replace(/</g,'&lt;').replace(/\\n/g,'<br>');
+       return '<details style="margin:6px 0;border:1px solid var(--g100);padding:8px 10px;border-radius:6px"><summary style="cursor:pointer;font-weight:600">'+dt+' — '+sum+'</summary><div style="margin-top:8px;white-space:normal">'+recs+'</div></details>';
+     }).join('');
+   }).catch(function(){box.innerHTML='<em style="color:var(--g400)">Could not load reports.</em>'});
 }
 
 /* ====== AI STYLIST [AG] ====== */

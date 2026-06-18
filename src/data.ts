@@ -36,6 +36,12 @@ export interface Env {
   GA4_MEASUREMENT_ID: string;
   GA_MEASUREMENT_ID: string;
   CLARITY_PROJECT_ID: string;
+  // Daily AI sales agent (optional)
+  CRON_SECRET: string;        // shared secret that protects /api/ai/sales-report
+  OPENAI_API_KEY: string;     // LLM key; empty = heuristic fallback engine
+  OPENAI_BASE_URL: string;    // optional override (OpenAI-compatible endpoint)
+  OPENAI_MODEL: string;       // optional model override (default gpt-4o-mini)
+  MANAGER_EMAIL: string;      // report recipient (defaults to shop@intru.in)
 }
 
 // ============ STORE CONFIG (static — never changes at runtime) ============

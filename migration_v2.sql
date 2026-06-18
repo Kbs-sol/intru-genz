@@ -90,3 +90,23 @@ CREATE POLICY IF NOT EXISTS "service_role_all_funnel_events" ON public.funnel_ev
 CREATE POLICY IF NOT EXISTS "service_role_all_email_logs" ON public.email_logs FOR ALL TO service_role USING (true);
 CREATE POLICY IF NOT EXISTS "service_role_all_coupons" ON public.coupons FOR ALL TO service_role USING (true);
 CREATE POLICY IF NOT EXISTS "anon_read_coupons" ON public.coupons FOR SELECT TO anon USING (is_active = true);
+
+-- =============================================================
+-- 9. AI Sales Agent reports (daily CRO recommendations)
+--    Stores each run of the daily AI sales-improvement agent so the
+--    admin can review historical recommendations and trends.
+-- =============================================================
+CREATE TABLE IF NOT EXISTS public.ai_sales_reports (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  report_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  window_days INTEGER NOT NULL DEFAULT 7,
+  metrics JSONB NOT NULL DEFAULT '{}'::jsonb,   -- computed funnel + KPIs snapshot
+  summary TEXT,                                  -- short headline summary
+  recommendations TEXT,                          -- full AI recommendations (markdown/plain)
+  model TEXT,                                     -- LLM model used (or 'heuristic' fallback)
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_ai_sales_reports_date ON public.ai_sales_reports(report_date DESC);
+
+ALTER TABLE public.ai_sales_reports ENABLE ROW LEVEL SECURITY;
+CREATE POLICY IF NOT EXISTS "service_role_all_ai_sales_reports" ON public.ai_sales_reports FOR ALL TO service_role USING (true);

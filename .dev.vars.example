@@ -57,3 +57,18 @@ GA4_MEASUREMENT_ID=
 # Legacy alias (optional, still honoured):
 GA_MEASUREMENT_ID=
 CLARITY_PROJECT_ID=
+
+# ===========================================
+# Daily AI Sales Agent (OPTIONAL)
+#   CRON_SECRET     — protects GET /api/ai/sales-report; set the SAME value as
+#                     the GitHub Actions secret AI_AGENT_CRON_SECRET.
+#   OPENAI_API_KEY  — enables LLM recommendations (else a heuristic engine runs).
+#   OPENAI_BASE_URL — optional OpenAI-compatible endpoint override.
+#   OPENAI_MODEL    — optional model override (default gpt-4o-mini).
+#   MANAGER_EMAIL   — report recipient (defaults to shop@intru.in).
+# ===========================================
+CRON_SECRET=
+OPENAI_API_KEY=
+OPENAI_BASE_URL=
+OPENAI_MODEL=
+MANAGER_EMAIL=
