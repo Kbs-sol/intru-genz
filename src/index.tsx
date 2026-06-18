@@ -42,8 +42,11 @@ async function getPageOpts(c: Context<{ Bindings: Bindings }>) {
   const { pages: legalPages } = await fetchLegalPages(sbUrl, sbSvc, sbAnon);
   const storeSettings = await fetchAllStoreSettings(sbUrl, sbKey);
   // Analytics IDs: store-settings win; fall back to Cloudflare env vars.
+  // Accept BOTH secret names so the GA4 ID is picked up regardless of whether
+  // the Cloudflare secret was named `GA4_MEASUREMENT_ID` (matches the admin
+  // setting / variable names everywhere else) or the legacy `GA_MEASUREMENT_ID`.
   if (!storeSettings.GA4_MEASUREMENT_ID) {
-    const envGa = getEnv(c.env, 'GA_MEASUREMENT_ID');
+    const envGa = getEnv(c.env, 'GA4_MEASUREMENT_ID') || getEnv(c.env, 'GA_MEASUREMENT_ID');
     if (envGa) storeSettings.GA4_MEASUREMENT_ID = envGa;
   }
   if (!storeSettings.CLARITY_PROJECT_ID) {

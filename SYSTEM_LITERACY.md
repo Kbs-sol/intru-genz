@@ -54,10 +54,8 @@ webapp/
 ├── public/                # Static assets (served by Cloudflare Pages)
 ├── supabase/
 │   └── schema.sql         # Complete Supabase schema (v6) — safe to re-run
-├── migrations/
-│   └── 0001_initial_schema.sql  # D1 migration (unused — we use Supabase)
-├── migration_v2.sql       # v15.2+ migrations: view_stats, coupons, ratings, funnel_events, email_logs [AG]
-├── seed.sql               # Test seed data
+├── migration_v2.sql       # v15.2+ Supabase migrations: view_stats, coupons, ratings, funnel_events, email_logs [AG]
+│                          # NOTE: dead D1 files (migrations/, seed.sql) archived on branch chore/archive-dead-code
 ├── ecosystem.config.cjs   # PM2 config for local dev
 ├── wrangler.jsonc         # Cloudflare Pages config
 ├── vite.config.ts         # Vite build config (SSR for Cloudflare Pages)

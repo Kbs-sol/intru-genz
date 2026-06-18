@@ -299,7 +299,8 @@ npx wrangler pages secret put RAZORPAY_WEBHOOK_SECRET --project-name intru-in
 ### Third-Party Analytics (config-driven, privacy-safe)
 - **Google Analytics 4**: `gtag.js` injected only when a Measurement ID is configured. IP anonymization on by default.
 - **Microsoft Clarity**: heatmaps + session recordings injected only when a Project ID is configured.
-- **Zero hardcoded IDs**: configure from **Admin → Settings → Analytics** (`GA4_MEASUREMENT_ID`, `CLARITY_PROJECT_ID`). Falls back to Cloudflare env vars `GA_MEASUREMENT_ID` / `CLARITY_PROJECT_ID`. Empty = fully disabled (safe no-op).
+- **Zero hardcoded IDs**: configure from **Admin → Settings → Analytics** (`GA4_MEASUREMENT_ID`, `CLARITY_PROJECT_ID`). Falls back to Cloudflare secrets. For GA4 **either** `GA4_MEASUREMENT_ID` (preferred — same name as the admin key) **or** the legacy `GA_MEASUREMENT_ID` is accepted; for Clarity use `CLARITY_PROJECT_ID`. Empty = fully disabled (safe no-op).
+  - **Fix (v16.1):** previously only the env name `GA_MEASUREMENT_ID` was read, so a Cloudflare secret named `GA4_MEASUREMENT_ID` was silently ignored (GA4 never loaded while Clarity worked). The env fallback now accepts both names.
 - **No redeploy needed** — IDs are read from store settings at render time.
 
 ### Full GA4 E-commerce Funnel (drives revenue decisions)

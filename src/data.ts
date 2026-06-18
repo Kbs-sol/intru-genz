@@ -31,6 +31,9 @@ export interface Env {
   R2_ACCESS_KEY_ID: string;
   R2_SECRET_ACCESS_KEY: string;
   // Analytics (optional; store-settings take precedence, these are env fallbacks)
+  // Both GA4 names are accepted as Cloudflare secrets — `GA4_MEASUREMENT_ID`
+  // (preferred, matches admin/store-setting key) or the legacy `GA_MEASUREMENT_ID`.
+  GA4_MEASUREMENT_ID: string;
   GA_MEASUREMENT_ID: string;
   CLARITY_PROJECT_ID: string;
 }
