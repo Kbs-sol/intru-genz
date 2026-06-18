@@ -54,6 +54,12 @@ async function getPageOpts(c: Context<{ Bindings: Bindings }>) {
     const envCl = getEnv(c.env, 'CLARITY_PROJECT_ID');
     if (envCl) storeSettings.CLARITY_PROJECT_ID = envCl;
   }
+  // GTM container: store-setting wins; else Cloudflare env. Leave undefined so
+  // the shell can apply its brand default (GTM-N8HVMK62) when nothing is set.
+  if (storeSettings.GTM_CONTAINER_ID === undefined) {
+    const envGtm = getEnv(c.env, 'GTM_CONTAINER_ID');
+    if (envGtm) storeSettings.GTM_CONTAINER_ID = envGtm;
+  }
   const mMode = storeSettings.MAINTENANCE_MODE || 'off';
   return {
     razorpayKeyId: getEnv(c.env, 'RAZORPAY_KEY_ID', STORE_CONFIG.razorpayKeyId),

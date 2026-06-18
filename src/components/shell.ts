@@ -20,6 +20,23 @@ import { STORE_CONFIG, type Product, type LegalPage, SEED_LEGAL_PAGES } from '..
  * A small `window.track()` helper unifies gtag + clarity + the internal
  * /api/analytics/event pipeline so every funnel hook reports once.
  */
+/** GTM <head> loader — rendered only when a container ID is configured. */
+export function buildGtmHead(gtmId?: string): string {
+  const id = (gtmId || '').trim();
+  if (!id) return '';
+  return `
+<!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${id}');</script>
+<!-- End Google Tag Manager -->`;
+}
+
+/** GTM <body> noscript fallback — placed immediately after the opening <body>. */
+export function buildGtmBody(gtmId?: string): string {
+  const id = (gtmId || '').trim();
+  if (!id) return '';
+  return `<!-- Google Tag Manager (noscript) --><noscript><iframe src="https://www.googletagmanager.com/ns.html?id=${id}" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript><!-- End Google Tag Manager (noscript) -->`;
+}
+
 function buildAnalytics(ga4Id?: string, clarityId?: string): string {
   const ga = (ga4Id || '').trim();
   const clarity = (clarityId || '').trim();
@@ -54,7 +71,7 @@ window.track=function(name,params){
   return gaSnippet + claritySnippet + helper;
 }
 
-export function buildHead(title: string, desc: string, opt: { og?: string, url?: string, canonical?: string, type?: string, productPrice?: number, productAvailability?: string, productName?: string, articleSection?: string, ga4Id?: string, clarityId?: string } = {}): string {
+export function buildHead(title: string, desc: string, opt: { og?: string, url?: string, canonical?: string, type?: string, productPrice?: number, productAvailability?: string, productName?: string, articleSection?: string, ga4Id?: string, clarityId?: string, gtmId?: string } = {}): string {
   const url = opt.url || 'https://intru.in';
   const og = opt.og || 'https://intru.in/og-default.jpg';
   const canonical = opt.canonical || url;
@@ -67,7 +84,7 @@ export function buildHead(title: string, desc: string, opt: { og?: string, url?:
     ? `${opt.productName || ''}, ${opt.productName || ''} buy online india, oversized tshirt india, premium streetwear india, intru clothing, limited edition streetwear, best oversized tshirt, heavyweight cotton tshirt india, brutalist streetwear, exclusive drop clothing india`
     : 'best oversized collection india, oversized streetwear india, premium heavyweight tshirt, limited edition fashion drops india, intru streetwear, brutalist streetwear india, exclusive oversized clothing, minimal streetwear brand india, best streetwear brand india 2025, buy oversized tshirt online india, intru.in, everyday essential tshirts, urban fashion india, premium menswear india, unisex streetwear india';
 
-  return `
+  return `${buildGtmHead(opt.gtmId)}
 <title>${safeTitle}</title>
 <meta name="description" content="${safeDesc}">
 <meta name="keywords" content="${keywords}">
@@ -216,6 +233,7 @@ export function shell(
     // Analytics IDs (config-driven; empty = analytics disabled)
     ga4Id?: string;
     clarityId?: string;
+    gtmId?: string;
   }
 ): string {
   const og = opt?.og || 'https://intru.in/og-default.jpg';
@@ -233,13 +251,18 @@ export function shell(
   const ss = opt?.storeSettings || {};
   const ga4Id = opt?.ga4Id || ss.GA4_MEASUREMENT_ID || '';
   const clarityId = opt?.clarityId || ss.CLARITY_PROJECT_ID || '';
+  // GTM container (config-driven). Default to the brand container; admins can
+  // override via the GTM_CONTAINER_ID store setting / Cloudflare env, or set it
+  // to 'off'/'' to disable. GTM is independent of GA4 — both can run together.
+  const gtmRaw = (opt?.gtmId ?? ss.GTM_CONTAINER_ID ?? 'GTM-N8HVMK62');
+  const gtmId = (gtmRaw === 'off') ? '' : (gtmRaw || '');
 
   const pm = JSON.stringify(Object.fromEntries(products.map(p => [p.id, { id: p.id, n: p.name, s: p.slug, p: p.price, i: p.images, sz: p.sizes, cat: (p as any).category || '' }])));
   const sj = JSON.stringify({ cs: STORE_CONFIG.currencySymbol, ft: STORE_CONFIG.freeShippingThreshold, sc: STORE_CONFIG.shippingCost, rk: rpKey, magic: useMagic });
 
   return `<!DOCTYPE html><html lang="en"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-${buildHead(title, desc, { og, url, type: opt?.pageType, productPrice: opt?.productPrice, productAvailability: opt?.productAvailability, productName: opt?.productName, ga4Id, clarityId })}
+${buildHead(title, desc, { og, url, type: opt?.pageType, productPrice: opt?.productPrice, productAvailability: opt?.productAvailability, productName: opt?.productName, ga4Id, clarityId, gtmId })}
 ${opt?.schema ? '<script type="application/ld+json">' + opt.schema + '</script>' : ''}
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Archivo+Black&display=swap" rel="stylesheet">
@@ -454,6 +477,7 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 </style>
 </head>
 <body class="${opt?.cls || ''}" ${mcMode === 'soft' ? 'style="overflow:hidden"' : ''}>
+${buildGtmBody(gtmId)}
 <nav class="nav glass" id="nb"><div class="navi">
 <button class="menu-btn" onclick="toggleMobNav()" aria-label="Menu"><i class="fas fa-bars"></i></button>
 <div class="nlinks">

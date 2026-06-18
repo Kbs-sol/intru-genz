@@ -404,6 +404,9 @@ export function adminPage(opts: {
 <div style="display:flex;gap:8px;align-items:center">
 <input class="ainp" id="settClarity" style="margin:0;flex:1" placeholder="Microsoft Clarity Project ID (e.g. abcd1234ef)">
 <button class="asave" onclick="saveSetting('CLARITY_PROJECT_ID',document.getElementById('settClarity').value.trim())">Save</button></div>
+<div style="display:flex;gap:8px;align-items:center">
+<input class="ainp" id="settGtm" style="margin:0;flex:1" placeholder="Google Tag Manager ID (e.g. GTM-XXXXXXX, or 'off' to disable)">
+<button class="asave" onclick="saveSetting('GTM_CONTAINER_ID',document.getElementById('settGtm').value.trim())">Save</button></div>
 <div class="sett-toggle" style="margin-top:6px">
 <label>Exit-Intent OFF</label>
 <label class="switch"><input type="checkbox" id="settExitIntent" checked onchange="saveSetting('EXIT_INTENT_ENABLED',this.checked?'true':'false')"><span class="slider"></span></label>
@@ -953,6 +956,7 @@ function loadSettings(){
     document.getElementById('settCodFee').value=s.COD_FEE||'99';
     var _ga=document.getElementById('settGa4'); if(_ga)_ga.value=s.GA4_MEASUREMENT_ID||'';
     var _cl=document.getElementById('settClarity'); if(_cl)_cl.value=s.CLARITY_PROJECT_ID||'';
+    var _gtm=document.getElementById('settGtm'); if(_gtm)_gtm.value=(s.GTM_CONTAINER_ID!==undefined?s.GTM_CONTAINER_ID:'GTM-N8HVMK62');
     var _ei=document.getElementById('settExitIntent'); if(_ei)_ei.checked=s.EXIT_INTENT_ENABLED!=='false';
     document.getElementById('settIgFeed').checked=s.INSTAGRAM_FEED_ENABLED!=='false';
     const settSizeGuide = document.getElementById('settSizeGuide');

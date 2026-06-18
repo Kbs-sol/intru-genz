@@ -36,6 +36,7 @@ export interface Env {
   GA4_MEASUREMENT_ID: string;
   GA_MEASUREMENT_ID: string;
   CLARITY_PROJECT_ID: string;
+  GTM_CONTAINER_ID: string;   // Google Tag Manager container (e.g. GTM-XXXXXXX); 'off' disables
   // Daily AI sales agent (optional)
   CRON_SECRET: string;        // shared secret that protects /api/ai/sales-report
   OPENAI_API_KEY: string;     // LLM key; empty = heuristic fallback engine
