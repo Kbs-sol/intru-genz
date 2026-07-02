@@ -19,6 +19,7 @@ import { collectionsPage } from './pages/collections'
 import { aboutPage } from './pages/about'
 import { stylistPage } from './pages/stylist'
 import { maintenancePage } from './pages/maintenance'
+import { shell } from './components/shell'
 import { runDailySalesAgent, computeSalesMetrics } from './ai-sales-agent'
 
 type Bindings = Env & { [key: string]: string }
@@ -194,7 +195,6 @@ app.get('/about', async (c: Context<{ Bindings: Bindings }>) => {
 app.get('/style-guide', async (c: Context<{ Bindings: Bindings }>) => {
   const opts = await getPageOpts(c);
   c.executionCtx.waitUntil(incrementView(c.env, '/style-guide'));
-  const { shell } = await import('./components/shell');
   const schema = JSON.stringify({
     "@context": "https://schema.org",
     "@type": "Article",
@@ -297,12 +297,12 @@ app.get('/style-guide', async (c: Context<{ Bindings: Bindings }>) => {
 </div>
 </article>`;
 
-  return shell(
+  return c.html(shell(
     'How to Style Oversized T-Shirts — Intru Style Guide',
     'A complete guide to styling premium heavyweight oversized t-shirts for Indian streetwear. Sizing tips, outfit formulas, layering techniques and capsule wardrobe advice by Intru.',
     body,
     { url: 'https://intru.in/style-guide', schema, razorpayKeyId: opts.razorpayKeyId, googleClientId: opts.googleClientId, products: opts.products, legalPages: opts.legalPages, useMagicCheckout: !!opts.useMagicCheckout, maintenanceConfig: opts.maintenanceConfig, storeSettings: opts.storeSettings, pageType: 'article' }
-  );
+  ));
 });
 
 // Redirect /blog to /style-guide for clean URL consolidation
