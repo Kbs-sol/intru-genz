@@ -267,7 +267,11 @@ ${opt?.schema ? '<script type="application/ld+json">' + opt.schema + '</script>'
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Archivo+Black&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.0/css/all.min.css">
-<script src="https://checkout.razorpay.com/v1/magic-checkout.js"></script>
+<!-- Razorpay is loaded lazily (see ensureRazorpay) — a render-blocking <head>
+     script here previously inflated LCP (3.96s) on every page even though ~97%
+     of visits never reach checkout. Preconnect keeps the eventual load fast. -->
+<link rel="preconnect" href="https://checkout.razorpay.com" crossorigin>
+<link rel="dns-prefetch" href="https://checkout.razorpay.com">
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 :root{--bk:#0a0a0a;--wh:#fafafa;--g50:#f5f5f5;--g100:#e8e8e8;--g200:#d4d4d4;--g300:#a3a3a3;--g400:#737373;--g500:#525252;--g600:#404040;--red:#e53e3e;--green:#16a34a;--sans:'Space Grotesk',sans-serif;--head:'Archivo Black','Space Grotesk',sans-serif;--ease:cubic-bezier(.25,.46,.45,.94);--eo:cubic-bezier(.16,1,.3,1)}
@@ -1706,10 +1710,32 @@ function trackPurchase(orderId,serverTotal,snap,method){
   }catch(e){}
 }
 
+/* ====== LAZY RAZORPAY LOADER [AG] ======
+   The Razorpay Magic Checkout SDK (~large) is no longer render-blocking in
+   <head>. We load it on demand the first time a checkout is attempted and
+   cache the promise so subsequent checkouts are instant. This shaved the
+   biggest third-party script off the critical path (LCP 3.96s -> faster). */
+var _rzpPromise=null;
+function ensureRazorpay(){
+  if(window.Razorpay) return Promise.resolve();
+  if(_rzpPromise) return _rzpPromise;
+  _rzpPromise=new Promise(function(resolve,reject){
+    var s=document.createElement('script');
+    s.src='https://checkout.razorpay.com/v1/magic-checkout.js';
+    s.async=true;
+    s.onload=function(){ resolve(); };
+    s.onerror=function(){ _rzpPromise=null; reject(new Error('Could not load the payment gateway. Please check your connection and try again.')); };
+    document.head.appendChild(s);
+  });
+  return _rzpPromise;
+}
+
 function checkout(){
   if(!cart.length){toast('Your bag is empty','err');return}
   /* Silent Identity: if not identified, show overlay */
   if(!identifiedEmail){pendingCheckout=true;openIdentify();return}
+  /* Warm the payment SDK as soon as checkout begins (prepaid/magic paths need it). */
+  if(S.magic || payMode==='prepaid'){ try{ ensureRazorpay(); }catch(e){} }
   
   if(!S.magic && !addressConfirmed){
     toast('Please fill and confirm your shipping address first','err');
@@ -1785,9 +1811,11 @@ function doPrepaidCheckout(){
         }).catch(function(e){toast('Error: '+e.message,'err')}).finally(function(){resetBtn()});
       }
     };
-    var rzp=new Razorpay(options);
-    rzp.on('payment.failed',function(r){toast('Payment failed: '+(r.error&&r.error.description||''),'err');resetBtn()});
-    rzp.open();
+    ensureRazorpay().then(function(){
+      var rzp=new Razorpay(options);
+      rzp.on('payment.failed',function(r){toast('Payment failed: '+(r.error&&r.error.description||''),'err');resetBtn()});
+      rzp.open();
+    }).catch(function(e){toast(e.message||'Payment gateway unavailable','err');resetBtn()});
   }).catch(function(e){toast('Error: '+e.message,'err');resetBtn()});
 }
 
@@ -1870,9 +1898,11 @@ function doMagicCheckout(){
         }).catch(function(e){toast('Error: '+e.message,'err')}).finally(function(){resetBtn()});
       }
     };
-    var rzp=new Razorpay(options);
-    rzp.on('payment.failed',function(r){toast('Payment failed','err');resetBtn()});
-    rzp.open();
+    ensureRazorpay().then(function(){
+      var rzp=new Razorpay(options);
+      rzp.on('payment.failed',function(r){toast('Payment failed','err');resetBtn()});
+      rzp.open();
+    }).catch(function(e){toast(e.message||'Payment gateway unavailable','err');resetBtn()});
   }).catch(function(e){toast('Error: '+e.message,'err');resetBtn()});
 }
 
@@ -1950,44 +1980,66 @@ function confirmAddress() {
   btn.disabled = true;
   btn.textContent = 'VERIFYING...';
 
-  fetch('https://api.postalpincode.in/pincode/'+pincode)
+  /* ====== CHECKOUT GATE FIX [AG] ======
+     Pincode lookup is a CONVENIENCE (auto-fills city/state), NOT a gate.
+     ~69% of traffic is the Instagram in-app browser where the external
+     postalpincode API frequently hangs or is blocked — previously this left
+     the "Place Order" button hidden forever (1 begin_checkout / 34 view_item).
+     We now confirm the address IMMEDIATELY on valid input and enrich city/state
+     in the background with a short timeout, so checkout is always reachable. */
+
+  function commitAddress() {
+    document.getElementById('cod_city').value = city;
+    document.getElementById('cod_state').value = state;
+
+    localStorage.setItem('intru_fname', fname);
+    localStorage.setItem('intru_lname', lname);
+    localStorage.setItem('intru_name', name);
+    localStorage.setItem('intru_phone', phone);
+    localStorage.setItem('intru_pincode', pincode);
+    localStorage.setItem('intru_addr', addr);
+    localStorage.setItem('intru_addr2', addr2);
+    localStorage.setItem('intru_city', city);
+    localStorage.setItem('intru_state', state);
+
+    document.getElementById('sumName').textContent = name + ' (' + phone + ')';
+    document.getElementById('sumAddr').textContent = addr + (addr2 ? ', ' + addr2 : '') + ', ' + (city || '') + (state ? ', ' + state : '') + ' - ' + pincode;
+
+    addressConfirmed = true;
+    document.getElementById('addressForm').classList.add('hidden');
+    document.getElementById('addressSummary').classList.remove('hidden');
+    document.getElementById('paymentSection').classList.remove('hidden');
+    applyPayMode('prepaid');
+    btn.disabled = false;
+    btn.innerHTML = origText;
+  }
+
+  /* Background pincode enrichment — never blocks the funnel. Aborts after 4s. */
+  var enrichCtrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+  var enrichTimer = setTimeout(function(){ if(enrichCtrl) enrichCtrl.abort(); }, 4000);
+  fetch('https://api.postalpincode.in/pincode/'+pincode, enrichCtrl ? { signal: enrichCtrl.signal } : undefined)
   .then(function(r){return r.json()})
   .then(function(data){
     if(data && data[0] && data[0].Status === 'Success' && data[0].PostOffice && data[0].PostOffice.length > 0) {
       var po = data[0].PostOffice[0];
-      if(!city) city = po.District || po.Region;
-      if(!state) state = po.State || po.Circle;
-      
-      document.getElementById('cod_city').value = city;
-      document.getElementById('cod_state').value = state;
-
-      localStorage.setItem('intru_fname', fname);
-      localStorage.setItem('intru_lname', lname);
-      localStorage.setItem('intru_name', name);
-      localStorage.setItem('intru_phone', phone);
-      localStorage.setItem('intru_pincode', pincode);
-      localStorage.setItem('intru_addr', addr);
-      localStorage.setItem('intru_addr2', addr2);
+      if(!city) city = po.District || po.Region || '';
+      if(!state) state = po.State || po.Circle || '';
+      var cityEl = document.getElementById('cod_city'); if(cityEl) cityEl.value = city;
+      var stateEl = document.getElementById('cod_state'); if(stateEl) stateEl.value = state;
+      /* Refresh the summary line if the address is already confirmed */
+      var sumAddr = document.getElementById('sumAddr');
+      if(sumAddr && addressConfirmed){
+        sumAddr.textContent = addr + (addr2 ? ', ' + addr2 : '') + ', ' + (city || '') + (state ? ', ' + state : '') + ' - ' + pincode;
+      }
       localStorage.setItem('intru_city', city);
       localStorage.setItem('intru_state', state);
-
-      document.getElementById('sumName').textContent = name + ' (' + phone + ')';
-      document.getElementById('sumAddr').textContent = addr + (addr2 ? ', ' + addr2 : '') + ', ' + city + ', ' + state + ' - ' + pincode;
-      
-      addressConfirmed = true;
-      document.getElementById('addressForm').classList.add('hidden');
-      document.getElementById('addressSummary').classList.remove('hidden');
-      document.getElementById('paymentSection').classList.remove('hidden');
-      applyPayMode('prepaid');
-    } else {
-      toast('Invalid Pincode. Please check again.', 'err');
     }
   })
-  .catch(function(){toast('Error verifying pincode', 'err')})
-  .finally(function(){
-    btn.disabled = false;
-    btn.innerHTML = origText;
-  });
+  .catch(function(){ /* network/blocked/timeout — silently ignore, order proceeds */ })
+  .finally(function(){ clearTimeout(enrichTimer); });
+
+  /* Confirm the address right away — do not wait on the external API. */
+  commitAddress();
 }
 
 function editAddress() {
@@ -2027,6 +2079,57 @@ function toast(msg,type){
 
 /* ====== NAV SCROLL ====== */
 window.addEventListener('scroll',function(){document.getElementById('nb').classList.toggle('scrolled',window.scrollY>20)});
+
+/* ====== DEAD-CLICK FIX: reliable in-page anchor scrolling [AG] ======
+   Clarity flagged 13% of sessions with dead clicks — largely the hero
+   "Explore Drop", "#products" and footer "#contact" anchors. In the Instagram
+   in-app browser (~69% of traffic) native hash scrolling is unreliable, so the
+   tap does nothing and reads as a dead click. We intercept every in-page anchor,
+   scroll smoothly with a header offset, and fire a Clarity/GA event so the
+   interaction is attributed instead of counted as dead.
+   Cross-page links like "/#contact" are normalised to same-page scrolls when the
+   target exists on the current page (e.g. footer #contact is on every page). */
+(function(){
+  var NAV_OFFSET = 84; /* fixed header height */
+  function scrollToTarget(id){
+    var el = id ? document.getElementById(id) : null;
+    if(!el) return false;
+    var y = el.getBoundingClientRect().top + window.pageYOffset - NAV_OFFSET;
+    window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+    /* Update the URL hash without jumping */
+    if(history && history.replaceState){ history.replaceState(null, '', '#' + id); }
+    try{ if(typeof window.track==='function') window.track('anchor_scroll', { target: id }); }catch(e){}
+    return true;
+  }
+  document.addEventListener('click', function(e){
+    var a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
+    if(!a) return;
+    var href = a.getAttribute('href') || '';
+    var id = null;
+    if(href.charAt(0) === '#' && href.length > 1){
+      id = href.slice(1);
+    } else if(href.indexOf('/#') === 0){
+      /* "/#contact" style — treat as same-page if the target exists here */
+      id = href.slice(2);
+      if(!document.getElementById(id)) return; /* let the browser navigate */
+    } else {
+      return; /* real navigation link — leave it alone */
+    }
+    if(scrollToTarget(id)){
+      e.preventDefault();
+      /* Close the mobile drawer if a nav link was tapped inside it */
+      var mn = document.getElementById('mn');
+      if(mn && mn.classList.contains('open')){ try{ toggleMobNav(); }catch(_e){} }
+    }
+  }, false);
+  /* On load, honour an incoming hash (e.g. arriving at /#contact from another page) */
+  window.addEventListener('load', function(){
+    if(window.location.hash && window.location.hash.length > 1){
+      var hid = window.location.hash.slice(1);
+      setTimeout(function(){ scrollToTarget(hid); }, 300);
+    }
+  });
+})();
 
 function toggleMobNav(){
   const mn = document.getElementById('mn');
