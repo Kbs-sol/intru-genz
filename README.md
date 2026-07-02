@@ -4,7 +4,7 @@
 - **Name**: intru.in
 - **Goal**: Engineered for High Organic Traffic (SEO) and High Conversion (using deep direct-response psychology)
 - **Stack**: Hono + TypeScript + Cloudflare Pages + Supabase + Razorpay + Resend
-- **Version**: v15.4 (Date: April 15, 2026) — Coupon Management Admin, Expanded Analytics, AI Stylist UX, Add-to-Cart Email Trigger
+- **Version**: v17 (Date: July 2, 2026) — Google Merchant feed, coupon visibility, Instagram-WebView dead-click fix, Clarity smart events, X/Pinterest removal, /style-guide 500 fix
 
 ## URLs
 - **Production**: https://intru-genz.pages.dev (staging) → https://intru.in (custom domain pending)
@@ -343,10 +343,52 @@ An autonomous agent runs **once a day** to analyse the funnel and recommend conc
 
 **DB migration:** run the appended `ai_sales_reports` block in `migration_v2.sql` (Supabase SQL Editor).
 
+## v17 Changes (July 2, 2026) — Organic Growth, Merchant Feed & CRO Fixes
+
+> Full user-facing playbook (Merchant Center setup, free traffic sources, smart-events reference): see **[GROWTH_AND_ANALYTICS_GUIDE.md](./GROWTH_AND_ANALYTICS_GUIDE.md)**.
+
+### Google Merchant Center Product Feed (Google Shopping)
+- **New route `GET /merchant-feed.xml`** (`src/index.tsx`) — a valid **RSS 2.0** feed with the `g:` (Google) namespace, one `<item>` per **size variant**, grouped by `g:item_group_id` (shared product), so the whole catalog auto-syncs to the **Google Shopping** tab and **free listings**.
+- **Correct sale pricing**: `g:price` = MRP (`comparePrice` when a sale is active), `g:sale_price` = the actual selling price. Verified live (e.g. `price=1499`, `sale_price=999`).
+- **India shipping** included per item: `Rs.99` flat, **free** for orders ≥ `Rs.1999` (matches `STORE_CONFIG.freeShippingThreshold`).
+- Feed is referenced from `robots.txt`.
+- **No Content API required** for basic Shopping — the user registers the feed in Merchant Center via **Scheduled fetch** of `https://intru.in/merchant-feed.xml`. Step-by-step user setup (account creation, site verification, shipping/returns, feed registration, disapproval fixes, enabling free listings + optional Shopping ads) is in **GROWTH_AND_ANALYTICS_GUIDE.md → Part 1**.
+
+### Additional Free Organic Traffic Sources
+- **GROWTH_AND_ANALYTICS_GUIDE.md → Part 2** documents 10 free channels: Google Search Console, Bing Webmaster, Google Business Profile, Instagram Shopping, Pinterest organic, WhatsApp share, YouTube/Reels, Reddit/Threads, rich results, and AI/GEO discovery.
+
+### Coupon / Promo Visibility (conversion)
+- The active promo was **mislabelled**: the live combo API returns "FINAL CLEARANCE = **Any 3 products for Rs.1499**" (a bundle), not "Rs.1499 OFF". The old ambiguous badge had only ~1.7% CTR.
+- New **`comboOfferLabel(c)`** helper (`shell.ts`) prefers the human-readable `description` and normalizes `₹`→`Rs.`, so the promo bar now reads clearly ("Any 3 for Rs.1499").
+- Promo badge is **brighter and gently pulses** (`@keyframes cpnPulse`) — noticeable but non-intrusive.
+- New **in-cart promo banner** (`renderCartPromoBanner()`, shown on cart open) surfaces the active deal exactly where it drives conversion, with an **"Add N more to unlock this deal"** nudge for bundle combos.
+- Fires a `promo_shown` analytics event when a promo is displayed.
+
+### Instagram-WebView Dead-Click Fix
+- **Root cause**: on the Instagram in-app browser (~69% of traffic), the single large inline bottom `<script>` loaded late / could throw during init, leaving inline `onclick` handlers (nav, cart, menu) undefined → **Clarity logged "dead clicks"** even though users were tapping (matches the shared recording).
+- **Fix** (`shell.ts`): an **EARLY NAV BOOTSTRAP** `<script>` right after `</nav>` defensively defines `toggleMobNav`, `toggleCart`, `openIdentifyOrOrders`, `closeAllDrawers`, `toggleAIChat`, `shareProductLink` before the main script runs, plus a **capture-phase delegated click fallback** for `.menu-btn/.mob-close/.ncart/.ccls`, and the INIT block is now **guarded** (`try/catch` around `renderCart`/`updateAccountBtn`/`loadSavedAddress`). Taps now always register.
+
+### Clarity Smart Events (12 events connected)
+- Unified **`window.track()`** now maps internal event names to the Clarity smart-event names via a **`CLARITY_EVENT_ALIAS`** map (`purchase`→`Purchase`, `login`→`Login`, `contact`/`contact_us`→`Contact us`) and forwards `value`/`item_id` via `clarity('set', ...)`.
+- Newly wired: **Login** (identity submit + Google token), **Contact us** (mailto/wa.me/tel links), **Purchase** (correct casing), **share**, **promo_shown**. Already present: `view_item`, `add_to_cart`, `begin_checkout`, `scroll_depth`, `engaged_session`, `exit_intent_shown`. See guide **Part 3** for the full table.
+
+### Removed X (Twitter) & Pinterest
+- Removed the homepage-footer **Twitter/Pinterest icons**, the `twitter:site`/`twitter:creator` + Pinterest **meta tags**, and both handles from **schema `sameAs`** (`shell.ts` + `home.ts`). Only `https://www.instagram.com/intru.in/` remains. The `twitter:card` (`summary_large_image`) is kept — it only controls link-preview rendering, not a profile link.
+- Product page **X/Twitter share button** replaced with a **copy-link** button (`shareProductLink()`); WhatsApp share kept.
+
+### Bug fix: `/style-guide` 500 → 200
+- The `/style-guide` route returned the raw `shell()` HTML **string** instead of a `Response`, throwing *"the Promise did not resolve to 'Response'"*. Fixed by wrapping in **`c.html(...)`** and using a **static `shell` import**. This page is in the sitemap + nav, so the 500 was an SEO liability — now returns **200 live**.
+
+### Note: Cloudflare Web Analytics RUM beacon
+- The Cloudflare Web Analytics beacon (`cloudflareinsights.com`) emits a benign cross-origin CORS console message on the browser; it is Cloudflare's own beacon behaviour and is **left as-is** (redundant with GA4/Clarity/GTM; removing it would lose an analytics source).
+
+### Optional / not implemented
+- **Clarity Data Export API** (JWT) integration was left optional (user: "if you think useful"); the built-in Clarity dashboard + GA4 already cover current needs.
+
 ## Deployment
 - **Platform**: Cloudflare Pages
 - **Status**: ✅ Active
-- **Last Updated**: 2026-06-18 (v16.2) — GA4 secret-name fix (`GA4_MEASUREMENT_ID`), daily AI sales agent, dead-code cleanup.
+- **Last Updated**: 2026-07-02 (v17) — Google Merchant feed (`/merchant-feed.xml`), coupon visibility, Instagram-WebView dead-click fix, Clarity smart events, X/Pinterest removal, `/style-guide` 500 fix. Prior: 2026-06-18 (v16.2) GA4 secret-name fix + daily AI sales agent.
 
 ## Full System Documentation
 
