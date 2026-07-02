@@ -5,8 +5,7 @@ import { STORE_CONFIG, type Product, type LegalPage, SEED_LEGAL_PAGES } from '..
  * - Unified Checkout + Prepaid Free Shipping + Address Persistence
  * - Enhanced SEO: rich meta, keywords, author, geo, theme-color
  * - GEO (Generative Engine Optimization): AI-friendly structured data
- * - Open Graph + Twitter/X Cards: social sharing signal amplification
- * - Pinterest Rich Pins: product:price, product:availability meta
+ * - Open Graph + link-preview Cards: social sharing signal amplification
  * - WhatsApp / iMessage link previews: og:image 1200×630
  * - Web App Manifest link for PWA-like signals
  * - Bing / DuckDuckGo: msvalidate.01 / yandex verification stubs
@@ -57,10 +56,30 @@ gtag('config','${ga}',{anonymize_ip:true,send_page_view:true});
   const helper = `
 <!-- Intru unified analytics helper -->
 <script>
+// Clarity smart-event names are case-sensitive and must match those defined in
+// the Clarity dashboard. GA4 conventions use lower_snake_case. This map lets a
+// single window.track() call satisfy BOTH: GA4 gets the lowercase name, Clarity
+// gets the exact dashboard name (and both, when they differ, are sent to Clarity).
+var CLARITY_EVENT_ALIAS={
+  'purchase':'Purchase',
+  'login':'Login',
+  'contact':'Contact us',
+  'contact_us':'Contact us'
+};
 window.track=function(name,params){
   try{params=params||{};
     if(typeof window.gtag==='function'){window.gtag('event',name,params);}
-    if(typeof window.clarity==='function'){window.clarity('event',name);}
+    if(typeof window.clarity==='function'){
+      // Fire the exact Clarity name (aliased if needed) plus the raw name for redundancy.
+      var cName=CLARITY_EVENT_ALIAS[name]||name;
+      window.clarity('event',cName);
+      if(cName!==name){try{window.clarity('event',name);}catch(_e){}}
+      // Attach key funnel values as Clarity custom tags for segmentation/filtering.
+      try{
+        if(params.value!=null)window.clarity('set',cName+'_value',String(params.value));
+        if(params.item_id)window.clarity('set','item_id',String(params.item_id));
+      }catch(_e){}
+    }
     if(navigator&&navigator.sendBeacon){
       var b=new Blob([JSON.stringify({event:name,meta:params})],{type:'application/json'});
       navigator.sendBeacon('/api/analytics/event',b);
@@ -126,18 +145,12 @@ ${isProduct && opt.productPrice ? `<meta property="product:price:amount" content
 <meta property="product:availability" content="${opt.productAvailability || 'in stock'}">
 <meta property="product:brand" content="Intru">
 <meta property="product:retailer_item_id" content="${opt.productName?.toLowerCase().replace(/\s+/g,'-') || 'product'}">` : ''}
-<!-- Twitter / X Cards — summary_large_image drives ~3× more clicks -->
+<!-- Link-preview cards — summary_large_image drives ~3× more clicks (WhatsApp, Slack, Telegram, iMessage all read these) -->
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:site" content="@intru_in">
-<meta name="twitter:creator" content="@intru_in">
 <meta name="twitter:title" content="${safeTitle}">
 <meta name="twitter:description" content="${safeDesc}">
 <meta name="twitter:image" content="${og}">
 <meta name="twitter:image:alt" content="${safeTitle}">
-<!-- Pinterest Rich Pins verification & product meta -->
-<meta name="p:domain_verify" content="intru_in_pinterest">
-${isProduct && opt.productPrice ? `<meta name="pinterest:price" content="${opt.productPrice}">
-<meta name="pinterest:currency" content="INR">` : ''}
 <!-- Bing / DuckDuckGo -->
 <meta name="msvalidate.01" content="intru_in_bing_verify">
 <!-- WhatsApp / Signal specific OG description (short, punchy) -->
@@ -170,8 +183,7 @@ ${isProduct && opt.productPrice ? `<meta name="pinterest:price" content="${opt.p
     "availableLanguage": ["English", "Hindi"]
   },
   "sameAs": [
-    "https://www.instagram.com/intru.in/",
-    "https://twitter.com/intru_in"
+    "https://www.instagram.com/intru.in/"
   ],
   "address": {
     "@type": "PostalAddress",
@@ -420,7 +432,8 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 .combo-promo-bar.show{display:flex}
 .combo-promo-bar .cpb-item{display:flex;align-items:center;gap:8px;padding:0 16px;border-right:1px solid rgba(255,255,255,0.15)}
 .combo-promo-bar .cpb-item:last-child{border-right:none}
-.combo-promo-bar .cpb-badge{background:linear-gradient(135deg,#eab308,#f59e0b);color:#0a0a0a;font-size:8px;font-weight:900;padding:2px 7px;border-radius:100px;letter-spacing:.5px}
+.combo-promo-bar .cpb-badge{background:linear-gradient(135deg,#eab308,#f59e0b);color:#0a0a0a;font-size:12px;font-weight:900;padding:3px 10px;border-radius:100px;letter-spacing:.5px;box-shadow:0 0 0 0 rgba(234,179,8,.6);animation:cpnPulse 1.8s infinite}
+@keyframes cpnPulse{0%{box-shadow:0 0 0 0 rgba(234,179,8,.55)}70%{box-shadow:0 0 0 8px rgba(234,179,8,0)}100%{box-shadow:0 0 0 0 rgba(234,179,8,0)}}
 .combo-promo-bar .cpb-close{position:absolute;right:12px;background:none;border:none;color:rgba(255,255,255,0.4);font-size:18px;cursor:pointer;padding:4px;display:flex;align-items:center;transition:color .2s}.combo-promo-bar .cpb-close:hover{color:#fff}
 @media(max-width:768px){.combo-promo-bar{padding:10px 40px 10px 16px;flex-wrap:wrap;justify-content:flex-start;gap:8px}.combo-promo-bar .cpb-item{padding:0 8px;border-right:none;border-bottom:1px solid rgba(255,255,255,0.1)}}
 /* Combo card on product/home pages */
@@ -496,6 +509,76 @@ ${buildGtmBody(gtmId)}
   <button class="nbtn" onclick="openIdentifyOrOrders()" id="navAccountBtn">Login</button>
   <button class="ncart" onclick="toggleCart()" aria-label="Cart Bag"><i class="fas fa-shopping-bag"></i><span class="cbadge" id="cb">0</span></button>
 </div></div></nav>
+<!--
+  EARLY NAV BOOTSTRAP [AG: critical-path resilience]
+  Loaded inline, immediately after the nav, BEFORE the large bottom <script>.
+  Root-cause fix for Clarity "dead clicks": in the Instagram in-app WebView (69% of
+  traffic) the big bottom script can execute late or throw during init, leaving the
+  inline onclick="toggleMobNav()/toggleCart()/openIdentifyOrOrders()" handlers
+  undefined — the user taps (visible in the recording) but nothing happens (logged
+  as a dead click). This block guarantees the critical nav functions exist the moment
+  the header is parsed, and adds a delegated click fallback that never depends on the
+  main bundle. The main script later *re-defines* the full versions; these are safe stubs.
+-->
+<script>
+(function(){
+  function $(id){return document.getElementById(id);}
+  // --- Guaranteed mobile-nav toggle (safe even if main script never loads) ---
+  if(typeof window.toggleMobNav!=='function'){
+    window.toggleMobNav=function(){
+      var mn=$('mn'),co=$('co');
+      if(mn)mn.classList.toggle('open');
+      if(co)co.classList.toggle('open');
+      try{document.body.style.overflow=(mn&&mn.classList.contains('open'))?'hidden':'';}catch(e){}
+    };
+  }
+  // --- Guaranteed cart drawer toggle ---
+  if(typeof window.toggleCart!=='function'){
+    window.toggleCart=function(){
+      var co=$('co'),cd=$('cd');
+      if(co)co.classList.toggle('open');
+      if(cd)cd.classList.toggle('open');
+      try{document.body.style.overflow=(cd&&cd.classList.contains('open'))?'hidden':'';}catch(e){}
+    };
+  }
+  // --- Login/account: if main script hasn't defined the rich version, open the drawer shell ---
+  if(typeof window.openIdentifyOrOrders!=='function'){
+    window.openIdentifyOrOrders=function(){ var o=$('idOvl'); if(o)o.classList.add('open'); };
+  }
+  if(typeof window.closeAllDrawers!=='function'){
+    window.closeAllDrawers=function(){
+      ['mn','co','cd'].forEach(function(id){var el=$(id);if(el)el.classList.remove('open');});
+      try{document.body.style.overflow='';}catch(e){}
+    };
+  }
+  if(typeof window.toggleAIChat!=='function'){ window.toggleAIChat=function(){ var p=$('aiPop'); if(p)p.classList.toggle('open'); }; }
+  // --- Copy-link share (replaces removed X/Twitter share) ---
+  if(typeof window.shareProductLink!=='function'){
+    window.shareProductLink=function(slug){
+      var url='https://intru.in/product/'+slug;
+      var done=function(){ try{ if(typeof window.toast==='function') window.toast('Link copied!','ok-green'); }catch(e){} try{ if(typeof window.track==='function') window.track('share',{method:'copy_link',item_id:slug}); }catch(e){} };
+      if(navigator.share){ navigator.share({url:url}).then(done).catch(function(){}); return; }
+      if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(url).then(done).catch(function(){}); return; }
+      try{ var ta=document.createElement('textarea'); ta.value=url; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done(); }catch(e){}
+    };
+  }
+  // --- Delegated fallback: works even if a later inline handler was never wired ---
+  document.addEventListener('click',function(e){
+    var t=e.target;
+    if(!t||!t.closest)return;
+    if(t.closest('.menu-btn')||t.closest('.mob-close')){ e.preventDefault(); window.toggleMobNav(); }
+    else if(t.closest('.ncart')||t.closest('.ccls')){ e.preventDefault(); window.toggleCart(); }
+    // --- Smart event: Contact us (any mailto: or wa.me link) ---
+    var link=t.closest('a[href]');
+    if(link){
+      var h=link.getAttribute('href')||'';
+      if(h.indexOf('mailto:')===0||h.indexOf('wa.me')>-1||h.indexOf('tel:')===0){
+        try{ if(typeof window.track==='function') window.track('Contact us',{channel:h.indexOf('mailto:')===0?'email':(h.indexOf('tel:')===0?'phone':'whatsapp')}); }catch(_e){}
+      }
+    }
+  },true); // capture phase → fires before/independent of inline onclick
+})();
+</script>
 <!-- Soft Maintenance Banner [AG] -->
 <div id="mntBanner" style="${mcMode === 'soft' ? 'display:flex;' : 'display:none;'}background:var(--bk);color:var(--wh);font-family:var(--sans);font-size:13px;align-items:center;justify-content:space-between;padding:12px 24px;width:100%;margin-top:72px;z-index:90;position:relative">
   <div style="display:flex;align-items:center;gap:12px">
@@ -525,6 +608,14 @@ ${buildGtmBody(gtmId)}
   
   <!-- Content State -->
   <div id="cartContent" class="hidden">
+    <!-- Auto-applied promo reminder — populated by JS when a combo/coupon is active [AG: coupon visibility] -->
+    <div id="cartPromoBanner" style="display:none;margin:0 0 16px;padding:12px 14px;border-radius:10px;background:linear-gradient(135deg,#111,#1a1a2e);border:1px solid rgba(234,179,8,.35);align-items:center;gap:10px">
+      <span style="font-size:20px">🎁</span>
+      <div style="flex:1;line-height:1.35">
+        <div id="cartPromoTitle" style="font-size:12px;font-weight:900;color:#eab308;text-transform:uppercase;letter-spacing:.4px"></div>
+        <div id="cartPromoSub" style="font-size:11px;color:#4ade80;font-weight:700"><i class="fas fa-check-circle"></i> Auto-applied — no code needed</div>
+      </div>
+    </div>
     <div id="cartItems"></div>
     <!-- Step 1: Address Collection -->
     <div id="addressSection" class="hidden" style="margin-top:24px;border-top:1px solid var(--g100);padding-top:24px">
@@ -720,8 +811,6 @@ ${buildGtmBody(gtmId)}
   <span>&copy; 2026 <a href="https://intru.in" style="color:inherit">intru.in</a> &mdash; Premium Indian Streetwear. All rights reserved.</span>
   <div class="fsoc">
     <a href="https://instagram.com/${STORE_CONFIG.instagram}" target="_blank" rel="noopener noreferrer" aria-label="Follow Intru on Instagram"><i class="fab fa-instagram"></i></a>
-    <a href="https://twitter.com/intru_in" target="_blank" rel="noopener noreferrer" aria-label="Follow Intru on X (Twitter)"><i class="fab fa-x-twitter"></i></a>
-    <a href="https://pinterest.com/intru_in" target="_blank" rel="noopener noreferrer" aria-label="Follow Intru on Pinterest"><i class="fab fa-pinterest-p"></i></a>
   </div>
 </div>
 </footer>
@@ -911,6 +1000,8 @@ function processGoogleToken(idToken){
       localStorage.setItem('intru_user',JSON.stringify(d.user));
       localStorage.setItem('intru_user_email',d.user.email||'');
       localStorage.setItem('intru_user_name',d.user.name||'');
+      /* Smart event: Login (Google) */
+      try{ if(typeof window.track==='function') window.track('Login',{method:'google'}); }catch(_e){}
       /* Signal the homepage to resume after redirect */
       sessionStorage.setItem('intru_auth_success','1');
       window.location.href='/';
@@ -964,6 +1055,8 @@ function submitIdentity(){
       identifiedEmail=email;
       localStorage.setItem('intru_user_email',email);
       if(d.name){identifiedName=d.name;localStorage.setItem('intru_user_name',d.name)}
+      /* Smart event: Login (email) — Clarity + GA4 */
+      try{ if(typeof window.track==='function') window.track('Login',{method:'email'}); }catch(_e){}
       toast('Welcome! Access secured.','ok-green');
       closeIdentify();
       
@@ -1303,25 +1396,72 @@ function loadSiteComboPromo() {
   }).catch(function(){});
 }
 
+/* Build a clear, non-ambiguous offer label from a combo record.
+   - percent  -> "20% OFF"
+   - fixed + min_products>=2 -> uses description ("Any 3 products for Rs.1499")
+     or a sensible fallback so customers understand it's a bundle price, not a discount.
+   - fixed + single item -> "Rs.X OFF" */
+function comboOfferLabel(c){
+  if(c.discount_type==='percent') return c.discount_value + '% OFF';
+  if(c.description) {
+    /* Normalise the rupee glyph so it renders everywhere */
+    return String(c.description).replace(/\u20b9/g,'Rs.');
+  }
+  if(c.min_products && c.min_products>=2) return 'Any '+c.min_products+' for Rs.'+Math.round(c.discount_value);
+  return 'Rs.'+Math.round(c.discount_value)+' OFF';
+}
+
 function renderComboPromoBar() {
   var bar = document.getElementById('comboPromoBar');
   var items = document.getElementById('comboPromoBarItems');
   if (!bar || !items || !_siteActiveCombos.length) return;
   var html = '';
-  _siteActiveCombos.slice(0, 3).forEach(function(c) {
-    var discStr = c.discount_type === 'percent' ? c.discount_value + '% OFF' : 'Rs.' + Math.round(c.discount_value) + ' OFF';
+  _siteActiveCombos.slice(0, 2).forEach(function(c) {
+    /* Prefer the human description (e.g. "Any 3 products for Rs.1499") — a bare
+       "Rs.1499 OFF" badge is ambiguous for fixed-bundle combos and tanked CTR. */
+    var offer = comboOfferLabel(c);
     html += '<div class="cpb-item">'
-      + '<i class="fas fa-fire" style="color:#eab308;font-size:13px"></i>'
-      + '<span>' + c.name + '</span>'
-      + '<span class="cpb-badge">' + discStr + '</span>'
+      + '<i class="fas fa-fire" style="color:#eab308;font-size:14px"></i>'
+      + '<span style="text-transform:uppercase">' + c.name + '</span>'
+      + '<span class="cpb-badge">' + offer + '</span>'
       + '</div>';
   });
   if (!html) return;
-  html += '<div class="cpb-item" style="border-right:none;opacity:0.6;font-size:10px">'
-    + '<i class="fas fa-shield-halved" style="color:#4ade80"></i>'
-    + '<span>Auto-applied at checkout</span></div>';
+  html += '<div class="cpb-item" style="border-right:none;font-size:11px">'
+    + '<i class="fas fa-check-circle" style="color:#4ade80"></i>'
+    + '<span style="font-weight:800;color:#4ade80">AUTO-APPLIED &mdash; NO CODE NEEDED</span></div>';
   items.innerHTML = html;
   bar.classList.add('show');
+  /* Smart event: promo bar shown (helps measure coupon-visibility impact) */
+  try{ if(typeof window.track==='function') window.track('promo_shown',{placement:'top_bar',promos:_siteActiveCombos.length}); }catch(e){}
+  renderCartPromoBanner();
+}
+
+/* In-cart promo reminder — shows the active auto-applied discount right where
+   it converts (the bag). Independent of the dismissible top bar. */
+function renderCartPromoBanner(){
+  var el=document.getElementById('cartPromoBanner');
+  if(!el)return;
+  if(!_siteActiveCombos||!_siteActiveCombos.length){el.style.display='none';return;}
+  var c=_siteActiveCombos[0];
+  var offer=comboOfferLabel(c);
+  var t=document.getElementById('cartPromoTitle');
+  if(t)t.innerHTML=c.name+' &mdash; '+offer;
+  /* If it's a bundle (min_products>=2), tell them how many more to add */
+  var sub=document.getElementById('cartPromoSub');
+  if(sub){
+    if(c.min_products&&c.min_products>=2){
+      var count=(typeof cart!=='undefined')?cart.reduce(function(s,i){return s+(i.q||1);},0):0;
+      if(count>0&&count<c.min_products){
+        sub.innerHTML='<i class="fas fa-plus-circle"></i> Add '+(c.min_products-count)+' more to unlock this deal';
+      } else {
+        sub.innerHTML='<i class="fas fa-check-circle"></i> Auto-applied at checkout — no code needed';
+      }
+    } else {
+      sub.innerHTML='<i class="fas fa-check-circle"></i> Auto-applied — no code needed';
+    }
+  }
+  el.style.display='flex';
 }
 
 function dismissComboBar() {
@@ -1593,7 +1733,7 @@ function renderCart(){
 })();
 
 /* ====== DRAWER ENGINE ====== */
-function toggleCart(){document.getElementById('co').classList.toggle('open');document.getElementById('cd').classList.toggle('open');document.body.style.overflow=document.getElementById('cd').classList.contains('open')?'hidden':''}
+function toggleCart(){var co=document.getElementById('co'),cd=document.getElementById('cd');co.classList.toggle('open');cd.classList.toggle('open');document.body.style.overflow=cd.classList.contains('open')?'hidden':'';if(cd.classList.contains('open')){try{renderCartPromoBanner();}catch(e){}}}
 function openCartDrawer(){document.getElementById('co').classList.add('open');document.getElementById('cd').classList.add('open');document.body.style.overflow='hidden';startCartTimer();}
 function closeAllDrawers(){
   document.getElementById('co').classList.remove('open');
@@ -2140,9 +2280,11 @@ function toggleMobNav(){
 }
 
 /* ====== INIT ====== */
-renderCart();
-updateAccountBtn();
-loadSavedAddress();
+/* Each guarded independently so one failure in the Instagram in-app WebView
+   never cascades and leaves later nav functions undefined (dead-click fix). */
+try{ renderCart(); }catch(e){ console.warn('init renderCart',e); }
+try{ updateAccountBtn(); }catch(e){ console.warn('init updateAccountBtn',e); }
+try{ loadSavedAddress(); }catch(e){ console.warn('init loadSavedAddress',e); }
 /* If user is identified, update UI to reflect it */
 
 /* ====== KONAMI CODE -> /admin [AG: ROBUST] ====== */

@@ -238,10 +238,10 @@ export function productPage(product: Product, opts: {
   <a href="/collections">Shop</a>
   <span aria-hidden="true">/</span>
   <span style="color:var(--bk)" aria-current="page">${product.name}</span>
-  <!-- Social share buttons — WhatsApp, Twitter/X traffic -->
+  <!-- Social share buttons — WhatsApp + copy link (Instagram-first audience) -->
   <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
     <a href="https://wa.me/?text=${encodeURIComponent('Check this out: ' + product.name + ' by Intru — https://intru.in/product/' + product.slug)}" target="_blank" rel="noopener noreferrer" aria-label="Share on WhatsApp" style="color:var(--g400);font-size:16px;transition:color .2s" onmouseover="this.style.color='#25D366'" onmouseout="this.style.color='var(--g400)'"><i class="fab fa-whatsapp"></i></a>
-    <a href="https://twitter.com/intent/tweet?text=${encodeURIComponent(product.name + ' — limited edition drop by @intru_in. Never restocked.')}&url=${encodeURIComponent('https://intru.in/product/' + product.slug)}" target="_blank" rel="noopener noreferrer" aria-label="Share on X (Twitter)" style="color:var(--g400);font-size:14px;transition:color .2s" onmouseover="this.style.color='var(--bk)'" onmouseout="this.style.color='var(--g400)'"><i class="fab fa-x-twitter"></i></a>
+    <button type="button" onclick="shareProductLink('${product.slug}')" aria-label="Copy product link" style="background:none;border:none;cursor:pointer;color:var(--g400);font-size:14px;transition:color .2s;padding:0" onmouseover="this.style.color='var(--bk)'" onmouseout="this.style.color='var(--g400)'"><i class="fas fa-link"></i></button>
   </div>
 </nav>
 <div class="pdpl">

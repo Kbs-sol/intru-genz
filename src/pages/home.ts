@@ -76,8 +76,7 @@ export function homePage(opts: {
         "contactType": "customer service"
       },
       "sameAs": [
-        "https://instagram.com/intru.in",
-        "https://twitter.com/intru_in"
+        "https://instagram.com/intru.in"
       ]
     },
     {
