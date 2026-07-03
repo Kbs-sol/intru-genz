@@ -566,8 +566,8 @@ ${buildGtmBody(gtmId)}
   document.addEventListener('click',function(e){
     var t=e.target;
     if(!t||!t.closest)return;
-    if(t.closest('.menu-btn')||t.closest('.mob-close')){ e.preventDefault(); window.toggleMobNav(); }
-    else if(t.closest('.ncart')||t.closest('.ccls')){ e.preventDefault(); window.toggleCart(); }
+    if(t.closest('.menu-btn')||t.closest('.mob-close')){ e.preventDefault(); e.stopPropagation(); window.toggleMobNav(); }
+    else if(t.closest('.ncart')||t.closest('.ccls')){ e.preventDefault(); e.stopPropagation(); window.toggleCart(); }
     // --- Smart event: Contact us (any mailto: or wa.me link) ---
     var link=t.closest('a[href]');
     if(link){
