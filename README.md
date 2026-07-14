@@ -170,6 +170,33 @@ npx wrangler pages secret put RESEND_API_KEY --project-name intru-in
 npx wrangler pages secret put RAZORPAY_WEBHOOK_SECRET --project-name intru-in
 ```
 
+## 🔁 Self-Improving Growth Loop (daily AI system)
+
+A closed feedback loop that runs **once per day** (or on-demand from chat/admin) with one primary goal: **sell the current stock to Indian buyers**, then grow revenue + traffic.
+
+**Each run:**
+1. **Consume** — live funnel/orders/products/stock from Supabase + the *previous* loop run and which actions it applied.
+2. **Analyze** — computes KPIs, isolates **real India demand from bot traffic** (the GA4 "Singapore" spike = a monitoring bot: desktop + direct + ~0s engagement on a fixed 6h schedule; real engaged users are ~95% India), finds the biggest funnel leak + the slowest-moving stock.
+3. **Decide** — an OpenAI-compatible LLM (falls back to a built-in heuristic engine) returns a **structured plan in the founder's minimalist / individuality brand voice** ("pieces that feel like you", "limited stock, never restocked").
+4. **Apply** — safe, reversible changes (a site-wide **announcement bar** via the `AI_ANNOUNCEMENT` store setting) are written **live with no redeploy**. Copy/coupon ideas are suggested for human approval.
+5. **Learn** — the run + applied actions + **metric deltas vs. yesterday** are stored in `ai_sales_reports` (`report_type='loop'`), so the next run measures whether the changes worked. That is the loop.
+
+**Endpoints** (protected by `CRON_SECRET` or admin password):
+- `POST /api/ai/loop?days=7` — run the loop (auto-applies + emails + stores)
+- `GET  /api/ai/loop?days=7&dry=1` — preview only (no apply/email/store)
+- `GET  /api/ai/sales-report?days=7` — the simpler daily funnel report
+- `GET  /api/admin/sales-reports` — history (admin)
+
+**Trigger:** the `Daily AI Sales Agent` GitHub Actions workflow runs both the report and the loop at 03:30 UTC (~9 AM IST). It needs secret `AI_AGENT_CRON_SECRET` (= Cloudflare `CRON_SECRET`) and optional var `SITE_URL`. Admins can also click **"▶ Run growth loop now"** in the admin Analytics settings.
+
+**LLM key (optional):** the loop reuses the AI Stylist's existing OpenRouter/Groq key from store settings if present, or a dedicated `OPENAI_API_KEY`. With no key it runs in heuristic mode.
+
+```bash
+# Optional — richer LLM-authored loop decisions
+npx wrangler pages secret put OPENAI_API_KEY --project-name intru-in
+npx wrangler pages secret put CRON_SECRET --project-name intru-in   # required for cron auth
+```
+
 ## Razorpay Webhook Setup
 
 1. Go to Razorpay Dashboard → Webhooks

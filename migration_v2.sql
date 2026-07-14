@@ -108,5 +108,13 @@ CREATE TABLE IF NOT EXISTS public.ai_sales_reports (
 );
 CREATE INDEX IF NOT EXISTS idx_ai_sales_reports_date ON public.ai_sales_reports(report_date DESC);
 
+-- Self-improving growth-loop columns (added Turn 4). Existing DBs get these via
+-- the ALTERs below; new DBs get them from the CREATE above being extended here.
+ALTER TABLE public.ai_sales_reports ADD COLUMN IF NOT EXISTS report_type TEXT DEFAULT 'daily';        -- 'daily' | 'loop'
+ALTER TABLE public.ai_sales_reports ADD COLUMN IF NOT EXISTS actions JSONB DEFAULT '[]'::jsonb;        -- full proposed action plan
+ALTER TABLE public.ai_sales_reports ADD COLUMN IF NOT EXISTS applied_actions JSONB DEFAULT '[]'::jsonb; -- actions the loop auto-applied
+ALTER TABLE public.ai_sales_reports ADD COLUMN IF NOT EXISTS deltas JSONB DEFAULT '{}'::jsonb;          -- metric deltas vs previous loop
+CREATE INDEX IF NOT EXISTS idx_ai_sales_reports_type ON public.ai_sales_reports(report_type, created_at DESC);
+
 ALTER TABLE public.ai_sales_reports ENABLE ROW LEVEL SECURITY;
 CREATE POLICY IF NOT EXISTS "service_role_all_ai_sales_reports" ON public.ai_sales_reports FOR ALL TO service_role USING (true);

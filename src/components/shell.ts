@@ -100,8 +100,8 @@ export function buildHead(title: string, desc: string, opt: { og?: string, url?:
   const safeTitle = title.replace(/"/g, '&quot;');
   // Comprehensive keyword set targeting all buyer-intent + discovery queries
   const keywords = isProduct
-    ? `${opt.productName || ''}, ${opt.productName || ''} buy online india, oversized tshirt india, premium streetwear india, intru clothing, limited edition streetwear, best oversized tshirt, heavyweight cotton tshirt india, brutalist streetwear, exclusive drop clothing india`
-    : 'best oversized collection india, oversized streetwear india, premium heavyweight tshirt, limited edition fashion drops india, intru streetwear, brutalist streetwear india, exclusive oversized clothing, minimal streetwear brand india, best streetwear brand india 2025, buy oversized tshirt online india, intru.in, everyday essential tshirts, urban fashion india, premium menswear india, unisex streetwear india';
+    ? `${opt.productName || ''}, ${opt.productName || ''} buy online india, oversized tshirt india, minimalist streetwear india, intru clothing, limited edition streetwear, never restocked, minimal oversized tshirt, heavyweight cotton tshirt india, individual streetwear, exclusive drop clothing india`
+    : 'minimalist streetwear india, minimal streetwear brand india, intru, intru.in, oversized tshirt india, individual streetwear, limited edition streetwear india, never restocked clothing, clean minimal clothing india, streetwear for individuals, best minimalist clothing brand india 2025, buy oversized tshirt online india, everyday minimal essentials, unisex minimalist streetwear india, indian streetwear brand, made in india clothing';
 
   return `${buildGtmHead(opt.gtmId)}
 <title>${safeTitle}</title>
@@ -268,6 +268,14 @@ export function shell(
   // to 'off'/'' to disable. GTM is independent of GA4 — both can run together.
   const gtmRaw = (opt?.gtmId ?? ss.GTM_CONTAINER_ID ?? 'GTM-PCQCS3JV');
   const gtmId = (gtmRaw === 'off') ? '' : (gtmRaw || '');
+  // AI-loop-controlled site-wide announcement bar. The daily loop writes the
+  // AI_ANNOUNCEMENT store setting (e.g. an urgency / stock-clearing message).
+  // Empty or 'off' hides it. Kept minimal & dismissible to match brand voice.
+  const aiAnnounceRaw = (ss.AI_ANNOUNCEMENT || '').trim();
+  const aiAnnounce = (aiAnnounceRaw === 'off') ? '' : aiAnnounceRaw;
+  const aiAnnounceHtml = aiAnnounce
+    ? `<div class="ai-announce" id="aiAnnounce" role="status">${aiAnnounce.replace(/</g, '&lt;').replace(/>/g, '&gt;')}<button class="ai-announce-x" onclick="document.getElementById('aiAnnounce').style.display='none'" aria-label="Dismiss">&times;</button></div>`
+    : '';
 
   const pm = JSON.stringify(Object.fromEntries(products.map(p => [p.id, { id: p.id, n: p.name, s: p.slug, p: p.price, i: p.images, sz: p.sizes, cat: (p as any).category || '' }])));
   const sj = JSON.stringify({ cs: STORE_CONFIG.currencySymbol, ft: STORE_CONFIG.freeShippingThreshold, sc: STORE_CONFIG.shippingCost, rk: rpKey, magic: useMagic });
@@ -487,6 +495,11 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 .mnt-agree-btn.ready{opacity:1;cursor:pointer}.mnt-agree-btn.ready:hover{background:var(--g600);transform:translateY(-1px)}
 .mnt-banner{width:100%;background:var(--bk);color:var(--wh);font-size:11px;font-weight:700;display:none;align-items:center;justify-content:center;gap:12px;padding:12px 24px;position:fixed;top:0;left:0;right:0;z-index:90;letter-spacing:1px;text-transform:uppercase}
 .mnt-banner strong{color:#fff;text-decoration:underline}
+/* AI-loop announcement bar */
+.ai-announce{position:relative;width:100%;background:var(--bk);color:var(--wh);font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;text-align:center;padding:9px 40px;line-height:1.4;z-index:95}
+.ai-announce-x{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--g400);font-size:20px;line-height:1;cursor:pointer;padding:2px 6px}
+.ai-announce-x:hover{color:var(--wh)}
+@media(max-width:768px){.ai-announce{font-size:9px;padding:9px 34px}}
 .mnt-banner-close{position:absolute;right:12px;background:none;border:none;color:var(--g400);font-size:22px;cursor:pointer;display:flex;align-items:center;padding:4px;transition:color .2s}.mnt-banner-close:hover{color:var(--wh)}
 @media(max-width:768px){.mnt-banner{font-size:9px;padding:12px 40px 12px 16px;text-align:left;justify-content:flex-start}}
 @media(max-width:768px){.nlinks .nl:not(.nls){display:none}.ftri{grid-template-columns:1fr 1fr;gap:32px}.ftrbt{flex-direction:column;gap:16px;text-align:center}}
@@ -495,6 +508,7 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 </head>
 <body class="${opt?.cls || ''}" ${mcMode === 'soft' ? 'style="overflow:hidden"' : ''}>
 ${buildGtmBody(gtmId)}
+${aiAnnounceHtml}
 <nav class="nav glass" id="nb"><div class="navi">
 <button class="menu-btn" onclick="toggleMobNav()" aria-label="Menu"><i class="fas fa-bars"></i></button>
 <div class="nlinks">

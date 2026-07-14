@@ -48,8 +48,8 @@ export interface Env {
 // ============ STORE CONFIG (static — never changes at runtime) ============
 export const STORE_CONFIG = {
   name: "intru.in",
-  tagline: "Limited Drops. No Restocks.",
-  description: "Experience premium streetwear with INTRU.IN. We specialize in limited-edition oversized tees and high-quality drops that never restock. Two best friends, tired of mass-produced fashion, bringing you exclusive Indian streetwear made with love. When it's gone, it's gone.",
+  tagline: "Not for everyone. Made to feel like you.",
+  description: "INTRU is minimalist streetwear for people tired of seeing everyone in the same clothes, the same patterns. Two best friends design pieces that feel like YOU — limited stock only, never restocked, made with love in India. No overhype, no fake drops. Clean, individual, intentional. When it's gone, it's gone.",
   currency: "INR",
   currencySymbol: "Rs.",
   freeShippingThreshold: 1999,
@@ -892,6 +892,29 @@ export async function fetchAllStoreSettings(sbUrl: string, sbKey: string): Promi
       return acc;
     }, {} as Record<string, string>);
   } catch { return {}; }
+}
+
+/**
+ * Upsert one or more store_settings key/value pairs (merge-duplicates on `key`).
+ * Used by the AI loop to auto-apply approved changes (announcement, hero line,
+ * coupon suggestions, etc.) with no redeploy. Returns true on success.
+ */
+export async function upsertStoreSettings(
+  sbUrl: string,
+  sbKey: string,
+  entries: Record<string, string>
+): Promise<boolean> {
+  if (!sbUrl || !sbKey) return false;
+  const rows = Object.entries(entries).map(([key, value]) => ({ key, value: String(value ?? '') }));
+  if (!rows.length) return true;
+  try {
+    const res = await supabaseFetch(sbUrl, sbKey, 'store_settings', {
+      method: 'POST',
+      headers: { 'Prefer': 'resolution=merge-duplicates' } as any,
+      body: JSON.stringify(rows),
+    });
+    return res.ok;
+  } catch { return false; }
 }
 
 /**

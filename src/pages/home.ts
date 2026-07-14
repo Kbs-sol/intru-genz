@@ -307,8 +307,8 @@ function subscribeEmail(form){
 `;
 
   return shell(
-    'Intru | Best Oversized T-Shirt Brand India — Limited Edition Streetwear',
-    'Shop India\'s most exclusive streetwear. Intru drops premium heavyweight oversized t-shirts in brutalist minimalist designs — limited batches, zero restocks. Free shipping on prepaid. Shop the drop before it\'s gone.',
+    'Intru | Minimalist Streetwear India — Pieces That Feel Like You',
+    'Tired of everyone wearing the same thing? Intru is minimalist streetwear for individuals — clean, intentional, oversized tees designed to feel like YOU. Limited stock only, never restocked, made with love in India. Ships across India.',
     body,
     { url: 'https://intru.in', schema, razorpayKeyId: opts.razorpayKeyId, googleClientId: opts.googleClientId, products, legalPages, useMagicCheckout: !!opts.useMagicCheckout, maintenanceConfig: opts.maintenanceConfig, storeSettings: opts.storeSettings }
   );

@@ -21,6 +21,7 @@ import { stylistPage } from './pages/stylist'
 import { maintenancePage } from './pages/maintenance'
 import { shell } from './components/shell'
 import { runDailySalesAgent, computeSalesMetrics } from './ai-sales-agent'
+import { runGrowthLoop } from './ai-loop'
 
 type Bindings = Env & { [key: string]: string }
 
@@ -946,6 +947,27 @@ app.get('/api/ai/sales-report', async (c: Context<{ Bindings: Bindings }>) => {
     return c.json({ ok: false, error: e?.message || 'sales agent failed' }, 500);
   }
 })
+
+// ============ API: Self-Improving Growth Loop ============
+// The daily "loop AI system". Trigger ONCE PER DAY from chat or cron:
+//   POST /api/ai/loop           (Authorization: Bearer <CRON_SECRET> or admin pwd)
+//   GET  /api/ai/loop?key=...&days=7[&dry=1]
+// It consumes prior state + live data, decides an on-brand action plan aimed at
+// clearing current stock for Indian buyers, auto-applies the safe ones to
+// store_settings (no redeploy), and learns from yesterday's deltas.
+async function handleLoop(c: Context<{ Bindings: Bindings }>) {
+  if (!(await authorizeCron(c))) return c.json({ error: 'unauthorized' }, 401);
+  const days = Math.min(90, Math.max(1, parseInt(c.req.query('days') || '7', 10) || 7));
+  const dry = c.req.query('dry') === '1';
+  try {
+    const result = await runGrowthLoop(c.env as any, { windowDays: days, dryRun: dry });
+    return c.json(result);
+  } catch (e: any) {
+    return c.json({ ok: false, error: e?.message || 'growth loop failed' }, 500);
+  }
+}
+app.get('/api/ai/loop', handleLoop);
+app.post('/api/ai/loop', handleLoop);
 
 // Admin: list stored AI sales reports (history)
 app.get('/api/admin/sales-reports', async (c: Context<{ Bindings: Bindings }>) => {

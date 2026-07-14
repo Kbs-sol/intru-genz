@@ -418,12 +418,14 @@ export function adminPage(opts: {
 <div class="sett-card">
 <h4>AI Sales Agent</h4>
 <p>Runs automatically once a day (GitHub Actions cron) to analyse your funnel and email sales-improvement recommendations to the manager. You can also run it on demand here.</p>
-<div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+<div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
 <button class="asave" style="flex:0 0 auto" onclick="runSalesAgent()">Run sales report now</button>
+<button class="asave" style="flex:0 0 auto;background:#0a0a0a" onclick="runGrowthLoop()">▶ Run growth loop now</button>
 <span id="salesAgentStatus" style="font-size:12px;color:var(--g400)"></span>
 </div>
+<p style="font-size:11px;color:var(--g400);margin:0 0 8px">The <b>growth loop</b> is the self-improving daily system: it reads live funnel + stock, filters out bot (Singapore) traffic, decides an on-brand plan to clear current stock for Indian buyers, auto-applies a site-wide announcement bar, and learns from yesterday's results. Current announcement: <code id="aiAnnounceNow">—</code></p>
 <div id="salesReportsList" style="font-size:12px;color:var(--g500)"></div>
-<p style="font-size:11px;color:var(--g400);margin:8px 0 0">Tip: set Cloudflare secrets <code>CRON_SECRET</code> (required) and <code>OPENAI_API_KEY</code> (optional — enables richer LLM recommendations; without it a built-in heuristic engine is used).</p>
+<p style="font-size:11px;color:var(--g400);margin:8px 0 0">Tip: set Cloudflare secrets <code>CRON_SECRET</code> (required) and <code>OPENAI_API_KEY</code> (optional — enables richer LLM decisions; without it a built-in heuristic engine is used). Set <code>AI_ANNOUNCEMENT</code>=<code>off</code> to hide the bar.</p>
 </div>
 <div class="sett-card">
 <h4>Site Maintenance</h4>
@@ -991,6 +993,26 @@ function runSalesAgent(){
      }
    }).catch(function(e){if(st)st.textContent='Error: '+e.message;toast('Error','err')});
 }
+function runGrowthLoop(){
+  var st=document.getElementById('salesAgentStatus'); if(st)st.textContent='Running growth loop…';
+  var pwd=sessionStorage.getItem('iadm_t')||'';
+  fetch('/api/ai/loop?days=7&key='+encodeURIComponent(pwd),{method:'POST'})
+   .then(function(r){return r.json()})
+   .then(function(d){
+     if(d&&d.ok){
+       var appl=(d.applied||[]).length;
+       if(st)st.textContent='Loop done — '+appl+' action(s) applied, '+(d.emailed?'emailed':'not emailed')+' ('+(d.model||'')+')';
+       var an=document.getElementById('aiAnnounceNow');
+       var annAction=(d.applied||[]).filter(function(a){return a.key==='AI_ANNOUNCEMENT'})[0];
+       if(an&&annAction)an.textContent=annAction.value;
+       toast('Growth loop ran — '+appl+' change(s) live','ok-green');
+       loadSalesReports();
+     } else {
+       if(st)st.textContent='Loop failed: '+((d&&d.error)||'unknown');
+       toast('Growth loop failed','err');
+     }
+   }).catch(function(e){if(st)st.textContent='Error: '+e.message;toast('Error','err')});
+}
 function loadSalesReports(){
   var box=document.getElementById('salesReportsList'); if(!box)return;
   fetch('/api/admin/sales-reports',{headers:{'x-admin-token':sessionStorage.getItem('iadm_t')}})
@@ -998,11 +1020,25 @@ function loadSalesReports(){
    .then(function(d){
      var rows=(d&&d.reports)||[];
      if(!rows.length){box.innerHTML='<em style="color:var(--g400)">No reports yet. Run one above or wait for the daily run.</em>';return}
-     box.innerHTML=rows.slice(0,8).map(function(rep){
+     box.innerHTML=rows.slice(0,10).map(function(rep){
        var dt=new Date(rep.created_at||rep.report_date).toLocaleDateString();
        var sum=(rep.summary||'').replace(/</g,'&lt;');
+       var isLoop=(rep.report_type==='loop');
        var recs=(rep.recommendations||'').replace(/</g,'&lt;').replace(/\\n/g,'<br>');
-       return '<details style="margin:6px 0;border:1px solid var(--g100);padding:8px 10px;border-radius:6px"><summary style="cursor:pointer;font-weight:600">'+dt+' — '+sum+'</summary><div style="margin-top:8px;white-space:normal">'+recs+'</div></details>';
+       var extra='';
+       if(isLoop){
+         var acts=(rep.actions||[]);
+         extra+='<div style="margin-top:8px"><b>Actions:</b><ul style="margin:4px 0;padding-left:16px">'+acts.map(function(a){
+           return '<li>'+(a.autoApply?'✅ ':'💡 ')+'<b>'+(a.type||'').replace(/</g,'&lt;')+'</b>: '+(a.value||'').replace(/</g,'&lt;')+'</li>';
+         }).join('')+'</ul></div>';
+         if(rep.deltas&&Object.keys(rep.deltas).length){
+           extra+='<div style="margin-top:4px"><b>Since yesterday:</b> '+Object.keys(rep.deltas).map(function(k){
+             var v=rep.deltas[k];return k+' '+v.prev+'→'+v.now+' ('+(v.change>=0?'+':'')+v.change+')';
+           }).join(' · ')+'</div>';
+         }
+       }
+       var tag=isLoop?'<span style="background:#0a0a0a;color:#fff;font-size:9px;padding:1px 6px;border-radius:4px;margin-right:6px">LOOP</span>':'';
+       return '<details style="margin:6px 0;border:1px solid var(--g100);padding:8px 10px;border-radius:6px"><summary style="cursor:pointer;font-weight:600">'+tag+dt+' — '+sum+'</summary><div style="margin-top:8px;white-space:normal">'+recs+extra+'</div></details>';
      }).join('');
    }).catch(function(){box.innerHTML='<em style="color:var(--g400)">Could not load reports.</em>'});
 }

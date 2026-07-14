@@ -1,10 +1,12 @@
 name: Daily AI Sales Agent
 
-# Runs once a day, hits the protected /api/ai/sales-report endpoint on the
-# live site. The endpoint pulls the last 7 days of data from Supabase,
-# computes the conversion funnel, asks the LLM (or heuristic fallback) for
-# sales-improvement actions, emails the manager (Resend) and stores the
-# report in the ai_sales_reports table.
+# Runs once a day. Two steps:
+#   1. /api/ai/sales-report  — funnel report + emailed recommendations.
+#   2. /api/ai/loop          — the self-improving growth loop: reads live data
+#      + prior run, decides an on-brand plan to clear current stock for Indian
+#      buyers, AUTO-APPLIES safe changes (announcement bar) to store_settings
+#      with no redeploy, and learns from yesterday's deltas.
+# Both hit the live site and are protected by CRON_SECRET.
 #
 # Required GitHub Actions secret:
 #   AI_AGENT_CRON_SECRET  -> must equal the Cloudflare secret CRON_SECRET
@@ -52,3 +54,25 @@ jobs:
           # Surface a one-line summary in the job log
           node -e "try{const r=require('./response.json');console.log('Summary:', r.summary||'(none)');console.log('Emailed:', r.emailed, '| Stored:', r.stored, '| Model:', r.model);}catch(e){console.log('Could not parse summary');}"
           echo "Daily AI sales agent completed."
+
+      - name: Trigger self-improving growth loop
+        env:
+          CRON_SECRET: ${{ secrets.AI_AGENT_CRON_SECRET }}
+          SITE_URL: ${{ vars.SITE_URL || 'https://intru-genz.pages.dev' }}
+          DAYS: ${{ github.event.inputs.days || '7' }}
+        run: |
+          echo "Hitting $SITE_URL/api/ai/loop (days=$DAYS)"
+          HTTP_CODE=$(curl -s -o loop.json -w "%{http_code}" -X POST \
+            "$SITE_URL/api/ai/loop?days=$DAYS" \
+            -H "Authorization: Bearer $CRON_SECRET")
+          echo "HTTP $HTTP_CODE"
+          echo "----- Loop Response -----"
+          cat loop.json || true
+          echo ""
+          echo "-------------------------"
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "::error::Growth loop returned HTTP $HTTP_CODE"
+            exit 1
+          fi
+          node -e "try{const r=require('./loop.json');console.log('Loop summary:', r.summary||'(none)');console.log('Applied:', (r.applied||[]).length, 'action(s) | Model:', r.model, '| Emailed:', r.emailed);}catch(e){console.log('Could not parse loop summary');}"
+          echo "Daily growth loop completed."
