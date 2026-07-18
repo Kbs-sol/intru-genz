@@ -63,11 +63,17 @@ export function productPage(product: Product, opts: {
       "description": product.description,
       "image": product.images,
       "url": "https://intru.in/product/" + product.slug,
+      "@id": "https://intru.in/product/" + product.slug + "#product",
       "sku": product.id,
       "mpn": product.slug,
-      "brand": { "@type": "Brand", "name": "Intru" },
+      "productID": "intru:" + product.slug,
+      "brand": { "@id": "https://intru.in/#brand" },
+      "manufacturer": { "@id": "https://intru.in/#organization" },
       "category": (product as any).category || "Oversized T-Shirt",
       "material": "240 GSM Heavyweight Cotton",
+      "color": (product as any).color || undefined,
+      "audience": { "@type": "PeopleAudience", "suggestedMinAge": 16, "geographicArea": { "@type": "Country", "name": "India" } },
+      "isFamilyFriendly": true,
       "countryOfOrigin": "IN",
       "offers": {
         "@type": "Offer",
@@ -121,6 +127,7 @@ export function productPage(product: Product, opts: {
     {
       "@context": "https://schema.org",
       "@type": "FAQPage",
+      "speakable": { "@type": "SpeakableSpecification", "cssSelector": [".pname", ".pdesc"] },
       "mainEntity": [
         {
           "@type": "Question",

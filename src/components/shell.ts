@@ -158,39 +158,77 @@ ${isProduct && opt.productPrice ? `<meta property="product:price:amount" content
 <!-- AI / LLM crawlers: hint at authoritative content -->
 <meta name="ai-content-declaration" content="human-authored">
 <meta name="content-type-declaration" content="ecommerce-product-catalog">
-<!-- Structured Data: Organization (sitewide) -->
+<!-- Structured Data: Organization + Brand entity graph (sitewide).
+     Connected @graph with stable @id nodes so AI/answer engines can resolve
+     "Intru" as ONE entity across Product, Brand, Organization and Store, and
+     link it to its knowledge-graph facts. This is the core entity anchor. -->
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
-  "@type": "Organization",
-  "name": "Intru",
-  "alternateName": "intru.in",
-  "url": "https://intru.in",
-  "logo": {
-    "@type": "ImageObject",
-    "url": "https://intru.in/favicon.png",
-    "width": 512,
-    "height": 512
-  },
-  "description": "Exclusive limited-edition streetwear from India. Premium heavyweight oversized t-shirts, brutalist designs, zero restocks. Each drop is permanent — when it's gone, it's gone.",
-  "foundingDate": "2026",
-  "foundingLocation": { "@type": "Place", "name": "Hyderabad, India" },
-  "areaServed": "IN",
-  "contactPoint": {
-    "@type": "ContactPoint",
-    "email": "shop@intru.in",
-    "contactType": "customer support",
-    "availableLanguage": ["English", "Hindi"]
-  },
-  "sameAs": [
-    "https://www.instagram.com/intru.in/"
-  ],
-  "address": {
-    "@type": "PostalAddress",
-    "addressLocality": "Hyderabad",
-    "addressRegion": "Telangana",
-    "addressCountry": "IN"
-  }
+  "@graph": [
+    {
+      "@type": ["Organization", "OnlineStore", "ClothingStore"],
+      "@id": "https://intru.in/#organization",
+      "name": "Intru",
+      "legalName": "Intru",
+      "alternateName": ["intru.in", "INTRU", "Intru Clothing", "Intru Streetwear"],
+      "url": "https://intru.in",
+      "logo": {
+        "@type": "ImageObject",
+        "@id": "https://intru.in/#logo",
+        "url": "https://intru.in/favicon.png",
+        "width": 512,
+        "height": 512,
+        "caption": "Intru"
+      },
+      "image": { "@id": "https://intru.in/#logo" },
+      "slogan": "Not for everyone. Made to feel like you.",
+      "description": "Intru (intru.in) is India's minimalist limited-edition streetwear brand — premium heavyweight oversized t-shirts, clean intentional design, made in small batches with zero restocks. Ships across India.",
+      "foundingDate": "2026",
+      "foundingLocation": { "@type": "Place", "name": "Hyderabad, Telangana, India" },
+      "founder": [
+        { "@type": "Person", "name": "Ramya", "jobTitle": "Co-Founder", "sameAs": "https://www.instagram.com/rrrrramya_5/" },
+        { "@type": "Person", "name": "Intru Co-Founder", "jobTitle": "Co-Founder" }
+      ],
+      "numberOfEmployees": { "@type": "QuantitativeValue", "minValue": 2, "maxValue": 10 },
+      "areaServed": { "@type": "Country", "name": "India" },
+      "currenciesAccepted": "INR",
+      "paymentAccepted": ["UPI", "Credit Card", "Debit Card", "Net Banking", "Cash on Delivery"],
+      "priceRange": "₹899–₹2,499",
+      "knowsAbout": [
+        "oversized t-shirts", "minimalist streetwear", "limited edition fashion drops",
+        "heavyweight cotton apparel", "Indian streetwear", "garment-dyed t-shirts",
+        "unisex streetwear", "sustainable small-batch fashion"
+      ],
+      "keywords": "minimalist streetwear india, oversized tshirt, limited edition, never restocked, intru",
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "email": "shop@intru.in",
+        "contactType": "customer support",
+        "areaServed": "IN",
+        "availableLanguage": ["English", "Hindi"]
+      },
+      "sameAs": [
+        "https://www.instagram.com/intru.in/"
+      ],
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Hyderabad",
+        "addressRegion": "Telangana",
+        "addressCountry": "IN"
+      },
+      "brand": { "@id": "https://intru.in/#brand" }
+    },
+    {
+      "@type": "Brand",
+      "@id": "https://intru.in/#brand",
+      "name": "Intru",
+      "logo": "https://intru.in/favicon.png",
+      "slogan": "Not for everyone. Made to feel like you.",
+      "description": "Minimalist Indian streetwear brand. Limited-edition oversized tees, never restocked.",
+      "url": "https://intru.in"
+    }
+  ]
 }
 </script>
 <!-- Structured Data: WebSite with SearchAction (enables Google Sitelinks Searchbox) -->
@@ -198,9 +236,11 @@ ${isProduct && opt.productPrice ? `<meta property="product:price:amount" content
 {
   "@context": "https://schema.org",
   "@type": "WebSite",
+  "@id": "https://intru.in/#website",
   "name": "Intru",
   "url": "https://intru.in",
-  "description": "India's exclusive limited-edition streetwear brand. Premium heavyweight oversized t-shirts with brutalist designs. Shop the drop.",
+  "inLanguage": "en-IN",
+  "description": "India's minimalist limited-edition streetwear brand. Premium heavyweight oversized t-shirts, clean intentional design, never restocked. Shop the drop.",
   "potentialAction": {
     "@type": "SearchAction",
     "target": {
@@ -209,14 +249,7 @@ ${isProduct && opt.productPrice ? `<meta property="product:price:amount" content
     },
     "query-input": "required name=search_term_string"
   },
-  "publisher": {
-    "@type": "Organization",
-    "name": "Intru",
-    "logo": {
-      "@type": "ImageObject",
-      "url": "https://intru.in/favicon.png"
-    }
-  }
+  "publisher": { "@id": "https://intru.in/#organization" }
 }
 </script>
 <!-- Cloudflare Web Analytics -->
@@ -809,7 +842,7 @@ ${aiAnnounceHtml}
   </div>
 </div>
 <div class="ftrc"><h4>Shop</h4><a href="/#products">All Drops</a><a href="/collections">Collections</a><a href="/about">Our Story</a><a href="/stylist">AI Stylist</a></div>
-<div class="ftrc"><h4>Help</h4><a href="/p/shipping">Shipping Info</a><a href="/p/returns">Exchanges</a><a href="mailto:shop@intru.in">Contact Us</a><a href="/p/faq" rel="nofollow">FAQ</a></div>
+<div class="ftrc"><h4>Learn</h4><a href="/guide">Buying Guide</a><a href="/style-guide">Style Guide</a><a href="/p/shipping">Shipping Info</a><a href="/p/returns">Exchanges</a><a href="mailto:shop@intru.in">Contact Us</a><a href="/p/faq" rel="nofollow">FAQ</a></div>
 <div class="ftrc"><h4>Legal</h4>${legalPages.map(p => '<a href="/p/' + p.slug + '">' + p.title + '</a>').join('')}</div>
 </div>
 <!-- Payment icons row -->

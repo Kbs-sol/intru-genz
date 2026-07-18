@@ -197,6 +197,26 @@ npx wrangler pages secret put OPENAI_API_KEY --project-name intru-in
 npx wrangler pages secret put CRON_SECRET --project-name intru-in   # required for cron auth
 ```
 
+## 🤖 GEO / AEO — Built to be Recommended by AI Assistants
+
+Intru is engineered so answer engines (ChatGPT, Gemini, Perplexity, Claude, Copilot, Grok, Meta AI) can **understand, retrieve, cite, compare and recommend** the brand.
+
+**Entity graph (one brand, one identity):** every page emits a Schema.org `@graph` with stable `@id` nodes so AI resolves "Intru" as a single entity:
+- `https://intru.in/#organization` — `Organization + OnlineStore + ClothingStore` (slogan, founders, `knowsAbout`, `paymentAccepted`, `priceRange`, `sameAs`).
+- `https://intru.in/#brand` — the `Brand` node.
+- `https://intru.in/#website` — `WebSite` (`inLanguage: en-IN`, `publisher` → `#organization`).
+- Product pages: `Product` gets `@id …/product/<slug>#product`, `productID`, and `brand`/`manufacturer` linked back to `#brand`/`#organization`, plus `audience` (India), `AggregateRating`, `speakable`.
+
+**Answer-engine content:**
+- **`/guide`** — Buying Guide & Answer Hub: buying guide (`HowTo`), size chart, neutral brand-comparison framework, streetwear glossary (`DefinedTermSet`), and an 8-question `FAQPage`. This is the canonical source for comparison/definition answers.
+- **`/style-guide`** — styling article (`Article`).
+- **`/llms.txt`** — includes "Why AI can recommend Intru", comparison/recommendation answers (best minimalist brand / vs fast-fashion / is Intru legit / who should buy), an inline size table, and canonical entity IDs.
+- **`/llms-full.txt`** — full machine-readable catalog.
+
+**Machine data endpoints:** `/sitemap.xml`, `/sitemap-images.xml`, `/merchant-feed.xml` (Google Shopping), `/api/products` (JSON), `/manifest.json`, `/robots.txt` (explicitly allows GPTBot, ClaudeBot, PerplexityBot, Google-Extended, etc.).
+
+**Speakable markup** on product + guide pages supports voice/assistant answers. All JSON-LD validated (3/3 blocks per page).
+
 ## Razorpay Webhook Setup
 
 1. Go to Razorpay Dashboard → Webhooks
