@@ -469,6 +469,10 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 .id-close{position:absolute;top:20px;right:20px;background:none;border:none;font-size:24px;color:var(--g300);padding:4px;cursor:pointer;transition:color .2s}.id-close:hover{color:var(--bk)}
 .trust-badge{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;color:var(--green);background:#f0fdf4;padding:6px 12px;border-radius:4px;margin:16px 0}
 .pay-icons{display:flex;gap:12px;justify-content:center;margin-top:16px;opacity:.6;filter:grayscale(1)}
+/* [AG: footer visibility] Footer variant of pay-icons — light on dark, higher opacity for WCAG contrast. Body page still uses the muted variant. */
+.ftr .pay-icons{opacity:.85;filter:none;color:#e5e5e5;font-size:26px;gap:18px}
+.ftr .pay-icons i{transition:color .2s}
+.ftr .pay-icons i:hover{color:#fff}
 /* Coupon UI [AG v15.2] */
 .cpn-box{margin:16px 24px 8px;border:1px dashed var(--g400);border-radius:6px;padding:8px;display:flex;gap:8px;background:var(--wh)}
 .cpn-inp{flex:1;border:none;background:none;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;outline:none}
@@ -955,14 +959,14 @@ ${aiAnnounceHtml}
 </div>
 <div class="ftrc"><h4>Legal</h4>${legalPages.map(p => '<a href="/p/' + p.slug + '">' + p.title + '</a>').join('')}</div>
 </div>
-<!-- Payment icons row -->
-<div class="pay-icons" style="justify-content:flex-start;max-width:1440px;margin:32px auto 0;padding:0 24px;gap:16px;font-size:28px;color:#e5e5e5">
-  <i class="fab fa-cc-visa" title="Visa"></i>
-  <i class="fab fa-cc-mastercard" title="Mastercard"></i>
-  <i class="fab fa-google-pay" title="Google Pay"></i>
-  <i class="fas fa-landmark" title="Net Banking"></i>
-  <i class="fas fa-money-bill-wave" title="Cash on Delivery"></i>
-  <i class="fab fa-cc-amex" title="Amex"></i>
+<!-- Payment icons row [AG: footer variant styled via .ftr .pay-icons] -->
+<div class="pay-icons" style="justify-content:flex-start;max-width:1440px;margin:32px auto 0;padding:0 24px" aria-label="Accepted payment methods">
+  <i class="fab fa-cc-visa" title="Visa" aria-label="Visa"></i>
+  <i class="fab fa-cc-mastercard" title="Mastercard" aria-label="Mastercard"></i>
+  <i class="fab fa-google-pay" title="Google Pay" aria-label="Google Pay"></i>
+  <i class="fas fa-landmark" title="Net Banking" aria-label="Net Banking"></i>
+  <i class="fas fa-money-bill-wave" title="Cash on Delivery" aria-label="Cash on Delivery"></i>
+  <i class="fab fa-cc-amex" title="Amex" aria-label="American Express"></i>
 </div>
 <div class="ftrbt">
   <span>&copy; 2026 <a href="https://intru.in" style="color:inherit">intru.in</a> &mdash; Premium Indian Streetwear. All rights reserved.</span>

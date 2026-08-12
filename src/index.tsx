@@ -158,6 +158,10 @@ app.get('/product/:slug', async (c: Context<{ Bindings: Bindings }>) => {
   return c.html(productPage(product, opts));
 })
 
+// [AG: legacy /p/faq → /faq redirect] MUST be registered before the /p/:slug
+// catch-all so the specific match wins. Hono uses first-match routing.
+app.get('/p/faq', (c: Context<{ Bindings: Bindings }>) => c.redirect('/faq', 301));
+
 app.get('/p/:slug', async (c: Context<{ Bindings: Bindings }>) => {
   const slug = c.req.param('slug');
   const opts = await getPageOpts(c);
@@ -342,8 +346,7 @@ app.get('/faq', async (c: Context<{ Bindings: Bindings }>) => {
   c.executionCtx.waitUntil(incrementView(c.env, '/faq'));
   return c.html(faqPage(opts));
 });
-// Keep /p/faq redirecting to the new /faq page so any indexed old link works
-app.get('/p/faq', (c: Context<{ Bindings: Bindings }>) => c.redirect('/faq', 301));
+// /p/faq legacy redirect is registered earlier (before /p/:slug catch-all).
 app.get('/faqs', (c: Context<{ Bindings: Bindings }>) => c.redirect('/faq', 301));
 
 // /guide — Buying Guide & Answer Hub (GEO/AEO: buying guide + comparison + glossary + FAQ)

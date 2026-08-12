@@ -21,11 +21,16 @@ export function collectionsPage(opts: {
   // Extract unique categories
   const categories = [...new Set(products.map(p => p.category).filter(Boolean))];
 
-  // Normalize the deep-link ?cat= value: URL uses hyphens ("Crop-Tops"),
-  // product.category uses spaces ("Crop Tops"). Also case-insensitive match.
+  // Normalize the deep-link ?cat= value against product categories.
+  // URLs use hyphens for readability ("Crop-Tops"), but category names can contain either
+  // hyphens ("T-Shirts") or spaces ("Crop Tops"). Compare by stripping BOTH to alphanumerics,
+  // so "T-Shirts" == "T Shirts" == "tshirts" all match. Case-insensitive.
   const initialCat = (opts.initialCat || '').trim();
-  const normalizedInitial = initialCat.replace(/-/g, ' ').toLowerCase();
-  const matchedCat = categories.find(c => c.toLowerCase() === normalizedInitial) || '';
+  const strip = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '');
+  const normalizedInitial = strip(initialCat);
+  const matchedCat = normalizedInitial
+    ? (categories.find(c => strip(c) === normalizedInitial) || '')
+    : '';
   const isFiltered = !!matchedCat;
   const visibleCount = isFiltered ? products.filter(p => p.category === matchedCat).length : products.length;
 

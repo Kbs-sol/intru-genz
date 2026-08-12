@@ -120,7 +120,9 @@ export const SEED_PRODUCTS: Product[] = [
       "https://intru.in/cdn/shop/files/4_f2aa413e-6e91-49bd-8f16-2efd41b4d6ea.png?v=1748190572&width=800",
       "https://intru.in/cdn/shop/files/4_f2aa413e-6e91-49bd-8f16-2efd41b4d6ea.png?v=1748190572&width=600"
     ],
-    sizes: ["XS", "S", "M", "L"], category: "T-Shirts", inStock: true, featured: true,
+    // [AG: category taxonomy] Was miscategorized as T-Shirts; belongs in Crop Tops so the
+    // /collections?cat=Crop-Tops deep-link (header dropdown + footer) has stock to show.
+    sizes: ["XS", "S", "M", "L"], category: "Crop Tops", inStock: true, featured: true,
     seoTitle: "Romanticise Crop Tee — Premium Cotton Cropped Streetwear | INTRU.IN",
     seoDescription: "Effortless breezy style meets streetwear. The Romanticise Crop Tee features soft cotton and a perfect relaxed silhouette. Limited edition, never restocked."
   },
