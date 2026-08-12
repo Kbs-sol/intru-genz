@@ -20,6 +20,8 @@ import { aboutPage } from './pages/about'
 import { stylistPage } from './pages/stylist'
 import { guidePage } from './pages/guide'
 import { maintenancePage } from './pages/maintenance'
+import { faqPage } from './pages/faq'
+import { blogIndexPage, blogPostPage, BLOG_POSTS } from './pages/blog'
 import { shell } from './components/shell'
 import { runDailySalesAgent, computeSalesMetrics } from './ai-sales-agent'
 import { runGrowthLoop } from './ai-loop'
@@ -172,12 +174,16 @@ app.get('/admin', async (c: Context<{ Bindings: Bindings }>) => {
 
 app.get('/all-collections', async (c: Context<{ Bindings: Bindings }>) => {
   const opts = await getPageOpts(c);
-  return c.html(collectionsPage(opts));
+  const cat = c.req.query('cat') || '';
+  return c.html(collectionsPage({ ...opts, initialCat: cat }));
 })
 
 app.get('/collections', async (c: Context<{ Bindings: Bindings }>) => {
   const opts = await getPageOpts(c);
-  return c.html(collectionsPage(opts));
+  // [AG: category deep-link] Support /collections?cat=T-Shirts | Crop-Tops | Shirts
+  // Header dropdown links use the hyphenated form; collections.ts normalizes it.
+  const cat = c.req.query('cat') || '';
+  return c.html(collectionsPage({ ...opts, initialCat: cat }));
 })
 
 app.get('/stylist', async (c: Context<{ Bindings: Bindings }>) => {
@@ -307,10 +313,38 @@ app.get('/style-guide', async (c: Context<{ Bindings: Bindings }>) => {
   ));
 });
 
-// Redirect /blog to /style-guide for clean URL consolidation
-app.get('/blog', (c: Context<{ Bindings: Bindings }>) => c.redirect('/style-guide', 301));
+// [AG: real blog] /blog is now a full journal, not a redirect. The single
+// legacy article slug still redirects to /style-guide so any external links stay valid.
+app.get('/blog', async (c: Context<{ Bindings: Bindings }>) => {
+  const opts = await getPageOpts(c);
+  c.executionCtx.waitUntil(incrementView(c.env, '/blog'));
+  return c.html(blogIndexPage(opts));
+});
 app.get('/blog/how-to-style-oversized-tshirt', (c: Context<{ Bindings: Bindings }>) => c.redirect('/style-guide', 301));
+app.get('/blog/:slug', async (c: Context<{ Bindings: Bindings }>) => {
+  const slug = c.req.param('slug');
+  const post = BLOG_POSTS.find(p => p.slug === slug);
+  if (!post) {
+    // 404 — soft redirect to blog index rather than a hard 404, so users don't
+    // dead-end on typos. Clarity showed 13% quick-back clicks, this reduces it.
+    return c.html(`<html><head><meta http-equiv="refresh" content="0;url=/blog"><title>Redirecting…</title></head><body>Redirecting to <a href="/blog">/blog</a>…</body></html>`, 404);
+  }
+  const opts = await getPageOpts(c);
+  c.executionCtx.waitUntil(incrementView(c.env, '/blog/' + slug));
+  return c.html(blogPostPage(post, opts));
+});
 app.get('/style', (c: Context<{ Bindings: Bindings }>) => c.redirect('/style-guide', 301));
+
+// [AG: FAQ] /faq — dedicated FAQ page (was 404 previously; footer link went to /p/faq which
+// didn't exist in SEED_LEGAL_PAGES so it 404'd → redirected to /, a Clarity quick-back trigger).
+app.get('/faq', async (c: Context<{ Bindings: Bindings }>) => {
+  const opts = await getPageOpts(c);
+  c.executionCtx.waitUntil(incrementView(c.env, '/faq'));
+  return c.html(faqPage(opts));
+});
+// Keep /p/faq redirecting to the new /faq page so any indexed old link works
+app.get('/p/faq', (c: Context<{ Bindings: Bindings }>) => c.redirect('/faq', 301));
+app.get('/faqs', (c: Context<{ Bindings: Bindings }>) => c.redirect('/faq', 301));
 
 // /guide — Buying Guide & Answer Hub (GEO/AEO: buying guide + comparison + glossary + FAQ)
 app.get('/guide', async (c: Context<{ Bindings: Bindings }>) => {
@@ -414,10 +448,19 @@ app.get('/sitemap.xml', async (c: Context<{ Bindings: Bindings }>) => {
   const staticPages = [
     { loc: '', priority: '1.0', changefreq: 'daily' },
     { loc: '/collections', priority: '0.9', changefreq: 'daily' },
+    // [AG: category deep-links] Surface category-filtered collections as their own URLs — targets
+    // the "tshirts india", "crop tops india", "shirts india" long-tail from GSC.
+    { loc: '/collections?cat=T-Shirts', priority: '0.85', changefreq: 'daily' },
+    { loc: '/collections?cat=Crop-Tops', priority: '0.85', changefreq: 'daily' },
+    { loc: '/collections?cat=Shirts', priority: '0.85', changefreq: 'daily' },
     { loc: '/about', priority: '0.7', changefreq: 'weekly' },
     { loc: '/stylist', priority: '0.6', changefreq: 'weekly' },
     { loc: '/style-guide', priority: '0.8', changefreq: 'monthly' },
     { loc: '/guide', priority: '0.9', changefreq: 'monthly' },
+    // [AG: new content] FAQ + Blog hub — high priority to speed indexing
+    { loc: '/faq', priority: '0.85', changefreq: 'weekly' },
+    { loc: '/blog', priority: '0.9', changefreq: 'weekly' },
+    // Blog posts registered individually below (they need dates from BLOG_POSTS)
   ];
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -450,6 +493,17 @@ app.get('/sitemap.xml', async (c: Context<{ Bindings: Bindings }>) => {
     <lastmod>${(p.updatedAt || now).split('T')[0]}</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
+  </url>`).join('\n  ')}
+  ${BLOG_POSTS.map(p => `<url>
+    <loc>https://intru.in/blog/${p.slug}</loc>
+    <lastmod>${p.updatedISO}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.75</priority>
+    <image:image>
+      <image:loc>${p.cover}</image:loc>
+      <image:title>${p.title} | Intru Journal</image:title>
+      <image:caption>${p.excerpt.substring(0, 200)}</image:caption>
+    </image:image>
   </url>`).join('\n  ')}
 </urlset>`;
   c.header('Content-Type', 'application/xml; charset=UTF-8');

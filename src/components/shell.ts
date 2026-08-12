@@ -345,8 +345,26 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 .logo{font-family:var(--head);font-size:22px;letter-spacing:-.04em;text-transform:uppercase;grid-column:2;display:flex;align-items:center}.logo span{font-family:var(--sans);font-weight:400;opacity:.4;text-transform:none;font-size:16px}
 .nlinks{display:flex;align-items:center;gap:20px;justify-content:flex-start;grid-column:1}
 .nactions{display:flex;align-items:center;gap:16px;justify-content:flex-end;grid-column:3}
-.nbtn{background:none;border:none;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--g500);transition:color .2s;padding:8px 0;position:relative}
-.nbtn:hover{color:var(--bk)}
+.nbtn{background:none;border:none;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--g500);transition:color .2s;padding:8px 0;position:relative;cursor:pointer;font-family:inherit}
+.nbtn:hover,.nbtn:focus-visible{color:var(--bk)}
+.nbtn:focus-visible{outline:2px solid var(--bk);outline-offset:4px;border-radius:2px}
+/* [AG: nav dropdown] Collections mega-dropdown — hoverable on desktop, keyboard-accessible, click-toggled on tablets */
+.ndd{position:relative;display:inline-block}
+.ndd-trigger{display:inline-flex;align-items:center;gap:6px}
+.ndd-trigger .ndd-caret{font-size:8px;transition:transform .25s var(--eo)}
+.ndd:hover .ndd-trigger .ndd-caret,.ndd.open .ndd-trigger .ndd-caret{transform:rotate(180deg)}
+.ndd-panel{position:absolute;top:calc(100% + 16px);left:-24px;min-width:280px;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:10px;box-shadow:0 20px 60px rgba(0,0,0,.12),0 4px 16px rgba(0,0,0,.06);padding:14px;opacity:0;visibility:hidden;transform:translateY(-8px);transition:all .25s var(--eo);z-index:110}
+.ndd:hover .ndd-panel,.ndd.open .ndd-panel,.ndd:focus-within .ndd-panel{opacity:1;visibility:visible;transform:translateY(0)}
+.ndd-panel::before{content:'';position:absolute;top:-6px;left:32px;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:6px solid #fff;filter:drop-shadow(0 -1px 0 rgba(0,0,0,.08))}
+.ndd-title{font-size:9px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:#525252;padding:6px 12px 10px;border-bottom:1px solid #f0f0f0;margin-bottom:6px}
+.ndd-item{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:7px;text-decoration:none;color:#0a0a0a;font-size:13px;font-weight:600;text-transform:none;letter-spacing:0;transition:background .18s}
+.ndd-item:hover,.ndd-item:focus-visible{background:#f5f5f5;color:#0a0a0a;text-decoration:none;outline:none}
+.ndd-item .ndd-icon{width:32px;height:32px;background:#fafafa;border:1px solid #e8e8e8;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;font-size:14px;color:#0a0a0a;flex-shrink:0}
+.ndd-item .ndd-meta{flex:1;min-width:0}
+.ndd-item .ndd-meta strong{display:block;font-size:13px;font-weight:700;color:#0a0a0a;letter-spacing:.2px}
+.ndd-item .ndd-meta small{display:block;font-size:11px;color:#737373;font-weight:500;margin-top:1px}
+.ndd-item-all{display:block;text-align:center;padding:10px 12px;margin-top:6px;border-top:1px solid #f0f0f0;padding-top:12px;font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#0a0a0a;text-decoration:none;border-radius:0 0 8px 8px;transition:background .18s}
+.ndd-item-all:hover,.ndd-item-all:focus-visible{background:#0a0a0a;color:#fff;outline:none}
 .ncart{position:relative;background:none;border:none;font-size:18px;color:var(--bk);padding:8px;margin-bottom:-2px}
 .cbadge{position:absolute;top:0;right:0;background:var(--bk);color:var(--wh);font-size:9px;font-weight:700;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;transform:scale(0);transition:transform .3s var(--eo)}.cbadge.vis{transform:scale(1)}
 /* Responsive Header & Mobile Menu */
@@ -495,11 +513,20 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 .ncart.combo-active{animation:cartComboPulse 2s 3}
 .ftr{background:var(--bk);color:var(--wh);padding:80px 24px 40px}
 .ftri{max-width:1440px;margin:0 auto;display:grid;grid-template-columns:1.5fr .8fr .8fr .8fr;gap:64px}
-.ftrb h3{font-family:var(--head);font-size:24px;margin-bottom:16px;letter-spacing:-.04em;text-transform:uppercase}.ftrb p{color:var(--g400);font-size:14px;line-height:1.7;max-width:320px}
-.ftrc h4{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:3px;margin-bottom:20px;color:var(--g200)}
-.ftrc a{display:block;color:var(--g400);font-size:14px;padding:6px 0;transition:all .2s}.ftrc a:hover{color:var(--wh);transform:translateX(4px)}
-.ftrbt{max-width:1440px;margin:64px auto 0;padding-top:32px;border-top:1px solid rgba(240,240,240,.08);display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--g500)}
-.fsoc{display:flex;gap:20px}.fsoc a{color:var(--g400);font-size:20px;transition:all .3s}.fsoc a:hover{color:var(--wh);transform:translateY(-3px)}
+.ftrb h3{font-family:var(--head);font-size:24px;margin-bottom:16px;letter-spacing:-.04em;text-transform:uppercase}.ftrb p{color:#d4d4d4;font-size:14px;line-height:1.7;max-width:320px}
+/* [AG: footer contrast fix] Footer column headings raised from --g200 to pure white for AA contrast; body links moved from --g400 (#737373 on #0a0a0a → 3.1:1 fails AA) to #e5e5e5 (14.9:1 passes AAA). */
+.ftrc h4{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:3px;margin-bottom:20px;color:#fafafa}
+.ftrc a{display:block;color:#e5e5e5;font-size:14px;padding:8px 0;transition:all .2s;font-weight:500;text-decoration:none}
+.ftrc a:hover,.ftrc a:focus-visible{color:#fff;transform:translateX(4px);text-decoration:underline;text-underline-offset:3px}
+.ftrc a:focus-visible{outline:2px solid #fafafa;outline-offset:2px;border-radius:2px}
+.ftrbt{max-width:1440px;margin:64px auto 0;padding-top:32px;border-top:1px solid rgba(240,240,240,.15);display:flex;justify-content:space-between;align-items:center;font-size:13px;color:#a3a3a3}
+.ftrbt a{color:#e5e5e5;text-decoration:underline;text-underline-offset:2px}
+.fsoc{display:flex;gap:16px;align-items:center}
+.fsoc a{color:#fafafa;font-size:18px;transition:all .3s;background:rgba(255,255,255,.08);width:42px;height:42px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.15)}
+.fsoc a:hover,.fsoc a:focus-visible{color:#0a0a0a;background:#fafafa;transform:translateY(-3px);border-color:#fafafa}
+.fsoc a:focus-visible{outline:2px solid #fafafa;outline-offset:3px}
+.fsoc a .fa-instagram{background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;font-size:20px}
+.fsoc a:hover .fa-instagram,.fsoc a:focus-visible .fa-instagram{-webkit-text-fill-color:#0a0a0a;background:none;color:#0a0a0a}
 .tc{position:fixed;bottom:24px;right:24px;z-index:300;display:flex;flex-direction:column;gap:8px}
 .toast{padding:12px 20px;border-radius:6px;font-size:12px;font-weight:600;animation:slideUp .3s var(--eo);box-shadow:0 4px 20px rgba(0,0,0,.3);letter-spacing:.5px}
 .toast-ok{background:var(--bk);color:var(--wh)}
@@ -546,8 +573,30 @@ ${aiAnnounceHtml}
 <button class="menu-btn" onclick="toggleMobNav()" aria-label="Menu"><i class="fas fa-bars"></i></button>
 <div class="nlinks">
   <a href="/" class="nbtn">Shop</a>
-  <a href="/collections" class="nbtn">Collections</a>
+  <!-- [AG: dropdown] Collections is now a mega-dropdown with product categories — replaces plain link -->
+  <div class="ndd" id="ddCollections">
+    <button type="button" class="nbtn ndd-trigger" aria-haspopup="true" aria-expanded="false" aria-controls="ddCollectionsPanel" onclick="toggleNavDropdown('ddCollections',event)">
+      Collections <i class="fas fa-chevron-down ndd-caret" aria-hidden="true"></i>
+    </button>
+    <div class="ndd-panel" id="ddCollectionsPanel" role="menu" aria-label="Shop by category">
+      <div class="ndd-title">Shop by Category</div>
+      <a href="/collections?cat=T-Shirts" class="ndd-item" role="menuitem">
+        <span class="ndd-icon"><i class="fas fa-tshirt" aria-hidden="true"></i></span>
+        <span class="ndd-meta"><strong>T-Shirts</strong><small>Heavyweight oversized tees</small></span>
+      </a>
+      <a href="/collections?cat=Crop-Tops" class="ndd-item" role="menuitem">
+        <span class="ndd-icon"><i class="fas fa-heart" aria-hidden="true"></i></span>
+        <span class="ndd-meta"><strong>Crop Tops</strong><small>Statement crops for her</small></span>
+      </a>
+      <a href="/collections?cat=Shirts" class="ndd-item" role="menuitem">
+        <span class="ndd-icon"><i class="fas fa-shirt" aria-hidden="true"></i></span>
+        <span class="ndd-meta"><strong>Shirts</strong><small>Textured summer &amp; stripe drops</small></span>
+      </a>
+      <a href="/collections" class="ndd-item-all" role="menuitem">View All Collections →</a>
+    </div>
+  </div>
   <a href="/about" class="nbtn">Story</a>
+  <a href="/blog" class="nbtn">Blog</a>
   <a href="/style-guide" class="nbtn" style="display:none" aria-label="Style Guide">Style Guide</a>
   <button onclick="toggleAIChat()" class="nbtn nls" style="color:var(--bk);font-weight:700;background:none;border:none;cursor:pointer;font-family:inherit;font-size:inherit;padding:inherit" aria-label="Open AI Stylist"><i class="fas fa-magic-wand-sparkles" style="margin-right:4px"></i>AI Stylist</button>
 </div>
@@ -599,6 +648,42 @@ ${aiAnnounceHtml}
     };
   }
   if(typeof window.toggleAIChat!=='function'){ window.toggleAIChat=function(){ var p=$('aiPop'); if(p)p.classList.toggle('open'); }; }
+  // --- Nav dropdown toggle (Collections mega-menu) [AG: guaranteed to work in Instagram in-app WebView] ---
+  if(typeof window.toggleNavDropdown!=='function'){
+    window.toggleNavDropdown=function(id,ev){
+      if(ev){try{ev.preventDefault();ev.stopPropagation();}catch(_){}}
+      var el=$(id);if(!el)return;
+      // Close other open dropdowns
+      var all=document.querySelectorAll('.ndd.open');
+      for(var i=0;i<all.length;i++){if(all[i]!==el)all[i].classList.remove('open');}
+      el.classList.toggle('open');
+      var trig=el.querySelector('.ndd-trigger');
+      if(trig)trig.setAttribute('aria-expanded',el.classList.contains('open')?'true':'false');
+    };
+  }
+  // Close dropdown when clicking outside
+  document.addEventListener('click',function(e){
+    var open=document.querySelectorAll('.ndd.open');
+    if(!open.length)return;
+    for(var i=0;i<open.length;i++){
+      if(!open[i].contains(e.target)){
+        open[i].classList.remove('open');
+        var t=open[i].querySelector('.ndd-trigger');
+        if(t)t.setAttribute('aria-expanded','false');
+      }
+    }
+  });
+  // Close on ESC
+  document.addEventListener('keydown',function(e){
+    if(e.key==='Escape'){
+      var open=document.querySelectorAll('.ndd.open');
+      for(var i=0;i<open.length;i++){
+        open[i].classList.remove('open');
+        var t=open[i].querySelector('.ndd-trigger');
+        if(t)t.setAttribute('aria-expanded','false');
+      }
+    }
+  });
   // --- Copy-link share (replaces removed X/Twitter share) ---
   if(typeof window.shareProductLink!=='function'){
     window.shareProductLink=function(slug){
@@ -638,11 +723,18 @@ ${aiAnnounceHtml}
   <button class="mob-close" onclick="toggleMobNav()"><i class="fas fa-times"></i></button>
   <div style="margin-top:40px">
     <a href="/" class="nbtn" onclick="toggleMobNav()">Shop All</a>
-    <a href="/collections" class="nbtn" onclick="toggleMobNav()">Collections</a>
+    <!-- [AG: mobile dropdown] Categories exposed inline (no collapsible needed — reduces taps) -->
+    <a href="/collections" class="nbtn" onclick="toggleMobNav()">All Collections</a>
+    <a href="/collections?cat=T-Shirts" class="nbtn" onclick="toggleMobNav()" style="padding-left:16px;font-size:12px;color:var(--g500);border-bottom:1px dashed var(--g100)">— T-Shirts</a>
+    <a href="/collections?cat=Crop-Tops" class="nbtn" onclick="toggleMobNav()" style="padding-left:16px;font-size:12px;color:var(--g500);border-bottom:1px dashed var(--g100)">— Crop Tops</a>
+    <a href="/collections?cat=Shirts" class="nbtn" onclick="toggleMobNav()" style="padding-left:16px;font-size:12px;color:var(--g500);border-bottom:1px dashed var(--g100)">— Shirts</a>
     <a href="/about" class="nbtn" onclick="toggleMobNav()">Our Story</a>
+    <a href="/blog" class="nbtn" onclick="toggleMobNav()">Blog</a>
+    <a href="/faq" class="nbtn" onclick="toggleMobNav()">FAQs</a>
     <a href="/style-guide" class="nbtn" onclick="toggleMobNav()">Style Guide</a>
     <button class="nbtn" onclick="toggleMobNav();toggleAIChat()" style="color:var(--bk);font-weight:700;background:none;border:none;cursor:pointer;font-family:inherit;font-size:inherit;padding:0">✨ AI Stylist</button>
     <a href="/#contact" class="nbtn" onclick="toggleMobNav()">Contact</a>
+    <a href="https://www.instagram.com/intru.in/" target="_blank" rel="noopener noreferrer" class="nbtn" onclick="toggleMobNav()" style="display:inline-flex;align-items:center;gap:8px;color:#dc2743;font-weight:700"><i class="fab fa-instagram"></i> @intru.in</a>
     <button class="nbtn" onclick="toggleMobNav();openIdentifyOrOrders()" style="margin-top:20px;border:none;color:var(--bk);font-weight:700">My Account / Login</button>
   </div>
 </div>
@@ -823,41 +915,60 @@ ${aiAnnounceHtml}
 <div class="ftrb">
   <h3 itemprop="name">INTRU.IN</h3>
   <p itemprop="description">${STORE_CONFIG.description}</p>
-  <p style="margin-top:16px;font-size:11px;color:var(--g400);line-height:1.7">
-    <strong style="color:var(--g300)">Registered Office:</strong><br>
+  <p style="margin-top:20px;font-size:12px;color:#d4d4d4;line-height:1.7">
+    <strong style="color:#fafafa;font-weight:700">Registered Office:</strong><br>
     <span itemprop="address" itemscope itemtype="https://schema.org/PostalAddress">
       <span itemprop="addressLocality">Hyderabad</span>, <span itemprop="addressRegion">Telangana</span>, <span itemprop="addressCountry">India</span>
     </span>
   </p>
-  <p style="margin-top:8px;font-size:11px;color:var(--g400);line-height:1.7">
-    <strong style="color:var(--g300)">Grievance Officer:</strong><br>
-    <a href="mailto:shop@intru.in" style="color:var(--g300)" itemprop="email">shop@intru.in</a><br>
-    <span style="font-size:10px">Per Consumer Protection (E-Commerce) Rules, 2020</span>
+  <p style="margin-top:12px;font-size:12px;color:#d4d4d4;line-height:1.7">
+    <strong style="color:#fafafa;font-weight:700">Grievance Officer:</strong><br>
+    <a href="mailto:shop@intru.in" style="color:#fafafa;text-decoration:underline;text-underline-offset:2px" itemprop="email">shop@intru.in</a><br>
+    <span style="font-size:11px;color:#a3a3a3">Per Consumer Protection (E-Commerce) Rules, 2020</span>
   </p>
   <!-- Trust badges for crawlers -->
-  <div style="margin-top:20px;display:flex;flex-wrap:wrap;gap:8px">
-    <span style="font-size:9px;color:var(--g500);padding:4px 8px;border:1px solid rgba(255,255,255,0.1);border-radius:3px">🔒 100% Secure Payments</span>
-    <span style="font-size:9px;color:var(--g500);padding:4px 8px;border:1px solid rgba(255,255,255,0.1);border-radius:3px">⚡ 36h Dispatch</span>
-    <span style="font-size:9px;color:var(--g500);padding:4px 8px;border:1px solid rgba(255,255,255,0.1);border-radius:3px">🇮🇳 Made in India</span>
+  <div style="margin-top:24px;display:flex;flex-wrap:wrap;gap:8px">
+    <span style="font-size:11px;color:#e5e5e5;padding:6px 10px;border:1px solid rgba(255,255,255,0.25);border-radius:4px;font-weight:600">🔒 100% Secure Payments</span>
+    <span style="font-size:11px;color:#e5e5e5;padding:6px 10px;border:1px solid rgba(255,255,255,0.25);border-radius:4px;font-weight:600">⚡ 36h Dispatch</span>
+    <span style="font-size:11px;color:#e5e5e5;padding:6px 10px;border:1px solid rgba(255,255,255,0.25);border-radius:4px;font-weight:600">🇮🇳 Made in India</span>
   </div>
+  <!-- [AG: footer social] Prominent Instagram CTA — moved higher for visibility since 37.7% of traffic is InstagramApp -->
+  <a href="https://www.instagram.com/intru.in/" target="_blank" rel="noopener noreferrer" aria-label="Follow @intru.in on Instagram" style="margin-top:24px;display:inline-flex;align-items:center;gap:10px;padding:12px 18px;background:linear-gradient(45deg,#f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%);color:#fff;font-size:12px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;border-radius:6px;text-decoration:none;transition:transform .2s,box-shadow .2s;box-shadow:0 4px 16px rgba(220,39,67,.25)" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(220,39,67,.45)'" onmouseout="this.style.transform='';this.style.boxShadow='0 4px 16px rgba(220,39,67,.25)'"><i class="fab fa-instagram" style="font-size:18px"></i> Follow @intru.in</a>
 </div>
-<div class="ftrc"><h4>Shop</h4><a href="/#products">All Drops</a><a href="/collections">Collections</a><a href="/about">Our Story</a><a href="/stylist">AI Stylist</a></div>
-<div class="ftrc"><h4>Learn</h4><a href="/guide">Buying Guide</a><a href="/style-guide">Style Guide</a><a href="/p/shipping">Shipping Info</a><a href="/p/returns">Exchanges</a><a href="mailto:shop@intru.in">Contact Us</a><a href="/p/faq" rel="nofollow">FAQ</a></div>
+<div class="ftrc"><h4>Shop</h4>
+  <a href="/#products">All Drops</a>
+  <a href="/collections">Collections</a>
+  <a href="/collections?cat=T-Shirts">T-Shirts</a>
+  <a href="/collections?cat=Crop-Tops">Crop Tops</a>
+  <a href="/collections?cat=Shirts">Shirts</a>
+  <a href="/about">Our Story</a>
+  <a href="/stylist">AI Stylist</a>
+</div>
+<div class="ftrc"><h4>Help &amp; Info</h4>
+  <a href="/faq">FAQs</a>
+  <a href="/blog">Blog</a>
+  <a href="/guide">Buying Guide</a>
+  <a href="/style-guide">Style Guide</a>
+  <a href="/p/shipping">Shipping Info</a>
+  <a href="/p/returns">Returns &amp; Exchanges</a>
+  <a href="mailto:shop@intru.in">Contact Us</a>
+</div>
 <div class="ftrc"><h4>Legal</h4>${legalPages.map(p => '<a href="/p/' + p.slug + '">' + p.title + '</a>').join('')}</div>
 </div>
 <!-- Payment icons row -->
-<div class="pay-icons" style="justify-content:flex-start;max-width:1440px;margin:32px auto 0;padding:0 24px">
+<div class="pay-icons" style="justify-content:flex-start;max-width:1440px;margin:32px auto 0;padding:0 24px;gap:16px;font-size:28px;color:#e5e5e5">
   <i class="fab fa-cc-visa" title="Visa"></i>
   <i class="fab fa-cc-mastercard" title="Mastercard"></i>
   <i class="fab fa-google-pay" title="Google Pay"></i>
   <i class="fas fa-landmark" title="Net Banking"></i>
   <i class="fas fa-money-bill-wave" title="Cash on Delivery"></i>
-  <i class="fab fa-cc-amex" title="Amex" style="margin-left:4px"></i>
+  <i class="fab fa-cc-amex" title="Amex"></i>
 </div>
 <div class="ftrbt">
   <span>&copy; 2026 <a href="https://intru.in" style="color:inherit">intru.in</a> &mdash; Premium Indian Streetwear. All rights reserved.</span>
   <div class="fsoc">
-    <a href="https://instagram.com/${STORE_CONFIG.instagram}" target="_blank" rel="noopener noreferrer" aria-label="Follow Intru on Instagram"><i class="fab fa-instagram"></i></a>
+    <a href="https://www.instagram.com/intru.in/" target="_blank" rel="noopener noreferrer" aria-label="Follow Intru on Instagram"><i class="fab fa-instagram"></i></a>
+    <a href="mailto:shop@intru.in" aria-label="Email Intru"><i class="fas fa-envelope" style="font-size:16px"></i></a>
   </div>
 </div>
 </footer>

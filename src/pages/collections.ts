@@ -9,12 +9,25 @@ export function collectionsPage(opts: {
   useMagicCheckout?: boolean;
   maintenanceConfig?: { mode?: string; message?: string; eta?: string };
   storeSettings?: Record<string, string>;
+  /** [AG: category deep-link] Category name pulled from ?cat= query — matches
+   *  the values shown in the header dropdown (T-Shirts, Crop-Tops, Shirts).
+   *  Filtering happens on the client via filterCat(), which is auto-triggered
+   *  when initialCat is present. */
+  initialCat?: string;
 }): string {
   const products = opts.products;
   const legalPages = opts.legalPages;
 
   // Extract unique categories
   const categories = [...new Set(products.map(p => p.category).filter(Boolean))];
+
+  // Normalize the deep-link ?cat= value: URL uses hyphens ("Crop-Tops"),
+  // product.category uses spaces ("Crop Tops"). Also case-insensitive match.
+  const initialCat = (opts.initialCat || '').trim();
+  const normalizedInitial = initialCat.replace(/-/g, ' ').toLowerCase();
+  const matchedCat = categories.find(c => c.toLowerCase() === normalizedInitial) || '';
+  const isFiltered = !!matchedCat;
+  const visibleCount = isFiltered ? products.filter(p => p.category === matchedCat).length : products.length;
 
   const schema = JSON.stringify([
     {
@@ -89,17 +102,17 @@ export function collectionsPage(opts: {
 
 <div class="col">
 <div class="col-hdr">
-<p class="col-over anim">Shop the Drop</p>
-<h1 class="col-title anim d1">Collections</h1>
-<p class="col-sub anim d2">Exclusive streetwear, limited edition. Every piece designed for two months, never mass-produced.</p>
+<p class="col-over anim">${isFiltered ? 'Shop ' + matchedCat : 'Shop the Drop'}</p>
+<h1 class="col-title anim d1">${isFiltered ? matchedCat : 'Collections'}</h1>
+<p class="col-sub anim d2">${isFiltered ? 'Premium ' + matchedCat.toLowerCase() + ' — limited-edition Indian streetwear. Never restocked, made in small batches.' : 'Exclusive streetwear, limited edition. Every piece designed for two months, never mass-produced.'}</p>
 </div>
 
 <div class="col-filters" id="filters">
-<button class="cf-btn act" onclick="filterCat('all',this)">All</button>
-${categories.map(cat => '<button class="cf-btn" onclick="filterCat(\'' + cat + '\',this)">' + cat + '</button>').join('')}
+<button class="cf-btn${!isFiltered ? ' act' : ''}" data-cat="all" onclick="filterCat('all',this)">All</button>
+${categories.map(cat => '<button class="cf-btn' + (matchedCat === cat ? ' act' : '') + '" data-cat="' + cat + '" onclick="filterCat(\'' + cat.replace(/'/g, "\\'") + '\',this)">' + cat + '</button>').join('')}
 </div>
 
-<p class="col-count" id="colCount">${products.length} products</p>
+<p class="col-count" id="colCount">${visibleCount} product${visibleCount !== 1 ? 's' : ''}</p>
 
 <div class="pgrid" id="pgrid">
 ${products.map((p, i) => {
@@ -135,15 +148,28 @@ ${d > 0 ? '<span class="sv">' + d + '% OFF</span>' : ''}
 <script>
 function filterCat(cat, btn) {
   document.querySelectorAll('.cf-btn').forEach(function(b) { b.classList.remove('act') });
-  btn.classList.add('act');
+  if (btn) btn.classList.add('act');
   var cards = document.querySelectorAll('.pcard');
   var count = 0;
   cards.forEach(function(c) {
     if (cat === 'all' || c.dataset.cat === cat) { c.classList.remove('hidden'); count++; }
     else { c.classList.add('hidden'); }
   });
-  document.getElementById('colCount').textContent = count + ' product' + (count !== 1 ? 's' : '');
+  var cc = document.getElementById('colCount');
+  if (cc) cc.textContent = count + ' product' + (count !== 1 ? 's' : '');
+  // Sync URL so deep links, back/forward, and reload all preserve the filter
+  try {
+    var u = new URL(window.location.href);
+    if (cat === 'all') u.searchParams.delete('cat');
+    else u.searchParams.set('cat', cat.replace(/ /g, '-'));
+    window.history.replaceState({}, '', u.toString());
+  } catch (e) {}
 }
+// [AG: category deep-link] Auto-apply filter from ?cat= on load (server-side already
+// marked the button .act; this hides non-matching cards without an extra click).
+(function(){
+  ${isFiltered ? "var initial='" + matchedCat.replace(/'/g, "\\'") + "'; var btn=document.querySelector('.cf-btn[data-cat=\"'+initial+'\"]'); filterCat(initial, btn);" : ''}
+})();
 </script>`;
 
   return shell(
