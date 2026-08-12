@@ -1,11 +1,12 @@
 import { Hono, type Context, type Next } from 'hono'
 import { cors } from 'hono/cors'
 import {
-  STORE_CONFIG, SEED_PRODUCTS, SEED_LEGAL_PAGES,
-  type Env, type Product,
+  STORE_CONFIG, SEED_PRODUCTS, SEED_LEGAL_PAGES, SEED_FAQS, SEED_BLOG_POSTS,
+  type Env, type Product, type FAQ, type BlogPost,
   createRazorpayOrder, createMagicCheckoutOrder, fetchRazorpayOrder,
   buildMagicLineItems, hmacSHA256, supabaseFetch,
   fetchProducts, fetchProductBySlug, fetchProductById, fetchLegalPages,
+  fetchFAQs, fetchBlogPosts,
   sendResendEmail, emailDropSecured, emailCodReceived, emailCodManagerAlert,
   emailOrderConfirmed, emailCodVerificationRequired,
   checkResendGuard, logResendEmail,
@@ -21,7 +22,7 @@ import { stylistPage } from './pages/stylist'
 import { guidePage } from './pages/guide'
 import { maintenancePage } from './pages/maintenance'
 import { faqPage } from './pages/faq'
-import { blogIndexPage, blogPostPage, BLOG_POSTS } from './pages/blog'
+import { blogIndexPage, blogPostPage } from './pages/blog'
 import { shell } from './components/shell'
 import { runDailySalesAgent, computeSalesMetrics } from './ai-sales-agent'
 import { runGrowthLoop } from './ai-loop'
@@ -44,9 +45,21 @@ async function getPageOpts(c: Context<{ Bindings: Bindings }>) {
   const sbSvc = getEnv(c.env, 'SUPABASE_SERVICE_KEY');
   const sbAnon = getEnv(c.env, 'SUPABASE_ANON_KEY');
   const sbKey = sbSvc || sbAnon;
-  const { products } = await fetchProducts(sbUrl, sbSvc, sbAnon);
-  const { pages: legalPages } = await fetchLegalPages(sbUrl, sbSvc, sbAnon);
-  const storeSettings = await fetchAllStoreSettings(sbUrl, sbKey);
+  // Fetch products / legal / FAQs / blog posts + settings in parallel — every
+  // getPageOpts call runs on every page render, so latency compounds.
+  const [
+    { products },
+    { pages: legalPages },
+    { faqs },
+    { posts: blogPosts },
+    storeSettings,
+  ] = await Promise.all([
+    fetchProducts(sbUrl, sbSvc, sbAnon),
+    fetchLegalPages(sbUrl, sbSvc, sbAnon),
+    fetchFAQs(sbUrl, sbSvc, sbAnon),
+    fetchBlogPosts(sbUrl, sbSvc, sbAnon),
+    fetchAllStoreSettings(sbUrl, sbKey),
+  ]);
   // Analytics IDs: store-settings win; fall back to Cloudflare env vars.
   // Accept BOTH secret names so the GA4 ID is picked up regardless of whether
   // the Cloudflare secret was named `GA4_MEASUREMENT_ID` (matches the admin
@@ -69,7 +82,7 @@ async function getPageOpts(c: Context<{ Bindings: Bindings }>) {
   return {
     razorpayKeyId: getEnv(c.env, 'RAZORPAY_KEY_ID', STORE_CONFIG.razorpayKeyId),
     googleClientId: getEnv(c.env, 'GOOGLE_CLIENT_ID', STORE_CONFIG.googleClientId),
-    products, legalPages,
+    products, legalPages, faqs, blogPosts,
     useMagicCheckout: storeSettings.USE_MAGIC_CHECKOUT === 'true',
     maintenanceConfig: {
       mode: mMode,
@@ -322,20 +335,25 @@ app.get('/style-guide', async (c: Context<{ Bindings: Bindings }>) => {
 app.get('/blog', async (c: Context<{ Bindings: Bindings }>) => {
   const opts = await getPageOpts(c);
   c.executionCtx.waitUntil(incrementView(c.env, '/blog'));
-  return c.html(blogIndexPage(opts));
+  // opts.blogPosts is set by getPageOpts() (Supabase → seed fallback). Pass as `posts`.
+  return c.html(blogIndexPage({ ...opts, posts: opts.blogPosts }));
 });
 app.get('/blog/how-to-style-oversized-tshirt', (c: Context<{ Bindings: Bindings }>) => c.redirect('/style-guide', 301));
 app.get('/blog/:slug', async (c: Context<{ Bindings: Bindings }>) => {
   const slug = c.req.param('slug');
-  const post = BLOG_POSTS.find(p => p.slug === slug);
+  const opts = await getPageOpts(c);
+  // Prefer live (Supabase) posts; fall back to hardcoded seed. That way, admins
+  // can publish new posts and crawlers still hit valid articles even before
+  // Supabase is populated.
+  const pool: BlogPost[] = (opts.blogPosts && opts.blogPosts.length ? opts.blogPosts : SEED_BLOG_POSTS)
+    .filter((p: BlogPost) => p.isPublished !== false);
+  const post = pool.find((p: BlogPost) => p.slug === slug);
   if (!post) {
-    // 404 — soft redirect to blog index rather than a hard 404, so users don't
-    // dead-end on typos. Clarity showed 13% quick-back clicks, this reduces it.
+    // Soft-redirect to blog index rather than a hard 404 (Clarity showed 13% quick-back clicks).
     return c.html(`<html><head><meta http-equiv="refresh" content="0;url=/blog"><title>Redirecting…</title></head><body>Redirecting to <a href="/blog">/blog</a>…</body></html>`, 404);
   }
-  const opts = await getPageOpts(c);
   c.executionCtx.waitUntil(incrementView(c.env, '/blog/' + slug));
-  return c.html(blogPostPage(post, opts));
+  return c.html(blogPostPage(post, { ...opts, posts: pool }));
 });
 app.get('/style', (c: Context<{ Bindings: Bindings }>) => c.redirect('/style-guide', 301));
 
@@ -344,7 +362,8 @@ app.get('/style', (c: Context<{ Bindings: Bindings }>) => c.redirect('/style-gui
 app.get('/faq', async (c: Context<{ Bindings: Bindings }>) => {
   const opts = await getPageOpts(c);
   c.executionCtx.waitUntil(incrementView(c.env, '/faq'));
-  return c.html(faqPage(opts));
+  // opts.faqs is set by getPageOpts() (Supabase → seed fallback).
+  return c.html(faqPage({ ...opts, faqs: opts.faqs }));
 });
 // /p/faq legacy redirect is registered earlier (before /p/:slug catch-all).
 app.get('/faqs', (c: Context<{ Bindings: Bindings }>) => c.redirect('/faq', 301));
@@ -497,9 +516,9 @@ app.get('/sitemap.xml', async (c: Context<{ Bindings: Bindings }>) => {
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
   </url>`).join('\n  ')}
-  ${BLOG_POSTS.map(p => `<url>
+  ${((opts.blogPosts && opts.blogPosts.length ? opts.blogPosts : SEED_BLOG_POSTS).filter((p: BlogPost) => p.isPublished !== false)).map((p: BlogPost) => `<url>
     <loc>https://intru.in/blog/${p.slug}</loc>
-    <lastmod>${p.updatedISO}</lastmod>
+    <lastmod>${p.updatedISO || p.publishedISO}</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.75</priority>
     <image:image>
@@ -2299,6 +2318,199 @@ app.patch('/api/admin/legal/:slug', async (c: Context<{ Bindings: Bindings }>) =
   }
   return c.json({ error: 'Supabase not configured' }, 500);
 })
+
+// ============ ADMIN: FAQ CRUD ============
+// Endpoints mirror /api/admin/legal — same auth (x-admin-token via middleware),
+// same Supabase pattern, same error shape. The public /faq page fetches only
+// active FAQs (is_active=true); this admin API returns everything for editing.
+
+app.get('/api/admin/faqs', async (c: Context<{ Bindings: Bindings }>) => {
+  const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+  const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY') || getEnv(c.env, 'SUPABASE_ANON_KEY');
+  if (!sbUrl || !sbKey) {
+    // No Supabase → return seed data so the admin can at least preview it.
+    return c.json({ success: true, faqs: SEED_FAQS.map((f, i) => ({ ...f, id: String(-(i + 1)) })), source: 'seed' });
+  }
+  try {
+    const res = await supabaseFetch(sbUrl, sbKey, 'faqs?select=*&order=category.asc,sort_order.asc');
+    if (res.ok) return c.json({ success: true, faqs: await res.json(), source: 'supabase' });
+    return c.json({ error: 'Failed to fetch FAQs' }, 500);
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+app.post('/api/admin/faqs', async (c: Context<{ Bindings: Bindings }>) => {
+  const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+  const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY');
+  if (!sbUrl || !sbKey) return c.json({ error: 'Supabase service key not configured (writes require SERVICE_KEY)' }, 500);
+  try {
+    const body = await c.req.json();
+    const { question, answer, category, sort_order, is_active } = body;
+    if (!question || !answer || !category) {
+      return c.json({ error: 'question, answer, category required' }, 400);
+    }
+    const payload = {
+      question: String(question).trim(),
+      answer: String(answer).trim(),
+      category: String(category).trim(),
+      sort_order: sort_order != null ? Number(sort_order) : 0,
+      is_active: is_active !== false,
+    };
+    const res = await supabaseFetch(sbUrl, sbKey, 'faqs', {
+      method: 'POST',
+      headers: { 'Prefer': 'return=representation' } as any,
+      body: JSON.stringify(payload),
+    });
+    if (res.ok) {
+      const rows = await res.json() as any[];
+      return c.json({ success: true, faq: rows[0] });
+    }
+    return c.json({ error: await res.text() }, 500);
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+app.patch('/api/admin/faqs/:id', async (c: Context<{ Bindings: Bindings }>) => {
+  const id = c.req.param('id');
+  const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+  const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY');
+  if (!sbUrl || !sbKey) return c.json({ error: 'Supabase service key not configured' }, 500);
+  try {
+    const body = await c.req.json();
+    // Whitelist patchable columns — never let the client overwrite id/created_at.
+    const patch: any = {};
+    if (body.question !== undefined) patch.question = String(body.question).trim();
+    if (body.answer !== undefined) patch.answer = String(body.answer).trim();
+    if (body.category !== undefined) patch.category = String(body.category).trim();
+    if (body.sort_order !== undefined) patch.sort_order = Number(body.sort_order);
+    if (body.is_active !== undefined) patch.is_active = !!body.is_active;
+    patch.updated_at = new Date().toISOString();
+    const res = await supabaseFetch(sbUrl, sbKey, `faqs?id=eq.${encodeURIComponent(id)}`, {
+      method: 'PATCH', body: JSON.stringify(patch),
+    });
+    if (res.ok) return c.json({ success: true });
+    return c.json({ error: await res.text() }, 500);
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+app.delete('/api/admin/faqs/:id', async (c: Context<{ Bindings: Bindings }>) => {
+  const id = c.req.param('id');
+  const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+  const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY');
+  if (!sbUrl || !sbKey) return c.json({ error: 'Supabase service key not configured' }, 500);
+  try {
+    const res = await supabaseFetch(sbUrl, sbKey, `faqs?id=eq.${encodeURIComponent(id)}`, { method: 'DELETE' });
+    if (res.ok) return c.json({ success: true });
+    return c.json({ error: await res.text() }, 500);
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+// ============ ADMIN: Blog CRUD ============
+// Public /blog only surfaces posts where is_published=true. Admin API returns all.
+
+app.get('/api/admin/blog', async (c: Context<{ Bindings: Bindings }>) => {
+  const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+  const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY') || getEnv(c.env, 'SUPABASE_ANON_KEY');
+  if (!sbUrl || !sbKey) {
+    // Preview from seeds so admin UI still renders when DB isn't wired up.
+    const rows = SEED_BLOG_POSTS.map(p => ({
+      slug: p.slug, title: p.title, seo_title: p.seoTitle, seo_desc: p.seoDesc,
+      excerpt: p.excerpt, cover: p.cover, category: p.category, read_mins: p.readMins,
+      published_iso: p.publishedISO, updated_iso: p.updatedISO, author: p.author,
+      keywords: p.keywords, body: p.body, is_published: p.isPublished !== false,
+    }));
+    return c.json({ success: true, posts: rows, source: 'seed' });
+  }
+  try {
+    const res = await supabaseFetch(sbUrl, sbKey, 'blog_posts?select=*&order=published_iso.desc');
+    if (res.ok) return c.json({ success: true, posts: await res.json(), source: 'supabase' });
+    return c.json({ error: 'Failed to fetch blog posts' }, 500);
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+app.post('/api/admin/blog', async (c: Context<{ Bindings: Bindings }>) => {
+  const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+  const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY');
+  if (!sbUrl || !sbKey) return c.json({ error: 'Supabase service key not configured (writes require SERVICE_KEY)' }, 500);
+  try {
+    const body = await c.req.json();
+    const { slug, title, seo_title, seo_desc, excerpt, cover, category, read_mins, published_iso, updated_iso, author, keywords, body: articleBody, is_published } = body;
+    if (!slug || !title || !articleBody) {
+      return c.json({ error: 'slug, title, body required' }, 400);
+    }
+    // Basic slug hygiene — lowercase, no spaces.
+    const cleanSlug = String(slug).trim().toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+    const today = new Date().toISOString().split('T')[0];
+    const payload = {
+      slug: cleanSlug,
+      title: String(title).trim(),
+      seo_title: (seo_title || title || '').toString().trim(),
+      seo_desc: (seo_desc || '').toString().trim(),
+      excerpt: (excerpt || '').toString().trim(),
+      cover: (cover || '').toString().trim(),
+      category: (category || 'Style').toString().trim(),
+      read_mins: read_mins != null ? Number(read_mins) : 5,
+      published_iso: published_iso || today,
+      updated_iso: updated_iso || today,
+      author: (author || 'Intru Editorial').toString().trim(),
+      keywords: (keywords || '').toString().trim(),
+      body: String(articleBody),
+      is_published: is_published !== false,
+    };
+    const res = await supabaseFetch(sbUrl, sbKey, 'blog_posts', {
+      method: 'POST',
+      headers: { 'Prefer': 'return=representation,resolution=merge-duplicates' } as any,
+      body: JSON.stringify(payload),
+    });
+    if (res.ok) {
+      const rows = await res.json() as any[];
+      return c.json({ success: true, post: rows[0] });
+    }
+    return c.json({ error: await res.text() }, 500);
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+app.patch('/api/admin/blog/:slug', async (c: Context<{ Bindings: Bindings }>) => {
+  const slug = c.req.param('slug');
+  const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+  const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY');
+  if (!sbUrl || !sbKey) return c.json({ error: 'Supabase service key not configured' }, 500);
+  try {
+    const body = await c.req.json();
+    // Whitelist patchable columns. Slug itself can be renamed via body.slug.
+    const patch: any = {};
+    if (body.slug !== undefined) patch.slug = String(body.slug).trim().toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+    if (body.title !== undefined) patch.title = String(body.title).trim();
+    if (body.seo_title !== undefined) patch.seo_title = String(body.seo_title).trim();
+    if (body.seo_desc !== undefined) patch.seo_desc = String(body.seo_desc).trim();
+    if (body.excerpt !== undefined) patch.excerpt = String(body.excerpt).trim();
+    if (body.cover !== undefined) patch.cover = String(body.cover).trim();
+    if (body.category !== undefined) patch.category = String(body.category).trim();
+    if (body.read_mins !== undefined) patch.read_mins = Number(body.read_mins);
+    if (body.published_iso !== undefined) patch.published_iso = body.published_iso;
+    if (body.author !== undefined) patch.author = String(body.author).trim();
+    if (body.keywords !== undefined) patch.keywords = String(body.keywords).trim();
+    if (body.body !== undefined) patch.body = String(body.body);
+    if (body.is_published !== undefined) patch.is_published = !!body.is_published;
+    patch.updated_iso = new Date().toISOString().split('T')[0];
+    patch.updated_at = new Date().toISOString();
+    const res = await supabaseFetch(sbUrl, sbKey, `blog_posts?slug=eq.${encodeURIComponent(slug)}`, {
+      method: 'PATCH', body: JSON.stringify(patch),
+    });
+    if (res.ok) return c.json({ success: true });
+    return c.json({ error: await res.text() }, 500);
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+app.delete('/api/admin/blog/:slug', async (c: Context<{ Bindings: Bindings }>) => {
+  const slug = c.req.param('slug');
+  const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+  const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY');
+  if (!sbUrl || !sbKey) return c.json({ error: 'Supabase service key not configured' }, 500);
+  try {
+    const res = await supabaseFetch(sbUrl, sbKey, `blog_posts?slug=eq.${encodeURIComponent(slug)}`, { method: 'DELETE' });
+    if (res.ok) return c.json({ success: true });
+    return c.json({ error: await res.text() }, 500);
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
 
 // ============ SIZE CHART API ============
 

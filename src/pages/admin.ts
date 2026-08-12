@@ -119,6 +119,8 @@ export function adminPage(opts: {
 <button class="atab" onclick="showTab(this,'tcpn')">🏷️ Coupons</button>
 <button class="atab" onclick="showTab(this,'tcombo')">🔥 Combos</button>
 <button class="atab" onclick="showTab(this,'tleg')">Legal</button>
+<button class="atab" onclick="showTab(this,'tfaq')">❓ FAQs</button>
+<button class="atab" onclick="showTab(this,'tblog')">📝 Blog</button>
 <button class="atab" onclick="showTab(this,'tsize')">Size Chart</button>
 <button class="atab" onclick="showTab(this,'tig')">IG Feed</button>
 <button class="atab" onclick="showTab(this,'tsett')">Settings</button>

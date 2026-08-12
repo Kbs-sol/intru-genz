@@ -1,5 +1,5 @@
 import { shell } from '../components/shell'
-import { STORE_CONFIG, type Product, type LegalPage } from '../data'
+import { STORE_CONFIG, SEED_FAQS, type Product, type LegalPage, type FAQ } from '../data'
 
 /**
  * /faq — Frequently Asked Questions page
@@ -15,63 +15,38 @@ import { STORE_CONFIG, type Product, type LegalPage } from '../data'
  * Structured data: FAQPage schema — required for Google FAQ rich results.
  */
 
-interface FAQ {
-  q: string;
-  a: string;  // HTML allowed for links
-  cat: string;
-}
-
 export function faqPage(opts: {
   razorpayKeyId?: string;
   googleClientId?: string;
   products: Product[];
   legalPages: LegalPage[];
+  faqs?: FAQ[];
   useMagicCheckout?: boolean;
   maintenanceConfig?: { mode?: string; message?: string; eta?: string };
   storeSettings?: Record<string, string>;
 }): string {
   const today = new Date().toISOString().split('T')[0];
 
-  const faqs: FAQ[] = [
-    // Sizing & Fit — highest search volume category
-    { cat: 'Sizing & Fit', q: 'What size should I order at Intru?', a: 'Every Intru piece uses a true oversized fit built into the pattern (dropped shoulders, wider body, longer length). If you wear a Medium in a regular-fit tee, stay in Medium at Intru — the extra room is already there. Only size up if you want an extreme drop or plan to layer heavily. Every product page has a full size chart with chest and length measurements in inches.' },
-    { cat: 'Sizing & Fit', q: 'Are Intru t-shirts oversized?', a: 'Yes. Every t-shirt, crop top and shirt in the Intru catalogue is cut oversized on purpose — this is the house silhouette, not a variant. It is designed for a relaxed drape without being sloppy.' },
-    { cat: 'Sizing & Fit', q: 'What fabric weight (GSM) do you use?', a: 'Our heavyweight cotton runs 220–260 GSM depending on the piece. That is roughly twice the weight of a fast-fashion tee. Higher GSM holds shape in Indian heat, does not go see-through, and lasts through repeated washes.' },
-    { cat: 'Sizing & Fit', q: 'Will Intru clothes shrink after washing?', a: 'No — every Intru garment is pre-shrunk before it leaves us. Follow the care label (cold wash, inside-out, air dry) and the fit stays consistent for the life of the piece.' },
-    { cat: 'Sizing & Fit', q: 'How do I wash and care for my Intru piece?', a: 'Cold machine wash, inside-out, with similar colours. Avoid bleach and fabric softener. Air-dry in shade — heat and direct sun fade the garment-dyed colour. Iron on medium if needed, on the reverse side over prints.' },
+  // Prefer FAQs fetched from Supabase (via opts.faqs); fall back to the hardcoded
+  // SEED_FAQS so crawlers and users always see content, even if the DB is empty
+  // or the fetch failed. Only active FAQs are rendered.
+  const source = (opts.faqs && opts.faqs.length ? opts.faqs : SEED_FAQS).filter(f => f.is_active !== false);
 
-    // Shipping & Delivery
-    { cat: 'Shipping & Delivery', q: 'How long does shipping take?', a: 'Orders are dispatched within 36 hours of confirmation. Delivery across India typically takes 3–7 business days depending on location. Metro cities usually land in 3–4 days, tier-2/3 cities in 5–7 days. You will receive a tracking link over email/SMS as soon as we hand your order to the courier.' },
-    { cat: 'Shipping & Delivery', q: 'Is shipping free?', a: 'Yes — shipping is free on all prepaid orders across India, with no minimum cart value. COD orders carry a ₹99 shipping fee.' },
-    { cat: 'Shipping & Delivery', q: 'Do you ship internationally?', a: 'At the moment we ship within India only. We are exploring select international corridors — if you would like to be notified, email <a href="mailto:shop@intru.in">shop@intru.in</a> with your country.' },
-    { cat: 'Shipping & Delivery', q: 'How do I track my order?', a: 'You will receive a tracking link over email and SMS the moment we hand your order to the courier partner. You can also log in on <a href="/">intru.in</a> using the same email/phone used at checkout to see your order history.' },
-
-    // Payments
-    { cat: 'Payments', q: 'Do you accept Cash on Delivery (COD)?', a: 'Yes, COD is available across most Indian pincodes. A ₹99 shipping fee applies to COD orders. To keep our small-batch model sustainable, we may email you a short verification link before dispatch for high-value COD orders — replying/confirming keeps it moving.' },
-    { cat: 'Payments', q: 'What payment methods do you accept?', a: 'UPI, credit/debit cards, net banking, popular wallets (Paytm, PhonePe, Amazon Pay), and Cash on Delivery. Payments are processed through Razorpay — one of India\'s most secure payment gateways.' },
-    { cat: 'Payments', q: 'Is my payment information secure?', a: 'Yes. All payments are processed through Razorpay with bank-grade SSL encryption. Intru never sees or stores your card or UPI credentials.' },
-    { cat: 'Payments', q: 'Can I use a coupon or discount code?', a: 'Yes — enter your code at checkout inside the cart drawer. Coupons stack with free shipping on prepaid orders but not with other coupons. Some auto-applied combo deals will show up in your bag automatically when you add qualifying pieces.' },
-
-    // Returns & Exchanges — critical for trust
-    { cat: 'Returns & Exchanges', q: 'What is your return policy?', a: 'Intru operates on a limited-drop model, so all sales are final. We do not offer cash refunds. Approved claims are issued as <strong>Store Credit at 1:1 value with INR</strong>, which never expires and can be used on any future drop. Full policy: <a href="/p/returns">Returns &amp; Exchanges Policy</a>.' },
-    { cat: 'Returns & Exchanges', q: 'Can I exchange a size?', a: 'Yes — size exchanges are supported within 36 hours of delivery, if the replacement size is in stock. Email <a href="mailto:shop@intru.in">shop@intru.in</a> with your order number and desired size. If we can\'t swap the size, we issue Store Credit.' },
-    { cat: 'Returns & Exchanges', q: 'What if my product arrives damaged or defective?', a: 'Reach out to <a href="mailto:shop@intru.in">shop@intru.in</a> within 36 hours of delivery with your order number and clear photographs of the defect. We approve manufacturing defects, wrong items shipped, and significant transit damage — Store Credit is issued immediately.' },
-    { cat: 'Returns & Exchanges', q: 'Why don\'t you offer cash refunds?', a: 'Every Intru drop is made in a limited quantity and never restocked. If we offered cash refunds we would end up with returned inventory we can\'t resell — which would force us into the mass-production model we specifically built Intru to avoid. Store Credit at 1:1 keeps the drop model sustainable and gives you the same value.' },
-
-    // Products & Drops
-    { cat: 'Products & Drops', q: 'Are Intru drops really limited?', a: 'Yes. Each design is made in a small batch (typically under a few hundred units per size) and is never restocked once sold out. The exact numbers per drop are visible on some product pages, and once a piece is vaulted it is gone permanently.' },
-    { cat: 'Products & Drops', q: 'When do new drops launch?', a: 'We drop roughly every 4–6 weeks. Follow us on Instagram <a href="https://www.instagram.com/intru.in/" target="_blank" rel="noopener noreferrer">@intru.in</a> for drop announcements and behind-the-scenes on each collection.' },
-    { cat: 'Products & Drops', q: 'Where are Intru products made?', a: 'Every Intru piece is designed and manufactured in India — cut, sewn and printed by small ethical partners we know personally. Founders Ramya and the team visit the workshop for every drop.' },
-    { cat: 'Products & Drops', q: 'What categories do you sell?', a: 'Right now: <a href="/collections?cat=T-Shirts">T-Shirts</a>, <a href="/collections?cat=Crop-Tops">Crop Tops</a>, and <a href="/collections?cat=Shirts">Shirts</a>. All oversized, all heavyweight, all limited-run. Bottoms and outerwear are on the roadmap.' },
-
-    // Account & Support
-    { cat: 'Account & Support', q: 'Do I need an account to order?', a: 'No — you can check out as a guest. Creating an account (or logging in with Google) lets you see order history, track live shipments, and pre-access future drops.' },
-    { cat: 'Account & Support', q: 'How do I contact customer support?', a: 'Email <a href="mailto:shop@intru.in">shop@intru.in</a> — we reply within 24 hours on business days. For faster answers on sizing, styling and drop timing, try our <a href="/stylist">AI Stylist</a> (bottom-right of every page) or DM us on Instagram <a href="https://www.instagram.com/intru.in/" target="_blank" rel="noopener noreferrer">@intru.in</a>.' },
-    { cat: 'Account & Support', q: 'How do I delete my account or my data?', a: 'Email <a href="mailto:shop@intru.in">shop@intru.in</a> from the address on your account with the subject line "Account Deletion Request". We complete removal within 7 business days as per our <a href="/p/privacy">Privacy Policy</a>.' },
-  ];
-
-  // Group by category for rendering
-  const cats = [...new Set(faqs.map(f => f.cat))];
+  // Group by category preserving insertion order, and sort within a category by
+  // sort_order (nulls last).
+  const seenCats: string[] = [];
+  const grouped: Record<string, FAQ[]> = {};
+  for (const f of source) {
+    const cat = f.category || 'General';
+    if (!grouped[cat]) { grouped[cat] = []; seenCats.push(cat); }
+    grouped[cat].push(f);
+  }
+  for (const cat of seenCats) {
+    grouped[cat].sort((a, b) => (a.sort_order ?? 999) - (b.sort_order ?? 999));
+  }
+  // Flat list used for JSON-LD schema
+  const faqs: FAQ[] = seenCats.flatMap(c => grouped[c]);
+  const cats = seenCats;
 
   // FAQPage schema — Google rich-snippet gold, and answer engines cite it verbatim
   const faqSchema = {
@@ -87,11 +62,11 @@ export function faqPage(opts: {
     'dateModified': today,
     'mainEntity': faqs.map(f => ({
       '@type': 'Question',
-      'name': f.q,
+      'name': f.question,
       'acceptedAnswer': {
         '@type': 'Answer',
         // Strip HTML for schema (Google prefers plaintext in the answer text field)
-        'text': f.a.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim()
+        'text': f.answer.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim()
       }
     }))
   };
@@ -159,19 +134,19 @@ export function faqPage(opts: {
 <h1 class="faq-h1">Everything You Need<br>to Know</h1>
 <p class="faq-sub">Real answers on sizing, shipping, returns and payments. Still stuck? Reach out on <a href="mailto:shop@intru.in" style="color:var(--bk);text-decoration:underline">email</a> or DM us <a href="https://www.instagram.com/intru.in/" target="_blank" rel="noopener noreferrer" style="color:var(--bk);text-decoration:underline">@intru.in</a>.</p>
 
-<nav class="faq-nav" aria-label="Jump to FAQ section">
+${cats.length ? `<nav class="faq-nav" aria-label="Jump to FAQ section">
 ${cats.map(c => `<a href="#faq-${c.toLowerCase().replace(/[^a-z0-9]+/g, '-')}">${c}</a>`).join('')}
-</nav>
+</nav>` : ''}
 
 ${cats.map(cat => {
     const anchor = 'faq-' + cat.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-    const items = faqs.filter(f => f.cat === cat);
+    const items = grouped[cat] || [];
     return `<section class="faq-cat" id="${anchor}">
 <h2>${cat}</h2>
 ${items.map(f => `<details class="faq-item" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
-<summary itemprop="name">${f.q}</summary>
+<summary itemprop="name">${f.question}</summary>
 <div class="faq-answer" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
-<div itemprop="text">${f.a}</div>
+<div itemprop="text">${f.answer}</div>
 </div>
 </details>`).join('')}
 </section>`;
