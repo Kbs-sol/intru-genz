@@ -322,6 +322,138 @@ export function adminPage(opts: {
 <button class="asave" style="margin-top:16px" onclick="saveLegal()">Save to Supabase</button>
 </div>
 
+<!-- FAQ Tab -->
+<div class="apan" id="tfaq">
+<div class="sett-card" style="margin-bottom:20px;background:var(--g50)">
+<h4>❓ Frequently Asked Questions</h4>
+<p>Full CRUD control over FAQs shown on <a href="/faq" target="_blank" style="color:var(--bk);text-decoration:underline">/faq</a>. Only active FAQs are shown publicly. Answer supports inline HTML (&lt;a&gt;, &lt;strong&gt;) — plain text is fine too.</p>
+<p style="margin-top:8px"><span class="asrc" id="faqSrc"></span></p>
+</div>
+
+<!-- Create / Edit FAQ form -->
+<div class="sett-card" style="margin-bottom:20px" id="faqFormCard">
+<h4 id="faqFormTitle">Create New FAQ</h4>
+<div class="apc-row">
+  <div style="flex:2"><label>Question</label><input type="text" id="faqQuestion" class="ainp" style="margin:0" placeholder="How long does shipping take?"></div>
+  <div style="flex:1"><label>Category</label><input type="text" id="faqCategory" class="ainp" style="margin:0" placeholder="Shipping & Delivery" list="faqCategoryList">
+  <datalist id="faqCategoryList">
+    <option value="Sizing & Fit"></option>
+    <option value="Shipping & Delivery"></option>
+    <option value="Payments"></option>
+    <option value="Returns & Exchanges"></option>
+    <option value="Products & Drops"></option>
+    <option value="Account & Support"></option>
+  </datalist>
+  </div>
+</div>
+<div class="apc-row">
+  <div style="flex:1"><label>Answer <span style="font-weight:400;font-size:10px;color:var(--g400)">(HTML allowed — links: &lt;a href="..."&gt;text&lt;/a&gt;)</span></label>
+  <textarea id="faqAnswer" class="alta" style="min-height:140px;font-size:13px" placeholder="Orders are dispatched within 36 hours..."></textarea>
+  </div>
+</div>
+<div class="apc-row">
+  <div style="flex:1"><label>Sort Order <span style="font-weight:400;font-size:10px;color:var(--g400)">(lower = shown first within category)</span></label><input type="number" id="faqSortOrder" class="ainp" style="margin:0" placeholder="10" value="10"></div>
+  <div style="flex:1;display:flex;align-items:flex-end"><label class="atog" style="margin-bottom:0"><input type="checkbox" id="faqActive" checked> Active (shown on /faq)</label></div>
+</div>
+<div style="display:flex;gap:10px;align-items:center;margin-top:12px">
+  <button class="asave" id="faqSubmitBtn" onclick="submitFaq()"><i class="fas fa-plus" id="faqSubmitIcon" style="margin-right:6px"></i><span id="faqSubmitLabel">Create FAQ</span></button>
+  <button id="faqCancelEditBtn" class="arefresh" style="display:none" onclick="resetFaqForm()">Cancel Edit</button>
+</div>
+</div>
+
+<!-- FAQ list -->
+<div style="display:flex;align-items:center;margin-bottom:16px">
+<h3 style="font-family:var(--head);font-size:16px;text-transform:uppercase;flex:1">Existing FAQs</h3>
+<button class="arefresh" onclick="loadFaqs()"><i class="fas fa-sync-alt" style="margin-right:4px"></i>Refresh</button>
+</div>
+<div class="otbl-wrap">
+<table class="otbl" style="min-width:800px">
+<thead><tr><th style="width:170px">Category</th><th>Question</th><th style="width:60px">Sort</th><th style="width:80px">Status</th><th style="width:170px">Actions</th></tr></thead>
+<tbody id="faqTbody"><tr><td colspan="5" style="text-align:center;padding:40px;color:var(--g400)">Loading...</td></tr></tbody>
+</table>
+</div>
+</div>
+
+<!-- Blog Tab -->
+<div class="apan" id="tblog">
+<div class="sett-card" style="margin-bottom:20px;background:var(--g50)">
+<h4>📝 Blog Posts</h4>
+<p>Full CRUD control over blog posts shown on <a href="/blog" target="_blank" style="color:var(--bk);text-decoration:underline">/blog</a>. Only published posts are shown publicly. Body accepts HTML (&lt;h2&gt;, &lt;p&gt;, &lt;ul&gt;, &lt;ol&gt;, &lt;a&gt;).</p>
+<p style="margin-top:8px"><span class="asrc" id="blogSrc"></span></p>
+</div>
+
+<!-- Create / Edit Blog post form -->
+<div class="sett-card" style="margin-bottom:20px" id="blogFormCard">
+<h4 id="blogFormTitle">Create New Blog Post</h4>
+<div class="apc-row">
+  <div style="flex:2"><label>Title</label><input type="text" id="blogTitle" class="ainp" style="margin:0" placeholder="The Best Oversized T-Shirt Brands in India (2026)" oninput="autoSlug()"></div>
+  <div style="flex:1"><label>Slug <span style="font-weight:400;font-size:10px;color:var(--g400)">(URL — auto-filled)</span></label><input type="text" id="blogSlug" class="ainp" style="margin:0" placeholder="best-oversized-tshirt-brands-india"></div>
+</div>
+<div class="apc-row">
+  <div style="flex:1"><label>Category</label><input type="text" id="blogCategory" class="ainp" style="margin:0" placeholder="Guides" list="blogCategoryList">
+  <datalist id="blogCategoryList">
+    <option value="Style"></option>
+    <option value="Fabric"></option>
+    <option value="Culture"></option>
+    <option value="Guides"></option>
+  </datalist>
+  </div>
+  <div style="flex:1"><label>Read time (mins)</label><input type="number" id="blogReadMins" class="ainp" style="margin:0" placeholder="5" value="5"></div>
+  <div style="flex:1"><label>Published date</label><input type="date" id="blogPublished" class="ainp" style="margin:0"></div>
+</div>
+<div class="apc-row">
+  <div style="flex:2"><label>Cover image URL <span style="font-weight:400;font-size:10px;color:var(--g400)">(upload below or paste an https:// URL)</span></label><input type="text" id="blogCover" class="ainp" style="margin:0" placeholder="https://intru.in/cdn/..."></div>
+  <div style="flex:1"><label>Author</label><input type="text" id="blogAuthor" class="ainp" style="margin:0" value="Intru Editorial"></div>
+</div>
+<div class="apc-row">
+  <div style="flex:1"><label>Cover upload <span style="font-weight:400;font-size:10px;color:var(--g400)">(auto-fills the URL field above)</span></label>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <input type="file" id="blogCoverFile" accept="image/*" style="font-size:12px">
+    <button type="button" class="asave" id="blogCoverBtn" onclick="handleAdminUpload('blogCoverFile','blog','blogCoverStatus','blogCoverBtn','blogCover','blogCoverPrev')" style="padding:8px 14px">Upload</button>
+    <span id="blogCoverStatus" style="font-size:11px;color:var(--g400)"></span>
+  </div>
+  <div id="blogCoverPrev" style="display:none;margin-top:8px"></div>
+  </div>
+</div>
+<div class="apc-row">
+  <div style="flex:1"><label>Excerpt <span style="font-weight:400;font-size:10px;color:var(--g400)">(shown on /blog card)</span></label>
+  <textarea id="blogExcerpt" class="alta" style="min-height:64px;font-size:13px" placeholder="One-liner shown on the blog index card..."></textarea>
+  </div>
+</div>
+<div class="apc-row">
+  <div style="flex:1"><label>SEO title <span style="font-weight:400;font-size:10px;color:var(--g400)">(&lt;title&gt; tag — max ~60 chars)</span></label><input type="text" id="blogSeoTitle" class="ainp" style="margin:0"></div>
+  <div style="flex:1"><label>SEO description <span style="font-weight:400;font-size:10px;color:var(--g400)">(meta desc — ~155 chars)</span></label><input type="text" id="blogSeoDesc" class="ainp" style="margin:0"></div>
+</div>
+<div class="apc-row">
+  <div style="flex:1"><label>Keywords <span style="font-weight:400;font-size:10px;color:var(--g400)">(comma-separated — for meta keywords + schema)</span></label><input type="text" id="blogKeywords" class="ainp" style="margin:0"></div>
+</div>
+<div class="apc-row">
+  <div style="flex:1"><label>Article body <span style="font-weight:400;font-size:10px;color:var(--g400)">(HTML — &lt;h2&gt;, &lt;p&gt;, &lt;ul&gt;, &lt;ol&gt;, &lt;a&gt;)</span></label>
+  <textarea id="blogBody" class="alta" style="min-height:320px;font-size:13px" placeholder="<p>Intro paragraph...</p>&#10;<h2>Section heading</h2>&#10;<p>More content...</p>"></textarea>
+  </div>
+</div>
+<div class="apc-row">
+  <div style="flex:1;display:flex;align-items:center"><label class="atog" style="margin-bottom:0"><input type="checkbox" id="blogPublish" checked> Published (visible on /blog)</label></div>
+</div>
+<div style="display:flex;gap:10px;align-items:center;margin-top:12px">
+  <button class="asave" id="blogSubmitBtn" onclick="submitBlog()"><i class="fas fa-plus" id="blogSubmitIcon" style="margin-right:6px"></i><span id="blogSubmitLabel">Create Post</span></button>
+  <button id="blogCancelEditBtn" class="arefresh" style="display:none" onclick="resetBlogForm()">Cancel Edit</button>
+</div>
+</div>
+
+<!-- Blog list -->
+<div style="display:flex;align-items:center;margin-bottom:16px">
+<h3 style="font-family:var(--head);font-size:16px;text-transform:uppercase;flex:1">Existing Blog Posts</h3>
+<button class="arefresh" onclick="loadBlogs()"><i class="fas fa-sync-alt" style="margin-right:4px"></i>Refresh</button>
+</div>
+<div class="otbl-wrap">
+<table class="otbl" style="min-width:900px">
+<thead><tr><th style="width:220px">Title</th><th style="width:120px">Slug</th><th style="width:100px">Category</th><th style="width:110px">Published</th><th style="width:80px">Status</th><th style="width:210px">Actions</th></tr></thead>
+<tbody id="blogTbody"><tr><td colspan="6" style="text-align:center;padding:40px;color:var(--g400)">Loading...</td></tr></tbody>
+</table>
+</div>
+</div>
+
 <!-- Size Chart Tab -->
 <div class="apan" id="tsize">
 <div style="display:flex;align-items:center;margin-bottom:16px">
@@ -593,7 +725,7 @@ if(sessionStorage.getItem('iadm')==='1'){document.addEventListener('DOMContentLo
 
 function showTab(btn,id){document.querySelectorAll('.atab').forEach(function(t){t.classList.remove('act')});document.querySelectorAll('.apan').forEach(function(p){p.classList.remove('act')});btn.classList.add('act');document.getElementById(id).classList.add('act')}
 
-function initAdmin(){getAdminSettings();loadOrders();loadAnalytics();loadProducts();loadCoupons();loadCombos();initLegal();loadSizeChart();loadIgFeed();loadLimits();loadAIConfig()}
+function initAdmin(){getAdminSettings();loadOrders();loadAnalytics();loadProducts();loadCoupons();loadCombos();initLegal();loadFaqs();loadBlogs();loadSizeChart();loadIgFeed();loadLimits();loadAIConfig()}
 function getAdminSettings(){loadSettings()}
 
 /* ====== LIMITS [AG] ====== */
@@ -1460,6 +1592,309 @@ function updateMaintBadge(mode) {
     b.style.background = '#dcfce7';
     b.style.color = '#166534';
   }
+}
+
+/* ═════════════════════════════════════════════════════════════════
+   FAQ CRUD — full admin management for /faq entries
+   ═════════════════════════════════════════════════════════════════ */
+var faqData = [];
+var editingFaqId = null;
+
+function loadFaqs(){
+  var tb = document.getElementById('faqTbody');
+  if(!tb) return;
+  tb.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--g400)"><i class="fas fa-circle-notch fa-spin"></i> Loading...</td></tr>';
+  fetch('/api/admin/faqs',{headers:{'x-admin-token':sessionStorage.getItem('iadm_t')}})
+  .then(function(r){return r.json()})
+  .then(function(d){
+    if(d.error){ tb.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--red);padding:30px">'+d.error+'</td></tr>'; return; }
+    faqData = d.faqs || [];
+    var src = document.getElementById('faqSrc');
+    if(src){
+      if(d.source === 'supabase'){ src.className='asrc asrc-db'; src.innerHTML='<i class="fas fa-database"></i> Live from Supabase &middot; '+faqData.length+' rows'; }
+      else { src.className='asrc asrc-static'; src.innerHTML='<i class="fas fa-file-code"></i> Seed preview &middot; connect Supabase to enable writes'; }
+    }
+    renderFaqs();
+  }).catch(function(e){
+    tb.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--red);padding:30px">Error loading FAQs: '+e.message+'</td></tr>';
+  });
+}
+
+function renderFaqs(){
+  var tb = document.getElementById('faqTbody');
+  if(!tb) return;
+  if(!faqData.length){
+    tb.innerHTML='<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--g400)">No FAQs yet. Create one above!</td></tr>';
+    return;
+  }
+  var h='';
+  faqData.forEach(function(f){
+    var isActive = f.is_active !== false;
+    var statusBadge = isActive
+      ? '<span style="background:#d1fae5;color:#065f46;font-size:9px;font-weight:700;padding:2px 8px;border-radius:3px;text-transform:uppercase">Active</span>'
+      : '<span style="background:#fee2e2;color:#991b1b;font-size:9px;font-weight:700;padding:2px 8px;border-radius:3px;text-transform:uppercase">Hidden</span>';
+    var qEsc = String(f.question||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    var cEsc = String(f.category||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    var safeId = String(f.id).split("'").join('');
+    h += '<tr>'
+      + '<td><span style="background:#f3f4f6;font-size:10px;font-weight:700;padding:3px 8px;border-radius:3px;text-transform:uppercase;letter-spacing:.5px">' + cEsc + '</span></td>'
+      + '<td style="font-weight:600;font-size:13px;line-height:1.4">' + qEsc + '</td>'
+      + '<td style="font-weight:700;color:var(--g500)">' + (f.sort_order != null ? f.sort_order : 0) + '</td>'
+      + '<td>' + statusBadge + '</td>'
+      + '<td>'
+      + '<div style="display:flex;flex-direction:column;gap:6px">'
+      + '<button class="asave" style="padding:5px 12px;font-size:9px" onclick="editFaq(\\x27' + safeId + '\\x27)"><i class="fas fa-pen" style="margin-right:4px"></i>Edit</button>'
+      + '<button style="padding:5px 12px;background:none;border:1.5px solid var(--red);color:var(--red);font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;border-radius:3px;cursor:pointer;font-family:inherit" '
+      + 'onclick="deleteFaq(\\x27' + safeId + '\\x27)"><i class="fas fa-trash" style="margin-right:4px"></i>Delete</button>'
+      + '</div>'
+      + '</td></tr>';
+  });
+  tb.innerHTML = h;
+}
+
+function editFaq(id){
+  var f = faqData.find(function(x){ return String(x.id) === String(id); });
+  if(!f){ toast('FAQ not found', 'err'); return; }
+  if(String(id).indexOf('-') === 0){
+    toast('This is a seed preview row — connect Supabase to edit.', 'err');
+    return;
+  }
+  editingFaqId = id;
+  document.getElementById('faqQuestion').value = f.question || '';
+  document.getElementById('faqAnswer').value = f.answer || '';
+  document.getElementById('faqCategory').value = f.category || '';
+  document.getElementById('faqSortOrder').value = f.sort_order != null ? f.sort_order : 10;
+  document.getElementById('faqActive').checked = f.is_active !== false;
+  document.getElementById('faqFormTitle').textContent = 'Edit FAQ #' + id;
+  document.getElementById('faqSubmitLabel').textContent = 'Save Changes';
+  document.getElementById('faqSubmitIcon').className = 'fas fa-save';
+  document.getElementById('faqCancelEditBtn').style.display = '';
+  document.getElementById('faqFormCard').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function resetFaqForm(){
+  editingFaqId = null;
+  document.getElementById('faqQuestion').value = '';
+  document.getElementById('faqAnswer').value = '';
+  document.getElementById('faqCategory').value = '';
+  document.getElementById('faqSortOrder').value = 10;
+  document.getElementById('faqActive').checked = true;
+  document.getElementById('faqFormTitle').textContent = 'Create New FAQ';
+  document.getElementById('faqSubmitLabel').textContent = 'Create FAQ';
+  document.getElementById('faqSubmitIcon').className = 'fas fa-plus';
+  document.getElementById('faqCancelEditBtn').style.display = 'none';
+}
+
+function submitFaq(){
+  var question = document.getElementById('faqQuestion').value.trim();
+  var answer = document.getElementById('faqAnswer').value.trim();
+  var category = document.getElementById('faqCategory').value.trim();
+  var sortOrder = parseInt(document.getElementById('faqSortOrder').value, 10) || 0;
+  var isActive = document.getElementById('faqActive').checked;
+  if(!question || !answer || !category){ toast('Question, answer, and category are required', 'err'); return; }
+  var payload = { question: question, answer: answer, category: category, sort_order: sortOrder, is_active: isActive };
+  var url = editingFaqId ? '/api/admin/faqs/' + encodeURIComponent(editingFaqId) : '/api/admin/faqs';
+  var method = editingFaqId ? 'PATCH' : 'POST';
+  fetch(url, {
+    method: method,
+    headers: {'Content-Type':'application/json','x-admin-token':sessionStorage.getItem('iadm_t')},
+    body: JSON.stringify(payload)
+  })
+  .then(function(r){return r.json()})
+  .then(function(d){
+    if(d.success){
+      toast(editingFaqId ? 'FAQ updated' : 'FAQ created', 'ok-green');
+      resetFaqForm();
+      loadFaqs();
+    } else {
+      toast('Error: ' + (d.error || 'unknown'), 'err');
+    }
+  }).catch(function(e){ toast('Error: ' + e.message, 'err'); });
+}
+
+function deleteFaq(id){
+  if(String(id).indexOf('-') === 0){
+    toast('This is a seed preview row — connect Supabase to delete.', 'err');
+    return;
+  }
+  if(!confirm('Delete this FAQ permanently? This cannot be undone.')) return;
+  fetch('/api/admin/faqs/' + encodeURIComponent(id), {
+    method: 'DELETE',
+    headers: {'x-admin-token':sessionStorage.getItem('iadm_t')}
+  })
+  .then(function(r){return r.json()})
+  .then(function(d){
+    if(d.success){ toast('FAQ deleted', 'ok-green'); loadFaqs(); }
+    else { toast('Error: ' + (d.error || 'unknown'), 'err'); }
+  }).catch(function(e){ toast('Error: ' + e.message, 'err'); });
+}
+
+/* ═════════════════════════════════════════════════════════════════
+   BLOG CRUD — full admin management for /blog entries
+   ═════════════════════════════════════════════════════════════════ */
+var blogData = [];
+var editingBlogSlug = null; /* original slug when editing (slug may be renamed) */
+
+function loadBlogs(){
+  var tb = document.getElementById('blogTbody');
+  if(!tb) return;
+  tb.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--g400)"><i class="fas fa-circle-notch fa-spin"></i> Loading...</td></tr>';
+  fetch('/api/admin/blog',{headers:{'x-admin-token':sessionStorage.getItem('iadm_t')}})
+  .then(function(r){return r.json()})
+  .then(function(d){
+    if(d.error){ tb.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--red);padding:30px">'+d.error+'</td></tr>'; return; }
+    blogData = d.posts || [];
+    var src = document.getElementById('blogSrc');
+    if(src){
+      if(d.source === 'supabase'){ src.className='asrc asrc-db'; src.innerHTML='<i class="fas fa-database"></i> Live from Supabase &middot; '+blogData.length+' posts'; }
+      else { src.className='asrc asrc-static'; src.innerHTML='<i class="fas fa-file-code"></i> Seed preview &middot; connect Supabase to enable writes'; }
+    }
+    renderBlogs();
+  }).catch(function(e){
+    tb.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--red);padding:30px">Error loading blogs: '+e.message+'</td></tr>';
+  });
+}
+
+function renderBlogs(){
+  var tb = document.getElementById('blogTbody');
+  if(!tb) return;
+  if(!blogData.length){
+    tb.innerHTML='<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--g400)">No blog posts yet. Create one above!</td></tr>';
+    return;
+  }
+  var h='';
+  blogData.forEach(function(p){
+    var isPub = p.is_published !== false;
+    var statusBadge = isPub
+      ? '<span style="background:#d1fae5;color:#065f46;font-size:9px;font-weight:700;padding:2px 8px;border-radius:3px;text-transform:uppercase">Live</span>'
+      : '<span style="background:#fef3c7;color:#92400e;font-size:9px;font-weight:700;padding:2px 8px;border-radius:3px;text-transform:uppercase">Draft</span>';
+    var tEsc = String(p.title||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    var sEsc = String(p.slug||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    var cEsc = String(p.category||'Style').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    var pubDate = p.published_iso || '—';
+    var safeSlug = String(p.slug||'').split("'").join('');
+    h += '<tr>'
+      + '<td style="font-weight:700;font-size:13px;line-height:1.4">' + tEsc + '</td>'
+      + '<td><a href="/blog/' + sEsc + '" target="_blank" style="font-size:11px;font-family:monospace;color:var(--bk);text-decoration:underline">' + sEsc + '</a></td>'
+      + '<td><span style="background:#f3f4f6;font-size:10px;font-weight:700;padding:3px 8px;border-radius:3px;text-transform:uppercase;letter-spacing:.5px">' + cEsc + '</span></td>'
+      + '<td style="font-size:11px;color:var(--g500)">' + pubDate + '</td>'
+      + '<td>' + statusBadge + '</td>'
+      + '<td>'
+      + '<div style="display:flex;flex-direction:column;gap:6px">'
+      + '<button class="asave" style="padding:5px 12px;font-size:9px" onclick="editBlog(\\x27' + safeSlug + '\\x27)"><i class="fas fa-pen" style="margin-right:4px"></i>Edit</button>'
+      + '<a href="/blog/' + sEsc + '" target="_blank" class="arefresh" style="padding:5px 12px;font-size:9px;text-align:center;text-decoration:none"><i class="fas fa-external-link-alt" style="margin-right:4px"></i>View</a>'
+      + '<button style="padding:5px 12px;background:none;border:1.5px solid var(--red);color:var(--red);font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;border-radius:3px;cursor:pointer;font-family:inherit" '
+      + 'onclick="deleteBlog(\\x27' + safeSlug + '\\x27)"><i class="fas fa-trash" style="margin-right:4px"></i>Delete</button>'
+      + '</div>'
+      + '</td></tr>';
+  });
+  tb.innerHTML = h;
+}
+
+function editBlog(slug){
+  var p = blogData.find(function(x){ return x.slug === slug; });
+  if(!p){ toast('Post not found', 'err'); return; }
+  editingBlogSlug = slug;
+  document.getElementById('blogTitle').value = p.title || '';
+  document.getElementById('blogSlug').value = p.slug || '';
+  document.getElementById('blogCategory').value = p.category || 'Style';
+  document.getElementById('blogReadMins').value = p.read_mins != null ? p.read_mins : 5;
+  document.getElementById('blogPublished').value = p.published_iso || '';
+  document.getElementById('blogCover').value = p.cover || '';
+  document.getElementById('blogAuthor').value = p.author || 'Intru Editorial';
+  document.getElementById('blogExcerpt').value = p.excerpt || '';
+  document.getElementById('blogSeoTitle').value = p.seo_title || '';
+  document.getElementById('blogSeoDesc').value = p.seo_desc || '';
+  document.getElementById('blogKeywords').value = p.keywords || '';
+  document.getElementById('blogBody').value = p.body || '';
+  document.getElementById('blogPublish').checked = p.is_published !== false;
+  document.getElementById('blogFormTitle').textContent = 'Edit Blog Post: ' + (p.title || slug);
+  document.getElementById('blogSubmitLabel').textContent = 'Save Changes';
+  document.getElementById('blogSubmitIcon').className = 'fas fa-save';
+  document.getElementById('blogCancelEditBtn').style.display = '';
+  /* Show cover preview if any */
+  if(p.cover){
+    var prev = document.getElementById('blogCoverPrev');
+    if(prev){ prev.style.display=''; prev.innerHTML = '<img src="'+p.cover+'" style="max-width:220px;max-height:140px;border:1px solid var(--g100);border-radius:4px">'; }
+  }
+  document.getElementById('blogFormCard').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function resetBlogForm(){
+  editingBlogSlug = null;
+  ['blogTitle','blogSlug','blogCategory','blogCover','blogExcerpt','blogSeoTitle','blogSeoDesc','blogKeywords','blogBody'].forEach(function(id){
+    var el = document.getElementById(id); if(el) el.value = '';
+  });
+  document.getElementById('blogReadMins').value = 5;
+  document.getElementById('blogPublished').value = '';
+  document.getElementById('blogAuthor').value = 'Intru Editorial';
+  document.getElementById('blogPublish').checked = true;
+  document.getElementById('blogFormTitle').textContent = 'Create New Blog Post';
+  document.getElementById('blogSubmitLabel').textContent = 'Create Post';
+  document.getElementById('blogSubmitIcon').className = 'fas fa-plus';
+  document.getElementById('blogCancelEditBtn').style.display = 'none';
+  var prev = document.getElementById('blogCoverPrev');
+  if(prev){ prev.style.display='none'; prev.innerHTML=''; }
+}
+
+function submitBlog(){
+  var title = document.getElementById('blogTitle').value.trim();
+  var slug = document.getElementById('blogSlug').value.trim();
+  var body = document.getElementById('blogBody').value.trim();
+  if(!title || !slug || !body){ toast('Title, slug, and body are required', 'err'); return; }
+  var payload = {
+    title: title,
+    slug: slug,
+    category: document.getElementById('blogCategory').value.trim() || 'Style',
+    read_mins: parseInt(document.getElementById('blogReadMins').value, 10) || 5,
+    published_iso: document.getElementById('blogPublished').value || undefined,
+    cover: document.getElementById('blogCover').value.trim(),
+    author: document.getElementById('blogAuthor').value.trim() || 'Intru Editorial',
+    excerpt: document.getElementById('blogExcerpt').value.trim(),
+    seo_title: document.getElementById('blogSeoTitle').value.trim(),
+    seo_desc: document.getElementById('blogSeoDesc').value.trim(),
+    keywords: document.getElementById('blogKeywords').value.trim(),
+    body: body,
+    is_published: document.getElementById('blogPublish').checked
+  };
+  var url = editingBlogSlug ? '/api/admin/blog/' + encodeURIComponent(editingBlogSlug) : '/api/admin/blog';
+  var method = editingBlogSlug ? 'PATCH' : 'POST';
+  fetch(url, {
+    method: method,
+    headers: {'Content-Type':'application/json','x-admin-token':sessionStorage.getItem('iadm_t')},
+    body: JSON.stringify(payload)
+  })
+  .then(function(r){return r.json()})
+  .then(function(d){
+    if(d.success){
+      toast(editingBlogSlug ? 'Post updated' : 'Post created', 'ok-green');
+      resetBlogForm();
+      loadBlogs();
+    } else {
+      toast('Error: ' + (d.error || 'unknown'), 'err');
+    }
+  }).catch(function(e){ toast('Error: ' + e.message, 'err'); });
+}
+
+function deleteBlog(slug){
+  if(!confirm('Delete blog post "' + slug + '" permanently? This cannot be undone.')) return;
+  fetch('/api/admin/blog/' + encodeURIComponent(slug), {
+    method: 'DELETE',
+    headers: {'x-admin-token':sessionStorage.getItem('iadm_t')}
+  })
+  .then(function(r){return r.json()})
+  .then(function(d){
+    if(d.success){ toast('Post deleted', 'ok-green'); loadBlogs(); }
+    else { toast('Error: ' + (d.error || 'unknown'), 'err'); }
+  }).catch(function(e){ toast('Error: ' + e.message, 'err'); });
+}
+
+/* Auto-generate slug from title as user types (only if slug is empty or editing new) */
+function autoSlug(){
+  var t = document.getElementById('blogTitle').value;
+  var slugEl = document.getElementById('blogSlug');
+  if(!slugEl || editingBlogSlug) return; /* don't overwrite when editing */
+  slugEl.value = String(t).toLowerCase().replace(/[^a-z0-9-]+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'').slice(0,80);
 }
 </script>`;
 

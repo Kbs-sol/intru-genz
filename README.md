@@ -63,6 +63,15 @@ Beyond conversion, intru.in is engineered for aggressive organic search dominanc
 - **Bulk Metadata Injection**: Semantic keyword optimization directly within the catalog, delivering 100% SEO coverage.
 - **Lighthouse Dominance**: Lean CSS, aggressive caching, and minimal frontend JS architecture ensure near-perfect Core Web Vitals, a critical search ranking factor.
 
+### FAQ + Blog: Supabase-first with Hardcoded Fallback
+Both `/faq` and `/blog` follow the same pattern as `/p/:slug` legal pages: **live from Supabase when available, hardcoded seed as fallback**. This guarantees crawlers and users always see content, even before the DB is populated or during a Supabase outage.
+- **Data source**: `fetchFAQs()` / `fetchBlogPosts()` in `src/data.ts`. Reads only `is_active=true` / `is_published=true` rows.
+- **Fallback pool**: `SEED_FAQS` (25 curated FAQs across 6 categories) and `SEED_BLOG_POSTS` (5 long-form organic-traffic articles) in the same file — scrubbed to only include claims Intru can factually stand behind (no fabricated batch sizes, drop cadences, or testing durations).
+- **Auto-seed**: If Supabase is configured but the tables are empty, the fetcher POSTs the seed rows once using the service key so the admin sees them in the DB immediately.
+- **Admin CRUD**: `❓ FAQs` and `📝 Blog` tabs in `/admin` provide full create/edit/delete on the DB rows (writes require `SUPABASE_SERVICE_KEY`).
+- **SQL migration**: `migration_faq_blog.sql` (append to your existing `migration_v2.sql` workflow). Creates `public.faqs` and `public.blog_posts` with RLS policies: `anon` reads active/published only, `service_role` full access.
+- **SEO**: `FAQPage` + `BlogPosting` + `BreadcrumbList` JSON-LD emitted on every render. `/sitemap.xml` includes all published blog slugs with their `updated_iso` as `lastmod`.
+
 ### Identity-First Funnel (Phase 2)
 - `addToCart()` enforces identity gate: if no `intru_user_email` in localStorage, shows login modal
 - `intru_pending_atc` sessionStorage preserves item; auto-added post-login without re-click
@@ -147,6 +156,8 @@ Beyond conversion, intru.in is engineered for aggressive organic search dominanc
 | **Products** | Image URL editor (4 slots), price/compare-price, in-stock toggle, per-size stock editor (size_stock JSON), total stock (stock_count JSON), collapsible SEO section |
 | **🏷️ Coupons** | Create/activate/deactivate/delete discount codes. Percent and flat types, expiry, min total, max uses |
 | **Legal** | HTML editor with live preview for all legal pages |
+| **❓ FAQs** | Full CRUD for `/faq` entries — create/edit/delete Q&A, category grouping, sort order, active toggle. Auto-seed on first request; falls back to hardcoded `SEED_FAQS` when Supabase empty/offline (crawlers always see content) |
+| **📝 Blog** | Full CRUD for `/blog` posts — title/slug (auto-generated)/category/cover (with upload)/excerpt/SEO title & desc/keywords/HTML body/published toggle. Falls back to hardcoded `SEED_BLOG_POSTS` when Supabase empty/offline |
 | **Size Chart** | Full CRUD for chest/length measurements |
 | **IG Feed** | ON/OFF toggle (hides homepage section when OFF), add/edit/delete images, instant UI updates |
 | **Settings** | Payment mode toggle (Manual COD ↔ Razorpay Magic), manager notification email, COD fee |
