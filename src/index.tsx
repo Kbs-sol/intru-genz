@@ -1145,7 +1145,7 @@ app.post('/api/analytics/event', async (c: Context<{ Bindings: Bindings }>) => {
 
   // Always return 200 immediately — analytics must never block UI
   const body = await c.req.json().catch(() => ({}));
-  const { event: eventType, meta, email, sessionId, event_id, event_time, url, user_agent } = body || {};
+  const { event: eventType, meta, email, sessionId, event_id, event_time, url, user_agent, no_capi } = body || {};
 
   // Capture request-level identifiers for Meta CAPI (must be read now, before waitUntil)
   const ip = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for')?.split(',')[0]?.trim() || '';
@@ -1174,19 +1174,21 @@ app.post('/api/analytics/event', async (c: Context<{ Bindings: Bindings }>) => {
         } catch (e) { console.error('Funnel event log error:', e); }
       }
 
-      // 2) Mirror to Meta Conversions API for browser↔server dedup
-      try {
-        await sendMetaCAPI(c.env, {
-          eventType: eventType || 'unknown',
-          eventId: event_id,
-          eventTime: event_time,
-          url: referer,
-          ua, ip, fbp, fbc,
-          email: email || meta?.email,
-          phone: meta?.phone,
-          meta,
-        });
-      } catch (e) { console.error('Meta CAPI dispatch error:', e); }
+      // 2) Mirror to Meta Conversions API for browser↔server dedup — skipped if consent declined
+      if (!no_capi) {
+        try {
+          await sendMetaCAPI(c.env, {
+            eventType: eventType || 'unknown',
+            eventId: event_id,
+            eventTime: event_time,
+            url: referer,
+            ua, ip, fbp, fbc,
+            email: email || meta?.email,
+            phone: meta?.phone,
+            meta,
+          });
+        } catch (e) { console.error('Meta CAPI dispatch error:', e); }
+      }
     })()
   );
 
@@ -3368,12 +3370,41 @@ async function emailAdminPaymentAlert(resendKey: string, managerEmail: string, p
 }
 
 // ============ 404 ============
-app.all('*', (c: Context<{ Bindings: Bindings }>) => {
+// Enhanced 404 — logs the missing path to Supabase (so admin can spot broken links from
+// analytics like "140 views to 404"), and offers 3 rescue actions instead of one dead-end.
+app.all('*', async (c: Context<{ Bindings: Bindings }>) => {
+  const badPath = c.req.path;
+  // Log missing route for admin diagnostics (waitUntil = zero TTFB impact)
+  try {
+    const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+    const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY') || getEnv(c.env, 'SUPABASE_ANON_KEY');
+    if (sbUrl && sbKey) {
+      c.executionCtx.waitUntil(supabaseFetch(sbUrl, sbKey, 'funnel_events', {
+        method: 'POST',
+        body: JSON.stringify({
+          event_type: '404_hit',
+          metadata: { path: badPath, referer: c.req.header('referer') || null, ua: c.req.header('user-agent') || null },
+          created_at: new Date().toISOString(),
+        }),
+      }).catch(() => {}));
+    }
+  } catch {}
   return c.html(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>404 — INTRU.IN</title>
+<title>Page not found | Intru</title>
+<meta name="robots" content="noindex">
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
-<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Space Grotesk',sans-serif;background:#fafafa;color:#0a0a0a;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:24px}h1{font-family:'Archivo Black',sans-serif;font-size:clamp(60px,12vw,120px);text-transform:uppercase;letter-spacing:-.05em;margin-bottom:8px}p{color:#737373;font-size:14px;margin-bottom:28px}a{display:inline-block;padding:14px 36px;background:#0a0a0a;color:#fafafa;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;text-decoration:none;transition:all .2s}a:hover{background:#404040;transform:translateY(-2px)}</style></head>
-<body><div><h1>404</h1><p>This page doesn't exist. Maybe it sold out.</p><a href="/">Back to Drop</a></div></body></html>`, 404);
+<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Space Grotesk',sans-serif;background:#fafafa;color:#0a0a0a;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:24px}.wrap{max-width:520px}h1{font-family:'Archivo Black',sans-serif;font-size:clamp(60px,12vw,120px);text-transform:uppercase;letter-spacing:-.05em;margin-bottom:8px;line-height:.9}h2{font-family:'Archivo Black',sans-serif;font-size:16px;text-transform:uppercase;letter-spacing:2px;margin-bottom:12px}p{color:#525252;font-size:14px;line-height:1.7;margin-bottom:28px}.actions{display:flex;flex-direction:column;gap:10px}a.btn{display:inline-block;padding:14px 32px;background:#0a0a0a;color:#fafafa;font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;text-decoration:none;transition:all .2s;border-radius:6px}a.btn:hover{background:#404040;transform:translateY(-2px)}a.btn.alt{background:#fff;color:#0a0a0a;border:2px solid #0a0a0a}a.btn.ig{background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)}.combo{margin-top:24px;padding:16px;background:linear-gradient(135deg,#fffbea,#fef3c7);border:2px dashed #eab308;border-radius:8px;font-size:12px;color:#92400e;font-weight:700}</style></head>
+<body><div class="wrap">
+  <h1>404</h1>
+  <h2>Lost in the drop</h2>
+  <p>This page doesn't exist — it might have sold out (we never restock) or the link is broken. Here's how to get back on track:</p>
+  <div class="actions">
+    <a class="btn" href="/collections">→ Shop All Drops</a>
+    <a class="btn alt" href="/stylist">Ask the AI Stylist</a>
+    <a class="btn ig" href="https://instagram.com/intru.in" target="_blank" rel="noopener">📩 DM us @intru.in</a>
+  </div>
+  <div class="combo">🔥 Any 3 tees for ₹1499 — auto-applied at checkout, no code needed</div>
+</div></body></html>`, 404);
 })
 
 export default app

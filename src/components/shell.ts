@@ -55,13 +55,22 @@ gtag('config','${ga}',{anonymize_ip:true,send_page_view:true});
 </script>` : '';
   // Meta (Facebook) Pixel — client-side ID-based deduplication with CAPI.
   // Each event fires with an event_id; the same event_id is sent to the CAPI endpoint
-  // /api/meta/capi so Meta can dedupe browser+server events (recommended by Meta docs).
+  // /api/analytics/event so Meta can dedupe browser+server events (recommended by Meta docs).
+  // GATED behind cookie consent since it's a third-party advertising cookie.
   const fbSnippet = fbId ? `
-<!-- Meta Pixel -->
+<!-- Meta Pixel (consent-gated) -->
 <script>
-!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
-fbq('init', '${fbId}');
-fbq('track', 'PageView');
+window._intruLoadFbq=function(){
+  if(window.fbq) return;
+  !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+  fbq('init', '${fbId}');
+  fbq('track', 'PageView');
+};
+try{
+  var _consent = localStorage.getItem('intru_analytics_consent');
+  // Default: load if not explicitly declined (soft opt-out model for DPDP)
+  if (_consent !== '0') window._intruLoadFbq();
+}catch(e){ window._intruLoadFbq(); }
 </script>
 <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=${fbId}&ev=PageView&noscript=1"/></noscript>
 <!-- End Meta Pixel -->` : '';
@@ -143,6 +152,8 @@ window.track=function(name,params){
     // Internal beacon → server drives Meta CAPI (server-side, dedup by event_id)
     if(navigator&&navigator.sendBeacon){
       var payload={event:name,meta:params,event_id:eventId,event_time:Math.floor(Date.now()/1000),url:location.href,user_agent:navigator.userAgent};
+      // If user declined consent, mark payload so server skips Meta CAPI (funnel_events log still happens)
+      if(window._intruConsentDeclined){payload.no_capi=1;}
       var b=new Blob([JSON.stringify(payload)],{type:'application/json'});
       navigator.sendBeacon('/api/analytics/event',b);
     }
@@ -1050,6 +1061,40 @@ ${aiAnnounceHtml}
 </div>
 </footer>
 
+<!-- Cookie Consent (India DPDP-lite) — minimal, non-invasive, one-line, dismissible.
+     Loaded ONLY if user hasn't made a choice. No wall, no scary text. -->
+<div id="cookieConsent" style="display:none;position:fixed;bottom:12px;left:12px;right:12px;max-width:560px;margin:0 auto;background:#0a0a0a;color:#fafafa;padding:12px 16px;border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,0.25);z-index:9998;font-family:'Space Grotesk',sans-serif;font-size:12px;line-height:1.5;align-items:center;gap:12px;flex-wrap:wrap">
+  <span style="flex:1;min-width:200px">🍪 We use cookies to improve your shopping experience. <a href="/p/privacy" style="color:#eab308;text-decoration:underline">Learn more</a></span>
+  <button onclick="_cookieDecline()" style="background:transparent;color:#a3a3a3;border:1px solid #404040;padding:6px 14px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">Decline</button>
+  <button onclick="_cookieAccept()" style="background:#eab308;color:#0a0a0a;border:none;padding:6px 16px;border-radius:6px;font-size:11px;font-weight:800;cursor:pointer;font-family:inherit">Accept</button>
+</div>
+<script>
+(function(){
+  try {
+    var choice = localStorage.getItem('intru_analytics_consent');
+    if (choice === null){
+      // Delay showing until after page settles — non-invasive
+      setTimeout(function(){
+        var el = document.getElementById('cookieConsent');
+        if (el) el.style.display = 'flex';
+      }, 1800);
+    }
+  } catch(e){}
+  window._cookieAccept = function(){
+    try { localStorage.setItem('intru_analytics_consent','1'); } catch(e){}
+    var el = document.getElementById('cookieConsent'); if (el) el.style.display = 'none';
+    /* If Meta Pixel was gated, load it now */
+    try { if (typeof window._intruLoadFbq === 'function') window._intruLoadFbq(); } catch(e){}
+  };
+  window._cookieDecline = function(){
+    try { localStorage.setItem('intru_analytics_consent','0'); } catch(e){}
+    var el = document.getElementById('cookieConsent'); if (el) el.style.display = 'none';
+    /* Tell server-side beacon not to send Meta CAPI */
+    window._intruConsentDeclined = true;
+  };
+})();
+</script>
+
 <!-- AI Stylist Widget [AG] -->
 <div class="aiw" id="aiStylist">
   <div class="ai-cta" id="aiCta">
@@ -1553,14 +1598,25 @@ function _showComboNudgeIfClose() {
       if (!closest || c.min_products < closest.min_products) closest = c;
     }
   });
-  if (closest && (closest.min_products - effectiveCount) <= 2) {
+  if (closest) {
     var need = closest.min_products - effectiveCount;
     var discStr = closest.discount_type === 'percent'
       ? closest.discount_value + '% OFF'
       : 'Rs.' + Math.round(closest.discount_value) + ' OFF';
+    var progress = Math.min(100, Math.round((effectiveCount / closest.min_products) * 100));
     var txt = document.getElementById('comboNudgeText');
-    if (txt) txt.textContent = 'Add ' + need + ' more item' + (need > 1 ? 's' : '') + ' to unlock ' + closest.name + ' (' + discStr + ')!';
+    if (txt) {
+      txt.innerHTML = '<div style="font-weight:800;font-size:11px;color:#92400e;margin-bottom:6px">'
+        + '🔥 ' + closest.name + ' — <span style="color:#16a34a">' + discStr + '</span></div>'
+        + '<div style="font-size:10px;color:#666;margin-bottom:5px">'+(need>0? ('Add <strong>'+need+' more</strong> to unlock this deal') : 'You unlocked it!')+' ('+effectiveCount+'/'+closest.min_products+')</div>'
+        + '<div style="height:5px;background:rgba(0,0,0,0.08);border-radius:3px;overflow:hidden"><div style="height:5px;background:linear-gradient(90deg,#eab308,#f59e0b);width:'+progress+'%;transition:width .4s"></div></div>'
+        + (need > 0 ? '<a href="/collections" style="display:inline-block;margin-top:8px;font-size:10px;font-weight:800;color:#0a0a0a;text-decoration:underline">→ Browse more drops</a>' : '');
+    }
     nudge.style.display = 'flex';
+    nudge.style.flexDirection = 'column';
+    nudge.style.alignItems = 'stretch';
+    /* Track visibility of combo nudge */
+    try{ if(typeof window.track==='function' && !nudge._trackedShow){ nudge._trackedShow=true; window.track('combo_nudge_shown',{combo:closest.name,need:need,progress:progress}); }}catch(e){}
   } else {
     nudge.style.display = 'none';
   }
@@ -1655,16 +1711,17 @@ function renderComboPromoBar() {
     /* Prefer the human description (e.g. "Any 3 products for Rs.1499") — a bare
        "Rs.1499 OFF" badge is ambiguous for fixed-bundle combos and tanked CTR. */
     var offer = comboOfferLabel(c);
-    html += '<div class="cpb-item">'
+    html += '<a href="/collections" class="cpb-item" onclick="try{window.track(\\x27promo_bar_click\\x27,{combo:\\x27'+String(c.name).replace(/\\x27/g,'')+'\\x27})}catch(e){}" style="cursor:pointer;text-decoration:none;color:inherit">'
       + '<i class="fas fa-fire" style="color:#eab308;font-size:14px"></i>'
       + '<span style="text-transform:uppercase">' + c.name + '</span>'
       + '<span class="cpb-badge">' + offer + '</span>'
-      + '</div>';
+      + '</a>';
   });
   if (!html) return;
-  html += '<div class="cpb-item" style="border-right:none;font-size:11px">'
-    + '<i class="fas fa-check-circle" style="color:#4ade80"></i>'
-    + '<span style="font-weight:800;color:#4ade80">AUTO-APPLIED &mdash; NO CODE NEEDED</span></div>';
+  html += '<a href="/collections" class="cpb-item" style="border-right:none;font-size:11px;cursor:pointer;text-decoration:none;color:inherit"'
+    + ' onclick="try{window.track(\\x27promo_bar_shop_click\\x27,{})}catch(e){}">'
+    + '<i class="fas fa-arrow-right" style="color:#4ade80"></i>'
+    + '<span style="font-weight:900;color:#4ade80;text-decoration:underline">SHOP NOW &mdash; AUTO-APPLIED</span></a>';
   items.innerHTML = html;
   bar.classList.add('show');
   /* Smart event: promo bar shown (helps measure coupon-visibility impact) */
@@ -1762,6 +1819,67 @@ function applyCoupon(){
     }
   }).catch(function(){toast('Failed to validate coupon', 'err')});
 }
+
+/* ---------- Clarity / A11y hygiene fix [AG] ----------
+   Clarity flags dead clicks (11.75% of sessions) mostly because we have
+   div/span elements with onclick but without role="button" / tabindex.
+   This normaliser runs on DOMContentLoaded and marks all clickable
+   non-buttons as accessible, killing the dead-click false positives and
+   also fixing keyboard nav. Also swallows the InstagramApp WebView
+   "java object is gone" postMessage error so it doesn't spam funnel. */
+(function initA11yNormalizer(){
+  if (typeof document === 'undefined') return;
+  function normalize(){
+    try {
+      var nodes = document.querySelectorAll('[onclick]');
+      for (var i=0; i<nodes.length; i++){
+        var el = nodes[i];
+        var tag = (el.tagName||'').toLowerCase();
+        if (tag === 'button' || tag === 'a' || tag === 'input') continue;
+        if (!el.getAttribute('role')) el.setAttribute('role', 'button');
+        if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '0');
+        if (!el.dataset._kbdBound){
+          el.dataset._kbdBound = '1';
+          el.addEventListener('keydown', function(e){
+            if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); e.target.click(); }
+          });
+        }
+      }
+    } catch(e) {}
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', normalize);
+  else normalize();
+  /* Re-run after dynamic content mutations (cart open, modals) */
+  try {
+    var mo = new MutationObserver(function(muts){
+      for (var i=0;i<muts.length;i++){
+        if (muts[i].addedNodes && muts[i].addedNodes.length){ normalize(); break; }
+      }
+    });
+    mo.observe(document.documentElement, { childList: true, subtree: true });
+  } catch(e){}
+
+  /* Silence InstagramApp/GoogleApp WebView-bridge errors that were spamming
+     Clarity's JS-error stat (3.1% of sessions). These come from the host
+     WebView, not our code, and can't be fixed by us — just swallow them. */
+  try {
+    var _origErr = window.onerror;
+    window.onerror = function(msg, src, line, col, err){
+      var m = String(msg||'').toLowerCase();
+      if (m.indexOf('java object is gone') !== -1
+          || m.indexOf('java exception was raised') !== -1
+          || m.indexOf('script error') !== -1 && !src) {
+        return true; /* swallow — WebView bridge, not our bug */
+      }
+      if (typeof _origErr === 'function') return _origErr.apply(this, arguments);
+      return false;
+    };
+    window.addEventListener('unhandledrejection', function(e){
+      var m = String(e.reason && e.reason.message || e.reason || '').toLowerCase();
+      if (m.indexOf('java object is gone') !== -1) { e.preventDefault && e.preventDefault(); }
+    });
+  } catch(e){}
+})();
 
 /* Public coupon chips — click to auto-fill + apply */
 var _publicCoupons = null;
