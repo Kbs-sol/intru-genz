@@ -36,9 +36,10 @@ export function buildGtmBody(gtmId?: string): string {
   return `<!-- Google Tag Manager (noscript) --><noscript><iframe src="https://www.googletagmanager.com/ns.html?id=${id}" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript><!-- End Google Tag Manager (noscript) -->`;
 }
 
-function buildAnalytics(ga4Id?: string, clarityId?: string): string {
+function buildAnalytics(ga4Id?: string, clarityId?: string, metaPixelId?: string): string {
   const ga = (ga4Id || '').trim();
   const clarity = (clarityId || '').trim();
+  const fbId = (metaPixelId || '').trim();
   const gaSnippet = ga ? `
 <!-- Google Analytics 4 (GA4) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=${ga}"></script>
@@ -52,45 +53,106 @@ gtag('config','${ga}',{anonymize_ip:true,send_page_view:true});
 <script type="text/javascript">
 (function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y)})(window,document,"clarity","script","${clarity}");
 </script>` : '';
+  // Meta (Facebook) Pixel — client-side ID-based deduplication with CAPI.
+  // Each event fires with an event_id; the same event_id is sent to the CAPI endpoint
+  // /api/meta/capi so Meta can dedupe browser+server events (recommended by Meta docs).
+  const fbSnippet = fbId ? `
+<!-- Meta Pixel -->
+<script>
+!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '${fbId}');
+fbq('track', 'PageView');
+</script>
+<noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=${fbId}&ev=PageView&noscript=1"/></noscript>
+<!-- End Meta Pixel -->` : '';
   // Unified tracking helper — always defined so funnel hooks never throw.
+  // Maps a single window.track() call into GA4 + Clarity + Meta Pixel + server beacon (which
+  // in turn hits Meta CAPI). Every event carries an event_id for browser↔server dedup.
   const helper = `
 <!-- Intru unified analytics helper -->
 <script>
-// Clarity smart-event names are case-sensitive and must match those defined in
-// the Clarity dashboard. GA4 conventions use lower_snake_case. This map lets a
-// single window.track() call satisfy BOTH: GA4 gets the lowercase name, Clarity
-// gets the exact dashboard name (and both, when they differ, are sent to Clarity).
 var CLARITY_EVENT_ALIAS={
   'purchase':'Purchase',
   'login':'Login',
   'contact':'Contact us',
   'contact_us':'Contact us'
 };
+// GA4 event → Meta Pixel Standard Event mapping (docs.facebook.com/marketing-api/conversions-api)
+var META_EVENT_ALIAS={
+  'page_view':'PageView',
+  'view_item':'ViewContent',
+  'view_content':'ViewContent',
+  'add_to_cart':'AddToCart',
+  'begin_checkout':'InitiateCheckout',
+  'initiate_checkout':'InitiateCheckout',
+  'purchase':'Purchase',
+  'add_payment_info':'AddPaymentInfo',
+  'add_to_wishlist':'AddToWishlist',
+  'search':'Search',
+  'lead':'Lead',
+  'identify':'Lead',
+  'contact':'Contact',
+  'contact_us':'Contact',
+  'complete_registration':'CompleteRegistration',
+  'sign_up':'CompleteRegistration',
+  'login':'Contact',
+  'subscribe':'Subscribe',
+  'view_category':'ViewContent'
+};
+function _genEventId(){
+  try{
+    if(window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  }catch(_){}
+  return 'evt_'+Date.now()+'_'+Math.random().toString(36).slice(2,10);
+}
 window.track=function(name,params){
   try{params=params||{};
+    var eventId=params.event_id||_genEventId();
+    params.event_id=eventId;
+    // GA4
     if(typeof window.gtag==='function'){window.gtag('event',name,params);}
+    // Clarity (custom event + tag)
     if(typeof window.clarity==='function'){
-      // Fire the exact Clarity name (aliased if needed) plus the raw name for redundancy.
       var cName=CLARITY_EVENT_ALIAS[name]||name;
       window.clarity('event',cName);
       if(cName!==name){try{window.clarity('event',name);}catch(_e){}}
-      // Attach key funnel values as Clarity custom tags for segmentation/filtering.
       try{
         if(params.value!=null)window.clarity('set',cName+'_value',String(params.value));
         if(params.item_id)window.clarity('set','item_id',String(params.item_id));
       }catch(_e){}
     }
+    // Meta Pixel (client-side) with event_id for CAPI dedup
+    if(typeof window.fbq==='function'){
+      var metaName=META_EVENT_ALIAS[name]||'CustomEvent';
+      var metaParams={};
+      if(params.value!=null){metaParams.value=Number(params.value)||0;metaParams.currency=params.currency||'INR';}
+      if(params.item_id)metaParams.content_ids=[String(params.item_id)];
+      if(params.items && Array.isArray(params.items)){
+        metaParams.content_ids=params.items.map(function(i){return String(i.item_id||i.id||'')}).filter(Boolean);
+        metaParams.contents=params.items.map(function(i){return{id:String(i.item_id||i.id||''),quantity:Number(i.quantity)||1,item_price:Number(i.price||i.item_price)||0}});
+        metaParams.num_items=params.items.reduce(function(s,i){return s+(Number(i.quantity)||1)},0);
+      }
+      if(name==='view_item'||name==='view_content')metaParams.content_type='product';
+      if(name==='search'&&params.search_term)metaParams.search_string=params.search_term;
+      if(metaName==='CustomEvent'){
+        try{window.fbq('trackCustom',name,metaParams,{eventID:eventId});}catch(_e){}
+      } else {
+        try{window.fbq('track',metaName,metaParams,{eventID:eventId});}catch(_e){}
+      }
+    }
+    // Internal beacon → server drives Meta CAPI (server-side, dedup by event_id)
     if(navigator&&navigator.sendBeacon){
-      var b=new Blob([JSON.stringify({event:name,meta:params})],{type:'application/json'});
+      var payload={event:name,meta:params,event_id:eventId,event_time:Math.floor(Date.now()/1000),url:location.href,user_agent:navigator.userAgent};
+      var b=new Blob([JSON.stringify(payload)],{type:'application/json'});
       navigator.sendBeacon('/api/analytics/event',b);
     }
   }catch(e){}
 };
 </script>`;
-  return gaSnippet + claritySnippet + helper;
+  return gaSnippet + claritySnippet + fbSnippet + helper;
 }
 
-export function buildHead(title: string, desc: string, opt: { og?: string, url?: string, canonical?: string, type?: string, productPrice?: number, productAvailability?: string, productName?: string, articleSection?: string, ga4Id?: string, clarityId?: string, gtmId?: string } = {}): string {
+export function buildHead(title: string, desc: string, opt: { og?: string, url?: string, canonical?: string, type?: string, productPrice?: number, productAvailability?: string, productName?: string, articleSection?: string, ga4Id?: string, clarityId?: string, gtmId?: string, metaPixelId?: string } = {}): string {
   const url = opt.url || 'https://intru.in';
   const og = opt.og || 'https://intru.in/og-default.jpg';
   const canonical = opt.canonical || url;
@@ -255,7 +317,7 @@ ${isProduct && opt.productPrice ? `<meta property="product:price:amount" content
 <!-- Cloudflare Web Analytics -->
 <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "76ec4808383a48e7ba66288f6ea0317e"}'></script>
 <!-- End Cloudflare Web Analytics -->
-${buildAnalytics(opt.ga4Id, opt.clarityId)}`;
+${buildAnalytics(opt.ga4Id, opt.clarityId, opt.metaPixelId)}`;
 }
 
 export function shell(
@@ -296,6 +358,7 @@ export function shell(
   const ss = opt?.storeSettings || {};
   const ga4Id = opt?.ga4Id || ss.GA4_MEASUREMENT_ID || '';
   const clarityId = opt?.clarityId || ss.CLARITY_PROJECT_ID || '';
+  const metaPixelId = opt?.metaPixelId || ss.META_PIXEL_ID || '';
   // GTM container (config-driven). Default to the brand container; admins can
   // override via the GTM_CONTAINER_ID store setting / Cloudflare env, or set it
   // to 'off'/'' to disable. GTM is independent of GA4 — both can run together.
@@ -315,7 +378,7 @@ export function shell(
 
   return `<!DOCTYPE html><html lang="en"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-${buildHead(title, desc, { og, url, type: opt?.pageType, productPrice: opt?.productPrice, productAvailability: opt?.productAvailability, productName: opt?.productName, ga4Id, clarityId, gtmId })}
+${buildHead(title, desc, { og, url, type: opt?.pageType, productPrice: opt?.productPrice, productAvailability: opt?.productAvailability, productName: opt?.productName, ga4Id, clarityId, gtmId, metaPixelId })}
 ${opt?.schema ? '<script type="application/ld+json">' + opt.schema + '</script>' : ''}
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Archivo+Black&display=swap" rel="stylesheet">

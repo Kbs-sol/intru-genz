@@ -2703,6 +2703,21 @@ app.post('/api/store-credit', async (c: Context<{ Bindings: Bindings }>) => {
 })
 
 // ============ AI STYLIST API [AG] ============
+// Hardened chain — reads keys from Cloudflare env FIRST (survives Supabase
+// RLS / store_settings misconfig), then falls back to store_settings.
+// The failure mode of "3 providers configured but chain still returns 503"
+// was: only anon key available + RLS on store_settings → all 3 keys read
+// as null. Env-first fixes that decisively.
+
+async function resolveAIKey(c: Context<{ Bindings: Bindings }>, envName: string, settingKey: string): Promise<string> {
+  const envVal = getEnv(c.env, envName as any);
+  if (envVal) return envVal;
+  const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+  const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY') || getEnv(c.env, 'SUPABASE_ANON_KEY');
+  if (!sbUrl || !sbKey) return '';
+  const v = await fetchStoreSetting(sbUrl, sbKey, settingKey);
+  return v || '';
+}
 
 app.post('/api/ai/chat', async (c: Context<{ Bindings: Bindings }>) => {
   const { messages } = await c.req.json();
@@ -2712,17 +2727,17 @@ app.post('/api/ai/chat', async (c: Context<{ Bindings: Bindings }>) => {
   const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY') || getEnv(c.env, 'SUPABASE_ANON_KEY');
   const sbAnon = getEnv(c.env, 'SUPABASE_ANON_KEY');
 
-  // 1. Fetch AI Config from DB
+  // 1. Resolve AI keys — env vars first, then Supabase store_settings.
   const [orKey, orModel, gqKey, gqModel, gmKey, sysPrompt] = await Promise.all([
-    fetchStoreSetting(sbUrl, sbKey, 'AI_OPENROUTER_KEY'),
-    fetchStoreSetting(sbUrl, sbKey, 'AI_OPENROUTER_MODEL'),
-    fetchStoreSetting(sbUrl, sbKey, 'AI_GROQ_KEY'),
-    fetchStoreSetting(sbUrl, sbKey, 'AI_GROQ_MODEL'),
-    fetchStoreSetting(sbUrl, sbKey, 'AI_GEMINI_KEY'),
-    fetchStoreSetting(sbUrl, sbKey, 'AI_SYSTEM_PROMPT'),
+    resolveAIKey(c, 'AI_OPENROUTER_KEY', 'AI_OPENROUTER_KEY'),
+    resolveAIKey(c, 'AI_OPENROUTER_MODEL', 'AI_OPENROUTER_MODEL'),
+    resolveAIKey(c, 'AI_GROQ_KEY', 'AI_GROQ_KEY'),
+    resolveAIKey(c, 'AI_GROQ_MODEL', 'AI_GROQ_MODEL'),
+    resolveAIKey(c, 'AI_GEMINI_KEY', 'AI_GEMINI_KEY'),
+    resolveAIKey(c, 'AI_SYSTEM_PROMPT', 'AI_SYSTEM_PROMPT'),
   ]);
 
-  // 2. Fetch LIVE product catalog for context
+  // 2. Fetch LIVE product catalog for context.
   const { products: liveProducts } = await fetchProducts(sbUrl, sbKey, sbAnon);
   const productContext = liveProducts.map(p => {
     const stockInfo = p.sizeStock ? Object.entries(p.sizeStock).map(([sz, qty]) => `${sz}:${qty}`).join(', ') : 'untracked';
@@ -2731,76 +2746,192 @@ app.post('/api/ai/chat', async (c: Context<{ Bindings: Bindings }>) => {
     return `- ${p.name} (Rs.${p.price}): ${p.tagline}. Slug: ${p.slug}. Sizes: ${p.sizes.join(',')}. Stock: ${stockInfo}. Status: ${availability}`;
   }).join('\n');
 
-  // 3. Build Context Aware Prompt — use %%PRODUCT_CARD:slug%% markers
-  const fullSystemPrompt = (sysPrompt || `You are the official INTRU.IN AI Stylist — a premium streetwear advisor.`)
-    + `\n\nCORE BRAND INFO:\n- Store Name: ${STORE_CONFIG.name}\n- Style: Premium Streetwear, No Restocks, Limited Drops.\n- Current Live Inventory:\n${productContext}\n\nRULES:\n- Be stylish, helpful, and concise.\n- Always recommend specific products from the live inventory above.\n- When recommending a product, include the marker %%PRODUCT_CARD:slug%% on its own line (replace "slug" with the actual product slug).\n- STRICT RULE: You are a Stylist, NOT a developer or support agent. DO NOT answer technical questions.\n- If a user reports a bug, APOLOGIZE and tell them to email shop@intru.in for technical support.\n- Never recommend sold out products unless asked about them specifically.`;
+  // 3. Build brand-aligned context prompt (no "premium" positioning).
+  const baseSystem = sysPrompt || `You are the INTRU.IN Stylist — a friendly, opinionated streetwear advisor for a small Indian minimalist streetwear brand. Speak like a stylish friend, not a corporate bot.`;
+  const fullSystemPrompt = baseSystem + `
+
+CORE BRAND INFO:
+- Store Name: ${STORE_CONFIG.name}
+- Positioning: minimalist streetwear for individuals — clean, intentional, oversized tees designed to feel like YOU
+- Model: limited drops, never restocked. When it's gone, it's gone.
+- Where the brand ships: India only right now.
+- Contact for anything the stylist can't answer: DM Instagram @intru.in (fastest), or email shop@intru.in.
+
+LIVE INVENTORY (only recommend these, never invent products):
+${productContext || '- (no products loaded — apologize and ask the customer to browse the shop)'}
+
+RULES:
+- Keep answers short, direct, useful. 2–4 sentences unless the customer asks for detail.
+- When recommending a piece, put the marker %%PRODUCT_CARD:slug%% on its OWN line (replace 'slug' with the actual product slug from above). Never put the marker inside prose.
+- Never recommend sold-out items unless the customer explicitly asks about them.
+- Do not answer technical / bug / policy questions in depth — say "DM us on Instagram @intru.in for the fastest reply" and stop.
+- Do NOT use the word "premium". Talk about intentional design, oversized fit, heavyweight cotton, limited drops.
+- If asked "when's the next drop / new drop?", say honestly: "We don't pre-announce drop dates — follow @intru.in on Instagram to be the first to know."
+- If a user asks about sizing, remind them our fits are true oversized (built-in drop shoulder + longer body). Direct them to the size chart on the product page.`;
 
   const payload = {
     model: orModel || 'google/gemini-2.0-flash-001',
     messages: [{ role: 'system', content: fullSystemPrompt }, ...messages],
     temperature: 0.7,
+    max_tokens: 500,
   };
 
-  // 3. Multi-Provider Fallback Logic
-  // Try OpenRouter -> Groq -> Gemini Direct
-  const debugInfo: any = { keys: { or: !!orKey, gq: !!gqKey, gm: !!gmKey } };
+  // 4. Provider chain — OpenRouter → Groq → Gemini Direct.
+  const debugInfo: any = { keys: { or: !!orKey, gq: !!gqKey, gm: !!gmKey }, tried: [] as any[] };
 
   // Provider 1: OpenRouter
   if (orKey) {
+    debugInfo.tried.push('openrouter');
     try {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 20000);
       const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${orKey}`, 'Content-Type': 'application/json' },
+        headers: {
+          'Authorization': `Bearer ${orKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://intru.in',
+          'X-Title': 'Intru Stylist',
+        },
         body: JSON.stringify(payload),
+        signal: ctrl.signal,
       });
+      clearTimeout(t);
       if (res.ok) {
         const data = await res.json() as any;
-        return c.json({ content: data.choices[0].message.content, provider: 'openrouter' });
+        const content = data?.choices?.[0]?.message?.content;
+        if (content) return c.json({ content, provider: 'openrouter' });
+        debugInfo.orError = 'empty response body';
       } else {
-        debugInfo.orError = await res.text();
+        debugInfo.orError = `HTTP ${res.status}: ${(await res.text()).slice(0, 300)}`;
       }
-    } catch (e) { debugInfo.orFailed = String(e); }
+    } catch (e: any) { debugInfo.orFailed = String(e?.message || e); }
   }
 
   // Provider 2: Groq
   if (gqKey) {
+    debugInfo.tried.push('groq');
     try {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 20000);
       const gqPayload = { ...payload, model: gqModel || 'llama-3.3-70b-versatile' };
       const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${gqKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(gqPayload),
+        signal: ctrl.signal,
       });
+      clearTimeout(t);
       if (res.ok) {
         const data = await res.json() as any;
-        return c.json({ content: data.choices[0].message.content, provider: 'groq' });
+        const content = data?.choices?.[0]?.message?.content;
+        if (content) return c.json({ content, provider: 'groq' });
+        debugInfo.gqError = 'empty response body';
       } else {
-        debugInfo.gqError = await res.text();
+        debugInfo.gqError = `HTTP ${res.status}: ${(await res.text()).slice(0, 300)}`;
       }
-    } catch (e) { debugInfo.gqFailed = String(e); }
+    } catch (e: any) { debugInfo.gqFailed = String(e?.message || e); }
   }
 
-  // Provider 3: Gemini Direct (Fallback)
+  // Provider 3: Gemini Direct
   if (gmKey) {
+    debugInfo.tried.push('gemini');
     try {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 20000);
+      // Flatten to Gemini's contents format — include ALL messages, not just the last one.
+      const contents = [
+        { role: 'user', parts: [{ text: fullSystemPrompt }] },
+        { role: 'model', parts: [{ text: 'Understood. I will follow those rules.' }] },
+        ...messages.map((m: any) => ({
+          role: m.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: String(m.content || '') }],
+        })),
+      ];
       const gmUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${gmKey}`;
       const res = await fetch(gmUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ role: 'user', parts: [{ text: fullSystemPrompt + "\n\nUser Question: " + (messages[messages.length - 1].content) }] }]
-        }),
+        body: JSON.stringify({ contents, generationConfig: { temperature: 0.7, maxOutputTokens: 500 } }),
+        signal: ctrl.signal,
       });
+      clearTimeout(t);
       if (res.ok) {
         const data = await res.json() as any;
-        return c.json({ content: data.candidates[0].content.parts[0].text, provider: 'gemini' });
+        const content = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (content) return c.json({ content, provider: 'gemini' });
+        debugInfo.gmError = 'empty response body';
       } else {
-        debugInfo.gmError = await res.text();
+        debugInfo.gmError = `HTTP ${res.status}: ${(await res.text()).slice(0, 300)}`;
       }
-    } catch (e) { debugInfo.gmFailed = String(e); }
+    } catch (e: any) { debugInfo.gmFailed = String(e?.message || e); }
   }
 
-  return c.json({ error: 'Stylist currently busy on a shoot. Try again later.', debug: debugInfo }, 503);
+  // No provider succeeded — return graceful text so the chat still feels alive.
+  const graceful = liveProducts.length
+    ? `Sorry, the stylist is offline right now. Meanwhile, if you're looking for a starting point, our most-loved piece is %%PRODUCT_CARD:${liveProducts[0].slug}%% — or DM us on Instagram @intru.in for a fast reply.`
+    : `Sorry, the stylist is offline right now. DM us on Instagram @intru.in for a fast reply.`;
+  return c.json({ content: graceful, provider: 'fallback', debug: debugInfo }, 200);
+});
+
+// Public-safe health check — returns which providers are configured but NEVER exposes the actual key.
+// Admin-only route (requires x-admin-token) to help diagnose the stylist without leaking secrets.
+app.get('/api/admin/ai/health', async (c: Context<{ Bindings: Bindings }>) => {
+  const [orKey, gqKey, gmKey] = await Promise.all([
+    resolveAIKey(c, 'AI_OPENROUTER_KEY', 'AI_OPENROUTER_KEY'),
+    resolveAIKey(c, 'AI_GROQ_KEY', 'AI_GROQ_KEY'),
+    resolveAIKey(c, 'AI_GEMINI_KEY', 'AI_GEMINI_KEY'),
+  ]);
+  // Live-probe each configured provider with a tiny "ping" request.
+  const results: any = {
+    openrouter: { configured: !!orKey, live: null, error: null },
+    groq: { configured: !!gqKey, live: null, error: null },
+    gemini: { configured: !!gmKey, live: null, error: null },
+  };
+  const probe = { messages: [{ role: 'user', content: 'ping' }], model: '', temperature: 0.1, max_tokens: 5 };
+
+  async function timedFetch(url: string, init: RequestInit, ms = 8000) {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), ms);
+    try { return await fetch(url, { ...init, signal: ctrl.signal }); }
+    finally { clearTimeout(t); }
+  }
+
+  if (orKey) {
+    try {
+      const r = await timedFetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${orKey}`, 'Content-Type': 'application/json', 'HTTP-Referer': 'https://intru.in', 'X-Title': 'Intru Health' },
+        body: JSON.stringify({ ...probe, model: 'google/gemini-2.0-flash-001' }),
+      });
+      results.openrouter.live = r.ok;
+      if (!r.ok) results.openrouter.error = `HTTP ${r.status}: ${(await r.text()).slice(0, 200)}`;
+    } catch (e: any) { results.openrouter.live = false; results.openrouter.error = String(e?.message || e); }
+  }
+  if (gqKey) {
+    try {
+      const r = await timedFetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${gqKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...probe, model: 'llama-3.3-70b-versatile' }),
+      });
+      results.groq.live = r.ok;
+      if (!r.ok) results.groq.error = `HTTP ${r.status}: ${(await r.text()).slice(0, 200)}`;
+    } catch (e: any) { results.groq.live = false; results.groq.error = String(e?.message || e); }
+  }
+  if (gmKey) {
+    try {
+      const r = await timedFetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${gmKey}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: 'ping' }] }], generationConfig: { maxOutputTokens: 5 } }),
+      });
+      results.gemini.live = r.ok;
+      if (!r.ok) results.gemini.error = `HTTP ${r.status}: ${(await r.text()).slice(0, 200)}`;
+    } catch (e: any) { results.gemini.live = false; results.gemini.error = String(e?.message || e); }
+  }
+
+  const anyLive = ['openrouter', 'groq', 'gemini'].some(k => results[k].live === true);
+  return c.json({ success: true, chainHealthy: anyLive, providers: results });
 });
 
 // ============ ADMIN: Per-Cart Abandoned Cart Trigger [AG Phase2] ============

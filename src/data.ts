@@ -75,6 +75,17 @@ export interface Env {
   OPENAI_BASE_URL: string;    // optional override (OpenAI-compatible endpoint)
   OPENAI_MODEL: string;       // optional model override (default gpt-4o-mini)
   MANAGER_EMAIL: string;      // report recipient (defaults to shop@intru.in)
+  // AI Stylist provider keys — env vars win over store_settings (survives Supabase RLS misconfig)
+  AI_OPENROUTER_KEY: string;
+  AI_OPENROUTER_MODEL: string;
+  AI_GROQ_KEY: string;
+  AI_GROQ_MODEL: string;
+  AI_GEMINI_KEY: string;
+  AI_SYSTEM_PROMPT: string;
+  // Meta Pixel + Conversions API — for Meta Ads attribution
+  META_PIXEL_ID: string;              // e.g. 1234567890
+  META_CAPI_ACCESS_TOKEN: string;     // long-lived access token from Meta Business Manager
+  META_CAPI_TEST_EVENT_CODE: string;  // optional — for /events?test_event_code=... during setup
 }
 
 // ============ STORE CONFIG (static — never changes at runtime) ============
