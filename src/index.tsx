@@ -39,6 +39,36 @@ function getEnv(env: Bindings, key: keyof Env, fallback?: string): string {
   return (env as any)[key] || fallback || '';
 }
 
+// ============ LIGHTWEIGHT RATE LIMITER [AUDIT-2026-08-21] ============
+// Per-isolate sliding-window rate limiter keyed by IP. Zero-cost, no external
+// service. Not distributed — each Worker isolate has its own view, so limits
+// are effectively per-region. Adequate for spam/abuse defense on public
+// endpoints (AI chat, subscribe, analytics) but never for security-critical
+// admin gates (those use x-admin-token). Windowed with automatic pruning so
+// map size stays bounded even under sustained traffic.
+const _rateWindows: Map<string, { count: number; resetAt: number }> = new Map();
+function rateLimit(ip: string, key: string, limit: number, windowMs: number): boolean {
+  const now = Date.now();
+  const bucket = `${key}:${ip || 'unknown'}`;
+  const cur = _rateWindows.get(bucket);
+  if (!cur || cur.resetAt < now) {
+    _rateWindows.set(bucket, { count: 1, resetAt: now + windowMs });
+    // opportunistic prune to keep isolate memory bounded
+    if (_rateWindows.size > 5000) {
+      for (const [k, v] of _rateWindows) if (v.resetAt < now) _rateWindows.delete(k);
+    }
+    return true;  // allowed
+  }
+  if (cur.count >= limit) return false;  // blocked
+  cur.count++;
+  return true;
+}
+function clientIp(c: Context<{ Bindings: Bindings }>): string {
+  return c.req.header('cf-connecting-ip')
+    || c.req.header('x-forwarded-for')?.split(',')[0]?.trim()
+    || 'unknown';
+}
+
 // Helper: get common page options
 async function getPageOpts(c: Context<{ Bindings: Bindings }>) {
   const sbUrl = getEnv(c.env, 'SUPABASE_URL');
@@ -1140,6 +1170,11 @@ async function sendMetaCAPI(env: any, params: {
 }
 
 app.post('/api/analytics/event', async (c: Context<{ Bindings: Bindings }>) => {
+  // Log-flood defense: 300 events per IP per minute. Real sessions rarely exceed
+  // 50; this only kills obvious flooders. Silent 204 (never breaks UI).
+  if (!rateLimit(clientIp(c), 'analytics', 300, 60 * 1000)) {
+    return c.body(null, 204);
+  }
   const sbUrl = getEnv(c.env, 'SUPABASE_URL');
   const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY') || getEnv(c.env, 'SUPABASE_ANON_KEY');
 
@@ -1482,6 +1517,12 @@ app.post('/api/checkout', async (c: Context<{ Bindings: Bindings }>) => {
 // ============ CHECKOUT: COD (custom form) ============
 
 app.post('/api/checkout/cod', async (c: Context<{ Bindings: Bindings }>) => {
+  // Fake-order/spam defense: 8 COD placements per IP per hour. Real customers
+  // never hit this; bots that mass-place fake COD orders (top attack we saw)
+  // will now be blocked. Emails are throttled separately by checkResendGuard.
+  if (!rateLimit(clientIp(c), 'cod', 8, 60 * 60 * 1000)) {
+    return c.json({ error: 'Too many orders from this network. Contact us on Instagram @intru.in if this is a mistake.' }, 429);
+  }
   try {
     const body = await c.req.json();
     const items = body.items;
@@ -2086,9 +2127,13 @@ app.post('/api/auth/google-userinfo', async (c: Context<{ Bindings: Bindings }>)
 })
 
 app.post('/api/auth/magic-link', async (c: Context<{ Bindings: Bindings }>) => {
+  // Email-send abuse defense: 5 magic-link sends per IP per hour.
+  if (!rateLimit(clientIp(c), 'magic_link', 5, 60 * 60 * 1000)) {
+    return c.json({ error: 'Too many sign-in attempts. Wait an hour or DM us on Instagram @intru.in.' }, 429);
+  }
   try {
     const { email } = await c.req.json();
-    if (!email || !email.includes('@')) return c.json({ error: 'Valid email required' }, 400);
+    if (!email || !email.includes('@') || email.length > 254) return c.json({ error: 'Valid email required' }, 400);
     const sbUrl = getEnv(c.env, 'SUPABASE_URL');
     const sbKey = getEnv(c.env, 'SUPABASE_ANON_KEY');
     if (sbUrl && sbKey) {
@@ -2286,9 +2331,14 @@ app.get('/api/user/orders', async (c: Context<{ Bindings: Bindings }>) => {
 // ============ COUPONS: Validation [AG v15.2] ============
 
 app.post('/api/coupons/validate', async (c: Context<{ Bindings: Bindings }>) => {
+  // Coupon-enumeration defense: 30 validations per IP per 10min. Enough for
+  // real users experimenting, blocks brute-force dictionary attacks on codes.
+  if (!rateLimit(clientIp(c), 'coupon', 30, 10 * 60 * 1000)) {
+    return c.json({ error: 'Too many attempts. Try again shortly.' }, 429);
+  }
   try {
     const { code, total } = await c.req.json();
-    if (!code) return c.json({ error: 'Code required' }, 400);
+    if (!code || typeof code !== 'string' || code.length > 40) return c.json({ error: 'Code required' }, 400);
 
     const sbUrl = getEnv(c.env, 'SUPABASE_URL');
     const sbKey = getEnv(c.env, 'SUPABASE_ANON_KEY');
@@ -2907,9 +2957,14 @@ app.delete('/api/admin/instagram-feed/:id', async (c: Context<{ Bindings: Bindin
 // ============ SUBSCRIBERS ("Notify Me") ============
 
 app.post('/api/subscribe', async (c: Context<{ Bindings: Bindings }>) => {
+  // Spam defense: 10 subscribes per IP per hour. Blocks form-spammers hammering
+  // the endpoint. Legitimate visitors subscribe once.
+  if (!rateLimit(clientIp(c), 'subscribe', 10, 60 * 60 * 1000)) {
+    return c.json({ error: 'Too many attempts. Try again later.' }, 429);
+  }
   try {
     const { email } = await c.req.json();
-    if (!email || !email.includes('@')) return c.json({ error: 'Valid email required' }, 400);
+    if (!email || !email.includes('@') || email.length > 254) return c.json({ error: 'Valid email required' }, 400);
     const sbUrl = getEnv(c.env, 'SUPABASE_URL');
     const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY') || getEnv(c.env, 'SUPABASE_ANON_KEY');
     if (sbUrl && sbKey) {
@@ -2962,8 +3017,20 @@ async function resolveAIKey(c: Context<{ Bindings: Bindings }>, envName: string,
 }
 
 app.post('/api/ai/chat', async (c: Context<{ Bindings: Bindings }>) => {
+  // Abuse defense: 20 LLM calls per IP per 5-minute window. Prevents credit drain
+  // if a bot loops the endpoint. Legitimate stylist sessions are well under this.
+  if (!rateLimit(clientIp(c), 'ai_chat', 20, 5 * 60 * 1000)) {
+    return c.json({ error: 'Too many requests — slow down and try again in a few minutes.' }, 429);
+  }
   const { messages } = await c.req.json();
   if (!messages || !messages.length) return c.json({ error: 'No messages' }, 400);
+  // Also cap message payload size: 40 messages max, 4KB per message.
+  if (messages.length > 40) return c.json({ error: 'Conversation too long' }, 413);
+  for (const m of messages) {
+    if (typeof m?.content === 'string' && m.content.length > 4000) {
+      return c.json({ error: 'Message too long' }, 413);
+    }
+  }
 
   const sbUrl = getEnv(c.env, 'SUPABASE_URL');
   const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY') || getEnv(c.env, 'SUPABASE_ANON_KEY');

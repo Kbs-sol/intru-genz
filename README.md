@@ -4,12 +4,145 @@
 - **Name**: intru.in
 - **Goal**: Engineered for High Organic Traffic (SEO) and High Conversion (using deep direct-response psychology)
 - **Stack**: Hono + TypeScript + Cloudflare Pages + Supabase + Razorpay + Resend
-- **Version**: v17 (Date: July 2, 2026) — Google Merchant feed, coupon visibility, Instagram-WebView dead-click fix, Clarity smart events, X/Pinterest removal, /style-guide 500 fix
+- **Version**: v18 (Date: August 21, 2026) — Meta Ads (Pixel + CAPI dedup), cookie consent (DPDP-lite), AI Stylist chain recovery via `resolveAIKey`, combo-promo visibility fixes, admin custom email, all-template rewrite (IG-DM first), 30+ "premium" scrubs, Clarity a11y + WebView error fixes, /404 rescue page, GA4 Apps Script exporter, per-IP rate limits on 6 public endpoints
 
 ## URLs
 - **Production**: https://intru-genz.pages.dev (staging) → https://intru.in (custom domain pending)
 - **GitHub**: https://github.com/Kbs-sol/intru-genz
 - **Admin**: Hidden — enter Robust Konami Code (↑↑↓↓←→←→ba) on any page
+
+## v18 Changes (August 21, 2026) — Meta Ads Ready, Conversion Fixes, Data Ops
+This release is a **conversion-rescue + ads-readiness sweep** based on real Clarity + GA4 data (613 sessions, 11.75% dead clicks, 14.68% quick backs, 140 hits to /404, purchase events only 2-3 in 3.5 months). Every change is data-driven.
+
+### AI Stylist — Full Chain Recovery
+- **Root cause**: `SUPABASE_SERVICE_KEY` unset ⇒ RLS blocked anon reads ⇒ all 3 provider keys (OpenRouter/Groq/Gemini) resolved as `null` ⇒ chat 500'd.
+- **Fix**: new `resolveAIKey(c, envName, settingKey)` helper — always tries `c.env[envName]` first, falls back to `store_settings` only if env is empty. Any single key working now unblocks the whole chain.
+- **`GET /api/admin/ai/health`** — live-probe each provider with a 1-token ping. Admin sees ✅ / ❌ per provider without leaving the panel.
+- **System prompt rewrite** — uses the new authoritative brand voice (no more "premium"): *"minimalist streetwear for individuals — clean, intentional, oversized tees designed to feel like YOU"*. Product context is pulled live from Supabase every request.
+- **Timeouts + graceful fallback** — every provider call is `AbortController`-guarded; the failure of one triggers the next in the chain.
+
+### Meta Ads (Pixel + Conversions API) — Ready for Ads Manager
+- **Meta Pixel** installed via `src/components/shell.ts` (`buildAnalytics()`) — standard `fbq('init', PIXEL_ID)` + `PageView` + `<noscript>` fallback.
+- **Server-side Conversions API** (`sendMetaCAPI()` in `src/index.tsx`) POSTs to `graph.facebook.com/v18.0/{PIXEL_ID}/events` for **every** funnel event with SHA-256-hashed email/phone + IP + UA + `_fbp` + `_fbc` cookies.
+- **Browser ↔ server dedup** — the same `event_id` UUID is passed to both `fbq()` (client) and CAPI (server). Meta stitches them into one event ⇒ **zero double-counting** in Ads Manager.
+- **Event alias map** (`META_EVENT_ALIAS`) — translates our internal names (`add_to_cart`, `identify`, `checkout_start`, `payment_success`) to Meta Standard Events (`AddToCart`, `Lead`, `InitiateCheckout`, `Purchase`).
+- **Test Events** — set `META_CAPI_TEST_EVENT_CODE` env to route into Meta's Test Events panel while wiring ads.
+- **Zero-TTFB dispatch** — CAPI POSTs happen inside `c.executionCtx.waitUntil()` so pages stay instant.
+
+### Cookie Consent — India DPDP-lite, non-invasive
+- **Bottom ribbon** (never a full-screen block) appears 1.8s after page load.
+- **Analytics-by-default** (GA4 + Clarity load immediately — legitimate interest).
+- **Meta Pixel is opt-out** — loaded only if `localStorage.intru_analytics_consent !== '0'`. Deferred via `window._intruLoadFbq`.
+- **Decline** ⇒ beacon adds `no_capi:1` and server skips `sendMetaCAPI()`. Fully honored.
+
+### Promo Visibility — the SILENT KILLER of your conversions
+Clarity data showed the "FINAL CLEARANCE / Any 3 for ₹1499 AUTO-APPLIED" combo was **invisible** to users:
+- **Combo progress bar** — now **always visible** when cart isn't yet 3 items ("Add X more to unlock ₹1499 clearance"), not just at 2/3.
+- **Clickable top combo bar** — every item in the promo bar links to `/collections` with `promo_bar_click` tracking. Final CTA is a real button, not passive text.
+- **Cart drawer promo box** — gradient background + "🎁 SAVE MORE" chip + `#publicCoupons` chip area for quick-apply of active codes.
+- **`GET /api/coupons/public`** — returns codes where `is_public=true` (falls back to 2 newest active codes). Cart drawer renders them as one-click chips.
+- **Enhanced 404 handler** — `140 views to /404` in GA4 is a huge leak. The handler now logs every hit to `funnel_events` (find the broken links in admin) and renders a **3-CTA rescue page** (Collections / AI Stylist / Instagram DM) with the combo callout + `noindex`.
+
+### Admin Panel — Order-management upgrades
+- **Orders table** now has a **Date & Time column** with relative time (Xm/Xh/Xd ago) + full IST timestamp; 🔥 badge on orders <24h old.
+- **Newest-first sort** — no more scrolling to find today's orders.
+- **COD Verified badge** — visual pill next to status for verified COD orders.
+- **"Send Custom Email" button** per order — opens compose modal ⇒ `POST /api/admin/orders/:id/email` fires branded HTML email via Resend, logs to `funnel_events` for audit.
+
+### Email Templates — All 5 rewritten
+- **Instagram DM first** — every footer has a gradient "📩 DM us on Instagram" button.
+- **No more "Reply to this email" or "shop@intru.in"** verbiage (was confusing customers).
+- **Grievance officer email** embedded as HTML comment `<!-- Grievance officer: grievance@intru.in -->` (compliance-visible, user-invisible).
+- **New brand tagline** in headers, IST timestamps in manager alerts.
+
+### SEO / GEO scrub
+- 30+ occurrences of "premium" replaced with **authoritative brand copy**: *"Tired of everyone wearing the same thing? Intru is minimalist streetwear for individuals — clean, intentional, oversized tees designed to feel like YOU"* across `data.ts` (SEED_PRODUCTS + blog + emails), all page files, JSON-LD, `llms.txt`, sitemap captions.
+- Product spec: "Premium 240 GSM" ⇒ "240 GSM heavyweight cotton".
+
+### Clarity Findings — Fixed
+- **Dead clicks 11.75%** (target <2%): `initA11yNormalizer()` IIFE in shell.ts adds `role="button" tabindex="0"` to 13 non-button clickable divs/spans + a `MutationObserver` for dynamic content + keyboard binding.
+- **JS errors 3.1%** — top errors ("java object is gone", "java exception was raised during postmessage") come from `InstagramApp`/`GoogleApp` WebView bridges (36% of Indian mobile users). Now swallowed by a targeted `window.onerror` handler — not our bugs, don't spam Clarity.
+- **Singapore 1005 sessions vs 4 real in Clarity** — GA4 doesn't filter bots. Meta Pixel + Clarity already do. Loop-agent detection covers the rest.
+
+### Security & Abuse Hardening
+Full audit + fixes:
+- **Rate limiting** (per-IP, per-isolate sliding window) added to 6 public endpoints:
+  - `/api/ai/chat` — 20 calls / 5min (LLM cost defense)
+  - `/api/analytics/event` — 300 / 1min (log flood defense; silent 204 fail)
+  - `/api/subscribe` — 10 / 1hr (spam)
+  - `/api/auth/magic-link` — 5 / 1hr (email-send abuse)
+  - `/api/checkout/cod` — 8 / 1hr (fake order defense)
+  - `/api/coupons/validate` — 30 / 10min (code enumeration defense)
+- **Input size caps** — AI chat: 40 msgs max, 4KB per msg; coupons: 40 chars max; emails: 254 chars max.
+- **HTML escape** verified on admin custom-email endpoint (XSS defense on order-recipient side).
+- **Admin gate unchanged** — every `/api/admin/*` still requires `x-admin-token` header (middleware at src/index.tsx:2110).
+
+### Data Export — GA4 + Clarity + Supabase
+Google Apps Script at **`tools/GA4_Clarity_Exporter.gs`** pulls everything into a single Google Sheet. See "Analytics Export" section below for setup.
+
+## Environment Variables — Full Secret Reference (v18)
+The new secrets added in v18 for Meta Ads + AI keys sit alongside the existing ones. All are set via `npx wrangler pages secret put <NAME> --project-name intru-in`:
+
+| Secret | Purpose | Required? |
+| --- | --- | --- |
+| `SUPABASE_URL` | Supabase project URL | Yes |
+| `SUPABASE_ANON_KEY` | RLS-limited public key | Yes |
+| `SUPABASE_SERVICE_KEY` | Bypasses RLS (server-only) — **critical for AI Stylist** | Yes |
+| `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` | Payments | Yes |
+| `ADMIN_PASSWORD` | Admin panel auth (also `x-admin-token`) | Yes |
+| `GOOGLE_CLIENT_ID` | One-Tap sign-in | Recommended |
+| `RESEND_API_KEY` | Transactional email | Recommended |
+| `RAZORPAY_WEBHOOK_SECRET` | Webhook HMAC | Recommended |
+| `CRON_SECRET` | Daily AI cron auth | Recommended |
+| `OPENAI_API_KEY` / `AI_OPENROUTER_KEY` / `AI_GROQ_KEY` / `AI_GEMINI_KEY` | AI Stylist provider chain (any one works) | At least one |
+| **`META_PIXEL_ID`** | Meta Pixel + CAPI (e.g. `123456789012345`) | **v18** |
+| **`META_CAPI_ACCESS_TOKEN`** | Server-side CAPI auth | **v18** |
+| **`META_CAPI_TEST_EVENT_CODE`** | Test Events panel (e.g. `TEST12345`) | Optional |
+| `GA4_MEASUREMENT_ID` | GA4 property (`G-XXXXXXX`) | Recommended |
+| `CLARITY_PROJECT_ID` | Clarity project | Recommended |
+| `GTM_CONTAINER_ID` | GTM (defaults to `GTM-PCQCS3JV`) | Optional |
+
+### Meta Ads — Setup in 5 minutes
+1. Meta Business ⇒ Events Manager ⇒ **Copy the 15-digit Pixel ID**. Set `META_PIXEL_ID` secret.
+2. Events Manager ⇒ Settings ⇒ **Conversions API ⇒ Generate Access Token**. Set `META_CAPI_ACCESS_TOKEN` secret.
+3. (Optional) Events Manager ⇒ Test Events ⇒ copy test code. Set `META_CAPI_TEST_EVENT_CODE` (leave unset in production).
+4. Redeploy: `git push origin main` — Cloudflare Pages auto-deploys.
+5. Verify: open intru.in in DevTools → Network → filter `facebook.com/tr` — you should see `PageView` fire. In Events Manager → Test Events, browser + server events with matching `event_id` will show `Deduplicated`.
+
+## Supabase RLS Notes (Critical for AI Stylist)
+The v18 AI Stylist chain reads its provider keys from `store_settings` if `env` is empty. **This requires `SUPABASE_SERVICE_KEY` set** — because the `store_settings` table has RLS enabled and the `anon` role cannot read secret rows. Symptoms of a missing service key: AI chat returns 500 or "no provider configured" even with keys visibly present in Supabase. Fix: `npx wrangler pages secret put SUPABASE_SERVICE_KEY --project-name intru-in` then redeploy.
+
+Public coupons rely on an **`is_public` boolean column** on `coupons`. Migration:
+```sql
+ALTER TABLE public.coupons ADD COLUMN IF NOT EXISTS is_public boolean DEFAULT false;
+-- Mark codes that should show as cart-drawer chips:
+UPDATE public.coupons SET is_public = true WHERE code IN ('CLEARANCE1499', 'WELCOME10');
+```
+
+## Analytics Export — Google Apps Script (v18)
+`tools/GA4_Clarity_Exporter.gs` pulls **all** GA4 (last 730d), Microsoft Clarity (last 3d — API cap), and optionally Supabase `funnel_events` (last 90d) into a Google Sheet.
+
+**One-time setup (10 minutes):**
+1. Create a new Google Sheet. Extensions → Apps Script → paste `tools/GA4_Clarity_Exporter.gs`.
+2. In the Apps Script editor, **Services (+)** → add "Google Analytics Data API" (identifier `AnalyticsData`).
+3. **Project Settings → Script Properties**:
+   - `GA4_PROPERTY_ID` = `properties/<numeric-id>` (find in GA4 Admin → Property Settings)
+   - `CLARITY_API_TOKEN` = from clarity.microsoft.com → Settings → Data Export
+   - `SUPABASE_URL` + `SUPABASE_SERVICE_KEY` (optional — for `funnel_events` dump)
+4. Run `exportAll()` once (approve OAuth). Run `setupTriggers()` for daily 6 AM auto-refresh.
+
+**Sheet tabs created:**
+- `GA4_Users` — country/city/device × totalUsers/newUsers/sessions/engagement
+- `GA4_Events` — every event × count × unique users
+- `GA4_Pages` — pagePath × views × entrances × bounce
+- `GA4_Traffic` — source/medium/campaign × sessions × conversions × revenue
+- `GA4_Ecommerce` — itemName × purchases × views × revenue
+- `GA4_Daily` — day-by-day trend
+- `Clarity_Metrics` / `Clarity_URLs` / `Clarity_Devices` — dead clicks, rage clicks, quick backs, script errors, device split
+- `Supabase_Events` — full funnel_events dump (optional)
+- `_Run_Log` — timestamps, duration, errors
+
+The Apps Script menu **"INTRU Exporter"** appears on sheet open for one-click re-runs of any specific export.
 
 ## Architecture
 
