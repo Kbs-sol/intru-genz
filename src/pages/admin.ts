@@ -141,8 +141,8 @@ export function adminPage(opts: {
 </div>
 <div class="otbl-wrap">
 <table class="otbl">
-<thead><tr><th>Order ID</th><th>Customer Info</th><th>Items</th><th>Pricing</th><th>Status</th><th>Actions</th></tr></thead>
-<tbody id="otbody"><tr><td colspan="6" style="text-align:center;padding:40px;color:var(--g400)">Loading...</td></tr></tbody>
+<thead><tr><th>Order ID</th><th>Date &amp; Time</th><th>Customer Info</th><th>Items</th><th>Pricing</th><th>Status</th><th>Actions</th></tr></thead>
+<tbody id="otbody"><tr><td colspan="7" style="text-align:center;padding:40px;color:var(--g400)">Loading...</td></tr></tbody>
 </table>
 </div>
 </div>
@@ -766,8 +766,36 @@ function loadOrders(){
   });
 }
 
+function fmtOrderDate(iso){
+  if(!iso) return '<span style="color:var(--g400);font-size:10px">—</span>';
+  try {
+    var d = new Date(iso);
+    var now = new Date();
+    var diffMs = now - d;
+    var diffMin = Math.floor(diffMs / 60000);
+    var diffHr = Math.floor(diffMs / 3600000);
+    var diffDay = Math.floor(diffMs / 86400000);
+    var rel = '';
+    if(diffMin < 1) rel = 'just now';
+    else if(diffMin < 60) rel = diffMin + 'm ago';
+    else if(diffHr < 24) rel = diffHr + 'h ago';
+    else if(diffDay < 7) rel = diffDay + 'd ago';
+    else rel = d.toLocaleDateString('en-IN', {day:'2-digit', month:'short'});
+    var full = d.toLocaleString('en-IN', {day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit', hour12:true});
+    var fresh = diffHr < 24;
+    return '<div style="font-size:11px;font-weight:800;color:'+(fresh?'#16a34a':'var(--bk)')+';margin-bottom:3px">'+rel+(fresh?' 🔥':'')+'</div>'
+      +'<div style="font-size:9px;color:var(--g500);font-weight:600;line-height:1.3">'+full+'</div>';
+  } catch(e){ return '<span style="color:var(--g400);font-size:10px">—</span>'; }
+}
+
 function renderOrders(orders){
   if(!orders.length){document.getElementById('otbody').innerHTML='<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--g400)">No orders found.</td></tr>';return}
+  // Sort newest first
+  orders = orders.slice().sort(function(a,b){
+    var ta = a.created_at ? new Date(a.created_at).getTime() : 0;
+    var tb = b.created_at ? new Date(b.created_at).getTime() : 0;
+    return tb - ta;
+  });
   var h='';
   orders.forEach(function(o){
       var items=(o.items||[]).map(function(it){return(it.name||it.productId)+(it.size?' ('+it.size+')':'')+(it.quantity?' x'+it.quantity:'')}).join(', ');
@@ -783,9 +811,13 @@ function renderOrders(orders){
       var custName = o.customer_name || addr.name || (o.customer_email?o.customer_email.split('@')[0]:'—');
       var custPhone = o.customer_phone || addr.phone || addr.contact || '—';
       var isCod=pm==='cod';
+      var oid = o.id || '';
+      var codVerified = o.cod_verified || o.metadata?.cod_verified;
+      var codBadge = isCod ? (codVerified ? '<span class="ostatus ost-cod" style="background:#dcfce7;color:#166534;border:1px solid #86efac">✓ COD VERIFIED</span>' : '<span class="ostatus ost-cod">🚚 COD PENDING</span>') : '<span class="ostatus ost-prepaid">⚡ PREPAID</span>';
       h+='<tr class="'+(isCod?'cod-row':'prepaid-row')+'">'
         +'<td data-label="Order ID" style="min-width:110px"><div style="font-weight:800;font-size:12px;letter-spacing:-0.5px;margin-bottom:6px">#'+(o.razorpay_order_id||o.id||'').slice(-8).toUpperCase()+'</div>'
-        +(isCod ? '<span class="ostatus ost-cod">🚚 COD</span>' : '<span class="ostatus ost-prepaid">⚡ PREPAID</span>') +'</td>'
+        +codBadge+'</td>'
+        +'<td data-label="Date &amp; Time" style="min-width:130px">'+fmtOrderDate(o.created_at)+'</td>'
         +'<td data-label="Customer Info" style="min-width:200px"><div style="font-size:14px;font-weight:800;color:var(--bk);letter-spacing:-0.2px">'+custName+'</div>'
         +'<div style="font-size:11px;color:var(--g600);font-weight:600;margin:4px 0"><i class="fas fa-envelope" style="font-size:9px;width:12px"></i>'+(o.customer_email||'—')+'</div>'
         +'<div style="font-size:11px;color:var(--g600);font-weight:600"><i class="fas fa-phone" style="font-size:9px;width:12px"></i>'+(o.customer_phone||'—')+'</div>'
@@ -793,13 +825,62 @@ function renderOrders(orders){
         +'<td data-label="Items" style="font-size:12px;min-width:180px;color:var(--bk);font-weight:500">'+items+'</td>'
         +'<td data-label="Pricing" style="min-width:110px"><div style="font-weight:800;font-size:15px;color:var(--bk)">Rs.'+(o.total||0).toLocaleString('en-IN')+'</div>'+(o.cod_fee>0?'<div style="font-size:9px;color:#92400e;font-weight:700;margin-top:2px">+ Rs.'+o.cod_fee+' COD handle</div>':'')+'</td>'
         +'<td data-label="Status"> <span class="ostatus ost-'+st+'">'+st+'</span></td>'
-        +'<td data-label="Actions" style="min-width:170px"><select class="oselect" style="width:100%;margin-bottom:8px" onchange="updateOrder(\\x27'+o.id+'\\x27,this.value)">'
+        +'<td data-label="Actions" style="min-width:170px"><select class="oselect" style="width:100%;margin-bottom:8px" onchange="updateOrder(\\x27'+oid+'\\x27,this.value)">'
         +'<option value="">Update Status...</option><option value="paid">Mark Paid</option><option value="processing">Processing</option><option value="shipped">Shipped</option><option value="delivered">Delivered</option><option value="cancelled">Cancelled</option></select>'
         +'<button class="shiprocket-btn" style="width:100%;text-align:center;margin-bottom:6px" onclick="copyShiprocket(\\x27'+custName.replace(/'/g,'')+'\\x27,\\x27'+custPhone+'\\x27,\\x27'+addrStr.replace(/'/g,'')+'\\x27)"><i class="fas fa-copy" style="margin-right:4px"></i>Shiprocket Copy</button>'
-        +(o.customer_email && (st === 'pending' || st === 'placed') ? '<button class="shiprocket-btn" style="width:100%;text-align:center;background:#fef3c7;color:#92400e;border-color:#fcd34d" onclick="sendAbandonedCart(\\x27'+o.id+'\\x27,\\x27'+(o.customer_email||'')+'\\x27,this)"><i class="fas fa-envelope" style="margin-right:4px"></i>Send Recovery Email</button>' : '')
+        +(o.customer_email ? '<button class="shiprocket-btn" style="width:100%;text-align:center;background:#e0e7ff;color:#3730a3;border-color:#a5b4fc;margin-bottom:6px" onclick="openEmailComposer(\\x27'+oid+'\\x27,\\x27'+(o.customer_email||'')+'\\x27,\\x27'+custName.replace(/'/g,'')+'\\x27)"><i class="fas fa-paper-plane" style="margin-right:4px"></i>Send Custom Email</button>' : '')
+        +(o.customer_email && (st === 'pending' || st === 'placed') ? '<button class="shiprocket-btn" style="width:100%;text-align:center;background:#fef3c7;color:#92400e;border-color:#fcd34d" onclick="sendAbandonedCart(\\x27'+oid+'\\x27,\\x27'+(o.customer_email||'')+'\\x27,this)"><i class="fas fa-envelope" style="margin-right:4px"></i>Send Recovery Email</button>' : '')
         +'</td></tr>';
     });
     document.getElementById('otbody').innerHTML = h;
+}
+
+/* ====== CUSTOM EMAIL COMPOSER [AG] ====== */
+function openEmailComposer(orderId, email, name){
+  var existing = document.getElementById('emailComposerModal');
+  if(existing) existing.remove();
+  var modal = document.createElement('div');
+  modal.id = 'emailComposerModal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+  modal.innerHTML = '<div style="background:#fff;border-radius:12px;max-width:560px;width:100%;padding:28px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3)">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">'
+    +'<h2 style="font-family:\\x27Archivo Black\\x27,sans-serif;font-size:16px;margin:0;text-transform:uppercase;letter-spacing:1px">✉️ Compose Email</h2>'
+    +'<button onclick="document.getElementById(\\x27emailComposerModal\\x27).remove()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#666">&times;</button>'
+    +'</div>'
+    +'<div style="font-size:12px;color:#666;margin-bottom:12px"><strong>To:</strong> '+name+' &lt;'+email+'&gt;</div>'
+    +'<label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;color:#333">Subject</label>'
+    +'<input type="text" id="emailSubject" placeholder="e.g. About your Intru order" style="width:100%;padding:12px;border:2px solid #e5e7eb;border-radius:6px;font-size:14px;margin-bottom:16px;box-sizing:border-box">'
+    +'<label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;color:#333">Message</label>'
+    +'<textarea id="emailBody" rows="10" placeholder="Type your message. Line breaks preserved. Instagram DM link auto-added at the footer." style="width:100%;padding:12px;border:2px solid #e5e7eb;border-radius:6px;font-size:14px;font-family:inherit;line-height:1.6;box-sizing:border-box;resize:vertical"></textarea>'
+    +'<div style="font-size:10px;color:#666;margin-top:8px;line-height:1.5">💡 Sent from <strong>shop@intru.in</strong>. Footer auto-includes Instagram DM link. Grievance-officer email is embedded as required by law but not shown as reply option.</div>'
+    +'<div style="display:flex;gap:12px;margin-top:20px">'
+    +'<button onclick="document.getElementById(\\x27emailComposerModal\\x27).remove()" style="flex:1;padding:14px;border:2px solid #e5e7eb;background:#fff;border-radius:6px;font-weight:700;text-transform:uppercase;font-size:11px;letter-spacing:1px;cursor:pointer">Cancel</button>'
+    +'<button id="emailSendBtn" onclick="sendCustomEmail(\\x27'+orderId+'\\x27,\\x27'+email+'\\x27,\\x27'+name.replace(/\\x27/g,'')+'\\x27)" style="flex:2;padding:14px;background:#0a0a0a;color:#fff;border:none;border-radius:6px;font-weight:700;text-transform:uppercase;font-size:11px;letter-spacing:1px;cursor:pointer">Send Email</button>'
+    +'</div></div>';
+  document.body.appendChild(modal);
+}
+function sendCustomEmail(orderId, email, name){
+  var subject = document.getElementById('emailSubject').value.trim();
+  var body = document.getElementById('emailBody').value.trim();
+  if(!subject || !body){ alert('Subject and message are required.'); return; }
+  var btn = document.getElementById('emailSendBtn');
+  btn.disabled = true; btn.textContent = 'Sending...';
+  fetch('/api/admin/orders/'+orderId+'/email', {
+    method: 'POST',
+    headers: { 'content-type':'application/json', 'x-admin-token':sessionStorage.getItem('iadm_t') },
+    body: JSON.stringify({ email: email, name: name, subject: subject, body: body })
+  }).then(function(r){ return r.json(); }).then(function(d){
+    if(d.ok){
+      btn.textContent = '✓ Sent!';
+      setTimeout(function(){ document.getElementById('emailComposerModal').remove(); }, 900);
+    } else {
+      btn.disabled = false; btn.textContent = 'Send Email';
+      alert('Failed: '+(d.error||'unknown error'));
+    }
+  }).catch(function(e){
+    btn.disabled = false; btn.textContent = 'Send Email';
+    alert('Network error: '+e.message);
+  });
 }
 
 /* ====== ANALYTICS [AG v15.4] ====== */

@@ -39,7 +39,7 @@ export function collectionsPage(opts: {
       "@context": "https://schema.org",
       "@type": "CollectionPage",
       "name": "All Collections | Intru — Indian Streetwear",
-      "description": "Shop all exclusive limited-edition streetwear drops by Intru. Premium heavyweight oversized t-shirts, brutalist minimalist designs. Never restocked — buy before it's gone.",
+      "description": "Shop all minimalist streetwear drops by Intru — for individuals who want to stop wearing the same thing as everyone else. Heavyweight oversized t-shirts, brutalist intentional designs. Never restocked — buy before it's gone.",
       "url": "https://intru.in/collections",
       "breadcrumb": {
         "@type": "BreadcrumbList",
@@ -109,7 +109,7 @@ export function collectionsPage(opts: {
 <div class="col-hdr">
 <p class="col-over anim">${isFiltered ? 'Shop ' + matchedCat : 'Shop the Drop'}</p>
 <h1 class="col-title anim d1">${isFiltered ? matchedCat : 'Collections'}</h1>
-<p class="col-sub anim d2">${isFiltered ? 'Premium ' + matchedCat.toLowerCase() + ' — limited-edition Indian streetwear. Never restocked, made in small batches.' : 'Exclusive streetwear, limited edition. Every piece designed for two months, never mass-produced.'}</p>
+<p class="col-sub anim d2">${isFiltered ? 'Heavyweight ' + matchedCat.toLowerCase() + ' — minimalist streetwear for individuals. Never restocked, made in small batches.' : 'Minimalist streetwear for individuals. Every piece designed for two months, never mass-produced.'}</p>
 </div>
 
 <div class="col-filters" id="filters">
@@ -178,8 +178,8 @@ function filterCat(cat, btn) {
 </script>`;
 
   return shell(
-    'Shop All Drops | Intru — Premium Oversized Streetwear India',
-    'Browse every Intru drop. Limited-edition premium heavyweight oversized t-shirts designed in India — small batches, brutalist aesthetics, zero restocks. Free shipping on prepaid orders.',
+    'Shop All Drops | Intru — Minimalist Oversized Streetwear for Individuals India',
+    'Browse every Intru drop. Minimalist streetwear for individuals — heavyweight oversized t-shirts designed in India, small batches, clean intentional aesthetics, zero restocks. Free shipping on prepaid orders.',
     body,
     { url: 'https://intru.in/collections', schema, razorpayKeyId: opts.razorpayKeyId, googleClientId: opts.googleClientId, products, legalPages, useMagicCheckout: !!opts.useMagicCheckout, maintenanceConfig: opts.maintenanceConfig, storeSettings: opts.storeSettings }
   );

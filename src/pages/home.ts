@@ -27,7 +27,7 @@ export function homePage(opts: {
       "@context": "https://schema.org",
       "@type": "ItemList",
       "name": "Intru Drop Catalog — Current Collection",
-      "description": "Exclusive limited-edition streetwear drops by intru.in. Premium heavyweight oversized t-shirts, brutalist Indian streetwear.",
+      "description": "Minimalist streetwear drops by intru.in — for individuals. Heavyweight oversized t-shirts, clean intentional designs, made in India.",
       "url": "https://intru.in/#products",
       "numberOfItems": products.length,
       "itemListElement": products.map((p, i) => ({
@@ -56,7 +56,7 @@ export function homePage(opts: {
       "@type": "Store",
       "name": "Intru",
       "url": "https://intru.in",
-      "description": "India's exclusive limited-edition streetwear brand. Premium heavyweight oversized t-shirts, brutalist designs, zero restocks.",
+      "description": "Minimalist streetwear for individuals. Heavyweight oversized t-shirts, clean intentional designs, zero restocks. Tired of everyone wearing the same thing? Shop Intru.",
       "image": "https://intru.in/og-default.jpg",
       "logo": "https://intru.in/favicon.png",
       "priceRange": "₹899 - ₹2499",
@@ -86,7 +86,7 @@ export function homePage(opts: {
         {
           "@type": "Question",
           "name": "What is Intru?",
-          "acceptedAnswer": { "@type": "Answer", "text": "Intru (intru.in) is India's exclusive limited-edition streetwear brand based in Hyderabad. We produce premium heavyweight oversized t-shirts with brutalist minimalist designs in small batches — zero restocks, ever." }
+          "acceptedAnswer": { "@type": "Answer", "text": "Intru (intru.in) is minimalist streetwear for individuals, based in Hyderabad. Tired of everyone wearing the same thing? We make clean, intentional, oversized heavyweight tees in small batches — zero restocks, ever." }
         },
         {
           "@type": "Question",
@@ -96,7 +96,7 @@ export function homePage(opts: {
         {
           "@type": "Question",
           "name": "What makes Intru the best oversized t-shirt brand in India?",
-          "acceptedAnswer": { "@type": "Answer", "text": "Intru uses premium 240 GSM heavyweight cotton with garment-dyeing for a soft hand-feel, brutalist design aesthetics, and strict limited production — no restocks means every piece is genuinely exclusive." }
+          "acceptedAnswer": { "@type": "Answer", "text": "Intru uses 240 GSM heavyweight cotton with garment-dyeing for a soft hand-feel, clean intentional design, and strict limited production — no restocks means every piece stays yours alone." }
         },
         {
           "@type": "Question",

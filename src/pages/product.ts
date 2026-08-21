@@ -132,7 +132,7 @@ export function productPage(product: Product, opts: {
         {
           "@type": "Question",
           "name": "What makes Intru the best oversized t-shirt in India?",
-          "acceptedAnswer": { "@type": "Answer", "text": "Intru uses premium 240 GSM heavyweight cotton with garment-dyeing, brutalist minimalist design, and produces only limited batches — ensuring every piece is genuinely exclusive and never restocked." }
+          "acceptedAnswer": { "@type": "Answer", "text": "Intru uses 240 GSM heavyweight cotton with garment-dyeing, clean intentional design, and produces only limited batches — tired of everyone wearing the same thing? Every piece stays yours alone, never restocked." }
         },
         {
           "@type": "Question",
@@ -340,7 +340,7 @@ ${!isSoldOut ? `
 <span><i class="fas fa-exchange-alt"></i> 36h exchange window</span>
 </div>
 <div class="pdets">
-<div class="ditm"><button class="dtog opn" onclick="togDet(this)">Product Details <i class="fas fa-chevron-down"></i></button><div class="dcnt opn"><div class="dcnti">&bull; Premium 240 GSM cotton<br>&bull; Garment-dyed for soft hand-feel<br>&bull; Pre-shrunk &mdash; true to size<br>&bull; Ribbed neckline<br>&bull; Double-needle stitching</div></div></div>
+<div class="ditm"><button class="dtog opn" onclick="togDet(this)">Product Details <i class="fas fa-chevron-down"></i></button><div class="dcnt opn"><div class="dcnti">&bull; 240 GSM heavyweight cotton<br>&bull; Garment-dyed for soft hand-feel<br>&bull; Pre-shrunk &mdash; true to size<br>&bull; Ribbed neckline<br>&bull; Double-needle stitching</div></div></div>
 <div class="ditm"><button class="dtog" onclick="togDet(this)">Size &amp; Fit <i class="fas fa-chevron-down"></i></button><div class="dcnt"><div class="dcnti">Model is 6'0" / 183cm, wearing size L.<br>Relaxed fit &mdash; if between sizes, go with your usual.</div></div></div>
 <div class="ditm"><button class="dtog" onclick="togDet(this)">Shipping &amp; Returns <i class="fas fa-chevron-down"></i></button><div class="dcnt"><div class="dcnti">Dispatched within 36 hours. Free shipping on all prepaid orders.<br>Exchanges only — report defects within 36h. <a href="/p/returns" style="text-decoration:underline">Full policy</a></div></div></div>
 </div></div></div></div>

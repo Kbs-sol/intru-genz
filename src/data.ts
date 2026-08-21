@@ -110,7 +110,7 @@ export const SEED_PRODUCTS: Product[] = [
   {
     id: "p1", slug: "doodles-t-shirt", name: "Doodles T-Shirt",
     tagline: "Warmth and joy",
-    description: "Playful doodle-art printed tee that radiates warmth. Crafted from premium cotton with puff-print detailing. Pre-shrunk, garment-dyed, and designed to feel like it was made just for you.",
+    description: "Playful doodle-art printed tee that radiates warmth. Heavyweight cotton with puff-print detailing. Pre-shrunk, garment-dyed, and designed to feel like it was made just for YOU.",
     price: 999, comparePrice: 1499, currency: "INR",
     images: [
       "https://intru.in/cdn/shop/files/3.png?v=1748692106&width=1946",
@@ -120,12 +120,12 @@ export const SEED_PRODUCTS: Product[] = [
     ],
     sizes: ["S", "M", "L", "XL", "XXL"], category: "T-Shirts", inStock: true, featured: true,
     seoTitle: "Doodles T-Shirt — Limited Edition Puff-Print Streetwear | INTRU.IN",
-    seoDescription: "Shop the exclusive Doodles T-Shirt. Premium cotton, playful puff-print art, and an oversized fit. Limited drop, no restocks. Get yours at INTRU.IN."
+    seoDescription: "Shop the Doodles T-Shirt — minimalist streetwear for individuals. Heavyweight cotton, playful puff-print art, oversized fit. Limited drop, no restocks. INTRU.IN."
   },
   {
     id: "p2", slug: "no-risk-porsche", name: "No Risk Porsche",
     tagline: "Bold edge",
-    description: "A statement tee for those who move without hesitation. Bold graphic print, premium cotton, and a fit that commands attention. No risk, no reward.",
+    description: "A statement tee for those who move without hesitation. Bold graphic print, heavyweight cotton, and an oversized fit that feels intentional. No risk, no reward.",
     price: 999, comparePrice: 1499, currency: "INR",
     images: [
       "https://intru.in/cdn/shop/files/F51687B9-2BF2-43E0-988A-30272833B19E.jpg?v=1756359581&width=1920",
@@ -135,12 +135,12 @@ export const SEED_PRODUCTS: Product[] = [
     ],
     sizes: ["S", "M", "L", "XL", "XXL"], category: "T-Shirts", inStock: true, featured: true,
     seoTitle: "No Risk Porsche T-Shirt — Bold Graphic Oversized Tee | INTRU.IN",
-    seoDescription: "Elevate your streetwear with the No Risk Porsche tee. High-density graphic print on premium heavy cotton. Designed for those who move without hesitation."
+    seoDescription: "The No Risk Porsche tee — high-density graphic print on heavyweight cotton. Minimalist streetwear designed for individuals. Oversized fit, limited drop, no restocks."
   },
   {
     id: "p3", slug: "orange-puff-printed-t-shirt", name: "Orange Puff",
     tagline: "Caffeine-core",
-    description: "Orange puff-printed tee with a texture you can feel. Caffeine-core energy meets streetwear minimalism. Premium cotton, relaxed fit, limited run.",
+    description: "Orange puff-printed tee with a texture you can feel. Caffeine-core energy meets streetwear minimalism. Heavyweight cotton, relaxed oversized fit, limited run.",
     price: 899, comparePrice: 1499, currency: "INR",
     images: [
       "https://intru.in/cdn/shop/files/1_3de916a1-a217-41ee-9b2e-9e2c3130c4d6.png?v=1748190442&width=1445",
@@ -150,7 +150,7 @@ export const SEED_PRODUCTS: Product[] = [
     ],
     sizes: ["S", "M", "L", "XL"], category: "T-Shirts", inStock: true, featured: true,
     seoTitle: "Orange Puff Printed T-Shirt — Caffeine-Core Streetwear | INTRU.IN",
-    seoDescription: "Feel the texture with our Orange Puff Printed Tee. Relaxed fit, premium comfort, and vibrant caffeine-core energy. A streetwear essential from INTRU.IN."
+    seoDescription: "Feel the texture with our Orange Puff Printed Tee. Relaxed oversized fit, heavyweight cotton, vibrant caffeine-core energy. Minimalist streetwear from INTRU.IN."
   },
   {
     id: "p4", slug: "romanticise-crop-tee", name: "Romanticise Crop",
@@ -166,13 +166,13 @@ export const SEED_PRODUCTS: Product[] = [
     // [AG: category taxonomy] Was miscategorized as T-Shirts; belongs in Crop Tops so the
     // /collections?cat=Crop-Tops deep-link (header dropdown + footer) has stock to show.
     sizes: ["XS", "S", "M", "L"], category: "Crop Tops", inStock: true, featured: true,
-    seoTitle: "Romanticise Crop Tee — Premium Cotton Cropped Streetwear | INTRU.IN",
+    seoTitle: "Romanticise Crop Tee — Heavyweight Cotton Cropped Streetwear | INTRU.IN",
     seoDescription: "Effortless breezy style meets streetwear. The Romanticise Crop Tee features soft cotton and a perfect relaxed silhouette. Limited edition, never restocked."
   },
   {
     id: "p5", slug: "stripe-18-shirt", name: "Stripe 18 Shirt",
     tagline: "Cool tones",
-    description: "Cool-toned striped shirt with a structured collar and relaxed body. Premium woven fabric, mother-of-pearl buttons, and a fit that bridges casual and smart.",
+    description: "Cool-toned striped shirt with a structured collar and relaxed body. Heavyweight woven fabric, mother-of-pearl buttons, and a fit that bridges casual and smart.",
     price: 1099, comparePrice: 1699, currency: "INR",
     images: [
       "https://intru.in/cdn/shop/files/99.png?v=1748173436&width=1946",
@@ -182,7 +182,7 @@ export const SEED_PRODUCTS: Product[] = [
     ],
     sizes: ["S", "M", "L", "XL", "XXL"], category: "Shirts", inStock: true, featured: true,
     seoTitle: "Stripe 18 Shirt — Structured Woven Streetwear | INTRU.IN",
-    seoDescription: "Cool-toned and structured. The Stripe 18 Shirt features premium woven fabric and mother-of-pearl buttons. The perfect smart-casual layer for any fit."
+    seoDescription: "Cool-toned and structured. The Stripe 18 Shirt features heavyweight woven fabric and mother-of-pearl buttons. The perfect smart-casual layer for any fit."
   },
   {
     id: "p6", slug: "summer-shirt", name: "Summer Shirt",
@@ -351,7 +351,7 @@ export const SEED_BLOG_POSTS: BlogPost[] = [
   {
     slug: 'best-oversized-tshirt-brands-india-2026',
     title: 'The Best Oversized T-Shirt Brands in India (2026)',
-    seoTitle: 'Best Oversized T-Shirt Brands in India 2026 — Heavyweight, Premium & Affordable',
+    seoTitle: 'Best Oversized T-Shirt Brands in India 2026 — Heavyweight, Minimalist & Affordable',
     seoDesc: 'A curated 2026 guide to the best oversized t-shirt brands in India — heavyweight GSM options, fits, price ranges, and how Intru compares on quality, drop model, and made-in-India credentials.',
     excerpt: 'From heavyweight tees to the drop-based streetwear scene — we compare Indian brands on fabric weight, fit accuracy, price, and whether the "oversized" is real or just a bigger size.',
     cover: 'https://intru.in/cdn/shop/files/3.png?v=1748692106&width=1200',
@@ -360,7 +360,7 @@ export const SEED_BLOG_POSTS: BlogPost[] = [
     publishedISO: '2026-06-15',
     updatedISO: '2026-08-01',
     author: 'Intru Editorial',
-    keywords: 'best oversized t-shirt brands india, oversized tshirt india, heavyweight tshirt india, premium streetwear india, indian streetwear brands 2026',
+    keywords: 'best oversized t-shirt brands india, oversized tshirt india, heavyweight tshirt india, minimalist streetwear india, indian streetwear brands 2026',
     isPublished: true,
     body: `<p><strong>India's oversized t-shirt market has grown fast since 2022.</strong> The problem: many brands sell a "regular" tee cut one size bigger and slap the word "oversized" on the tag. A true oversized fit is engineered into the pattern — dropped shoulders, wider body, longer length — and cut from a heavyweight fabric that actually holds the drape.</p>
 
@@ -392,7 +392,7 @@ export const SEED_BLOG_POSTS: BlogPost[] = [
 <h2>Price bands in the Indian oversized market</h2>
 <p><strong>₹399–₹699:</strong> Bulk-manufactured tees, usually lightweight cotton. Fit is often inconsistent because pattern control is loose at this price.</p>
 <p><strong>₹800–₹1,300:</strong> The sweet spot for heavyweight oversized in India. This is where Intru sits — heavyweight cotton, pre-shrunk, garment-dyed, dropped shoulder, made in India.</p>
-<p><strong>₹1,500+:</strong> Import brands or premium Indian labels with heavy branding. Fabric quality is often similar to the mid-band — you're paying for the logo.</p>
+<p><strong>₹1,500+:</strong> Import brands or heavily-branded Indian labels. Fabric quality is often similar to the mid-band — you're paying for the logo.</p>
 
 <h2>The verdict</h2>
 <p>Pick a brand that (a) publishes real GSM and measurements, (b) makes pieces in limited runs, and (c) is transparent about where they cut and sew. If you're ready to try one, browse the current <a href="/collections">Intru drop</a> — every piece hits all three benchmarks, and the drop model means what you buy stays rare.</p>
@@ -1244,6 +1244,19 @@ export async function sendResendEmail(
 
 // ============ Email templates ============
 
+// ---- Shared email chrome ----
+const BRAND_TAG = 'Intru — minimalist streetwear for individuals';
+function emailFooter(): string {
+  // Grievance officer email embedded as HTML comment only (compliance), NOT visible.
+  return `<div style="background:#fafafa;padding:20px 24px;text-align:center;font-size:11px;color:#9ca3af;line-height:1.6">
+    <div style="font-size:11px;color:#6b7280;margin-bottom:6px">Need help fastest? DM us on Instagram — that's our #1 support channel.</div>
+    <a href="https://instagram.com/intru.in" style="display:inline-block;background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);color:#fff;padding:9px 18px;border-radius:6px;text-decoration:none;font-weight:700;font-size:11px;letter-spacing:1px;text-transform:uppercase;margin-bottom:14px">📩 DM @intru.in</a>
+    <div style="margin:0">${BRAND_TAG}</div>
+    <div><a href="https://intru.in" style="color:#9ca3af;text-decoration:none">intru.in</a></div>
+    <!-- Grievance officer: grievance@intru.in -->
+  </div>`;
+}
+
 /** Rich "Order Confirmed" email — sent for prepaid after payment success */
 export function emailOrderConfirmed(orderId: string, name: string, items: any[], total: number): string {
   const shortId = orderId.toUpperCase().slice(-8);
@@ -1253,23 +1266,21 @@ export function emailOrderConfirmed(orderId: string, name: string, items: any[],
   return `<div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:560px;margin:0 auto;background:#fff;border:1px solid #e5e7eb">
     <div style="background:#0a0a0a;padding:40px;text-align:center">
       <h1 style="color:#fff;font-size:22px;margin:0;letter-spacing:4px;text-transform:uppercase">DROP SECURED ✓</h1>
-      <p style="color:#a3a3a3;font-size:12px;margin:8px 0 0;letter-spacing:2px">INTRU.IN — LIMITED DROPS. NO RESTOCKS.</p>
+      <p style="color:#a3a3a3;font-size:12px;margin:8px 0 0;letter-spacing:2px">INTRU — MADE FOR INDIVIDUALS</p>
     </div>
     <div style="padding:40px 36px">
-      <p style="font-size:16px;color:#0a0a0a;margin:0 0 8px">Hi ${name || 'there'},</p>
-      <p style="font-size:14px;color:#525252;line-height:1.7;margin:0 0 28px">Your payment has been verified. Your order <strong style="color:#0a0a0a">#IN-${shortId}</strong> is being prepared for dispatch. You'll receive a tracking update within 24 hours.</p>
+      <p style="font-size:16px;color:#0a0a0a;margin:0 0 8px">Hey ${name || 'there'},</p>
+      <p style="font-size:14px;color:#525252;line-height:1.7;margin:0 0 28px">Payment verified. Your order <strong style="color:#0a0a0a">#IN-${shortId}</strong> is in our dispatch queue. Tracking lands within 24 hours.</p>
       <table style="width:100%;border-collapse:collapse;margin-bottom:20px">${itemRows}</table>
       <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:700;color:#0a0a0a;padding-top:12px;border-top:2px solid #0a0a0a">
         <span>Total Paid</span><span>Rs.${total.toLocaleString('en-IN')}</span>
       </div>
       <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:16px;margin:28px 0;font-size:13px;color:#166534">
-        <strong>⚡ Prepaid Priority</strong> — Your order is in the dispatch queue. Expected delivery: 3-7 business days.
+        <strong>⚡ Prepaid Priority</strong> — Expected delivery: 3-7 business days.
       </div>
-      <p style="font-size:12px;color:#737373;line-height:1.6">Questions? Reply to this email or contact <a href="mailto:shop@intru.in" style="color:#0a0a0a;font-weight:700">shop@intru.in</a></p>
+      <p style="font-size:12px;color:#737373;line-height:1.6;margin:20px 0 0">Tired of everyone wearing the same thing? You're not alone — that's exactly why Intru exists. Clean, intentional, oversized. Made for you.</p>
     </div>
-    <div style="background:#f5f5f5;padding:24px;text-align:center;font-size:11px;color:#9ca3af">
-      <p style="margin:0">intru.in — Premium Indian Streetwear. Limited Drops, No Restocks.</p>
-    </div>
+    ${emailFooter()}
   </div>`;
 }
 
@@ -1297,9 +1308,7 @@ export function emailCodVerificationRequired(orderId: string, name: string, item
       </div>
       <p style="font-size:11px;color:#9ca3af;line-height:1.6;text-align:center">Button not working? Copy this link:<br><span style="color:#0a0a0a;word-break:break-all">${verifyUrl}</span></p>
     </div>
-    <div style="background:#f5f5f5;padding:20px;text-align:center;font-size:11px;color:#9ca3af">
-      <p style="margin:0">intru.in — Limited Drops. No Restocks.</p>
-    </div>
+    ${emailFooter()}
   </div>`;
 }
 
@@ -1308,10 +1317,13 @@ export function emailDropSecured(orderId: string, items: any[], total: number): 
   return `<div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:560px;margin:0 auto;background:#fff;border:1px solid #16a34a">
     <div style="background:#16a34a;padding:32px;text-align:center">
       <h1 style="color:#fff;font-size:24px;margin:0;letter-spacing:4px;text-transform:uppercase">DROP SECURED</h1>
+      <p style="color:#dcfce7;font-size:11px;margin:8px 0 0;letter-spacing:2px">Order #IN-${shortId}</p>
     </div>
     <div style="padding:32px">
-      <p style="margin:0">intru.in — Limited Drops. No Restocks.</p>
+      <p style="font-size:14px;color:#333;line-height:1.7;margin:0">Your Intru order is locked in. Dispatch queue: active. Tracking within 24 hours.</p>
+      <p style="font-size:13px;color:#666;line-height:1.7;margin:16px 0 0">Total: <strong>Rs.${total.toLocaleString('en-IN')}</strong></p>
     </div>
+    ${emailFooter()}
   </div>`;
 }
 
@@ -1323,23 +1335,21 @@ export function emailCodReceived(orderId: string, name: string, items: any[], to
       <h1 style="color:#fff;font-size:24px;margin:0;letter-spacing:4px;text-transform:uppercase">ORDER RECEIVED</h1>
     </div>
     <div style="padding:32px">
-      <p style="font-size:16px;color:#333">Hi ${name || 'there'},</p>
-      <p style="font-size:14px;color:#666;line-height:1.7">We've received your Cash on Delivery order <strong>#IN-${shortId}</strong>. To prevent fake orders and start production, please confirm you are real by clicking below:</p>
+      <p style="font-size:16px;color:#333">Hey ${name || 'there'},</p>
+      <p style="font-size:14px;color:#666;line-height:1.7">We got your Cash on Delivery order <strong>#IN-${shortId}</strong>. One quick step: confirm it's really you so we can start production.</p>
       
       <div style="text-align:center;margin:32px 0">
         <a href="${confirmUrl}" style="background:#0a0a0a;color:#fff;padding:18px 32px;text-decoration:none;font-weight:700;letter-spacing:2px;text-transform:uppercase;font-size:14px;border-radius:4px;display:inline-block">CONFIRM MY ORDER</a>
       </div>
 
-      <p style="font-size:12px;color:#999;line-height:1.6;text-align:center">If the button doesn't work, copy this link: <br> ${confirmUrl}</p>
+      <p style="font-size:12px;color:#999;line-height:1.6;text-align:center">Button not working? Copy this link:<br>${confirmUrl}</p>
       
       <div style="margin-top:40px;padding-top:20px;border-top:1px solid #eee">
         <p style="font-size:14px;color:#333;font-weight:700;margin-bottom:8px">Order Summary:</p>
         <p style="font-size:13px;color:#666">Total: Rs.${total.toLocaleString('en-IN')} (incl. Rs.99 COD/Shipping Fee)</p>
       </div>
     </div>
-    <div style="background:#f5f5f5;padding:24px;text-align:center;font-size:11px;color:#999">
-      <p style="margin:0">intru.in — Limited Drops. No Restocks.</p>
-    </div>
+    ${emailFooter()}
   </div>`;
 }
 
@@ -1348,6 +1358,7 @@ export function emailCodManagerAlert(orderId: string, name: string, phone: strin
   return `<div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:560px;margin:0 auto;background:#fff">
     <div style="background:#dc2626;padding:24px;text-align:center">
       <h1 style="color:#fff;font-size:20px;margin:0;letter-spacing:3px;text-transform:uppercase">NEW COD ALERT</h1>
+      <p style="color:#fecaca;font-size:11px;margin:6px 0 0;letter-spacing:2px">${new Date().toLocaleString('en-IN', {timeZone:'Asia/Kolkata', dateStyle:'medium', timeStyle:'short'})} IST</p>
     </div>
     <div style="padding:32px">
       <table style="width:100%;font-size:14px;line-height:1.8">
@@ -1358,6 +1369,7 @@ export function emailCodManagerAlert(orderId: string, name: string, phone: strin
         <tr><td style="font-weight:700;padding:6px 12px;color:#666">Total (COD)</td><td style="padding:6px 12px;font-weight:700;font-size:16px">Rs.${total.toLocaleString('en-IN')}</td></tr>
         <tr><td style="font-weight:700;padding:6px 12px;color:#666">Order ID</td><td style="padding:6px 12px;font-size:12px">${orderId}</td></tr>
       </table>
+      <div style="margin-top:20px;padding:14px;background:#fef3c7;border-radius:6px;font-size:12px;color:#92400e">⚠️ Verify via Shiprocket + IG DM before dispatch. Auto-cancels after 24h if unverified.</div>
     </div>
   </div>`;
 }

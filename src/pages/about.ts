@@ -76,7 +76,7 @@ export function aboutPage(opts: {
 <div class="ab-sec anim">
 <h2>Made With Love, Not Algorithms</h2>
 <p>Every Intru piece is <strong>designed for two months</strong> before it ever touches fabric. We don't follow trends — we follow our gut. If a design doesn't make us say "I need to wear this right now," it doesn't get made.</p>
-<p>We source premium cotton, experiment with puff prints and unique techniques, and test every size on real people (starting with ourselves). The result? Clothes that feel like they were made <strong>just for YOU</strong>.</p>
+<p>We source heavyweight cotton, experiment with puff prints and unique techniques, and test every size on real people (starting with ourselves). The result? Clothes that feel like they were made <strong>just for YOU</strong>. Tired of everyone wearing the same thing? So were we.</p>
 </div>
 
 <div class="ab-vals anim">
@@ -106,7 +106,7 @@ export function aboutPage(opts: {
 </div>`;
 
   return shell(
-    'Our Story | Intru | Premium Indian Streetwear',
+    'Our Story | Intru | Minimalist Indian Streetwear for Individuals',
     'The story of Intru: Two friends, one mission. High-quality, limited-edition streetwear made with love in India.',
     body,
     { url: 'https://intru.in/about', schema, razorpayKeyId: opts.razorpayKeyId, googleClientId: opts.googleClientId, products, legalPages, useMagicCheckout: !!opts.useMagicCheckout, maintenanceConfig: opts.maintenanceConfig, storeSettings: opts.storeSettings }

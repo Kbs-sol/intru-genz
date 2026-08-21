@@ -164,7 +164,7 @@ ${items.map(f => `<details class="faq-item" itemscope itemprop="mainEntity" item
 
   return shell(
     'FAQ — Sizing, Shipping, Returns & Payments | Intru',
-    'Answers to the most common questions about Intru premium oversized streetwear. Sizing, GSM fabric weight, shipping timelines, COD, returns and store credit policy — everything in one place.',
+    'Answers to the most common questions about Intru minimalist streetwear for individuals. Sizing, GSM fabric weight, shipping timelines, COD, returns and store credit policy — everything in one place.',
     body,
     {
       url: 'https://intru.in/faq',

@@ -245,7 +245,7 @@ ${isProduct && opt.productPrice ? `<meta property="product:price:amount" content
       },
       "image": { "@id": "https://intru.in/#logo" },
       "slogan": "Not for everyone. Made to feel like you.",
-      "description": "Intru (intru.in) is India's minimalist limited-edition streetwear brand — premium heavyweight oversized t-shirts, clean intentional design, made in small batches with zero restocks. Ships across India.",
+      "description": "Intru (intru.in) is minimalist streetwear for individuals — heavyweight oversized t-shirts, clean intentional design, made in small batches with zero restocks. Tired of everyone wearing the same thing? Intru is for you. Ships across India.",
       "foundingDate": "2026",
       "foundingLocation": { "@type": "Place", "name": "Hyderabad, Telangana, India" },
       "founder": [
@@ -302,7 +302,7 @@ ${isProduct && opt.productPrice ? `<meta property="product:price:amount" content
   "name": "Intru",
   "url": "https://intru.in",
   "inLanguage": "en-IN",
-  "description": "India's minimalist limited-edition streetwear brand. Premium heavyweight oversized t-shirts, clean intentional design, never restocked. Shop the drop.",
+  "description": "Minimalist streetwear for individuals. Heavyweight oversized t-shirts, clean intentional design, never restocked. Tired of everyone wearing the same thing? Shop the drop.",
   "potentialAction": {
     "@type": "SearchAction",
     "target": {
@@ -341,6 +341,7 @@ export function shell(
     ga4Id?: string;
     clarityId?: string;
     gtmId?: string;
+    metaPixelId?: string;
   }
 ): string {
   const og = opt?.og || 'https://intru.in/og-default.jpg';
@@ -537,9 +538,17 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 .ftr .pay-icons i{transition:color .2s}
 .ftr .pay-icons i:hover{color:#fff}
 /* Coupon UI [AG v15.2] */
-.cpn-box{margin:16px 24px 8px;border:1px dashed var(--g400);border-radius:6px;padding:8px;display:flex;gap:8px;background:var(--wh)}
-.cpn-inp{flex:1;border:none;background:none;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;outline:none}
-.cpn-btn{background:var(--bk);color:var(--wh);border:none;padding:8px 16px;font-size:9px;font-weight:800;letter-spacing:1px;text-transform:uppercase;border-radius:4px}
+.cpn-box{margin:16px 24px 8px;border:2px dashed #eab308;border-radius:8px;padding:10px 12px;display:flex;gap:8px;background:linear-gradient(135deg,#fffbea 0%,#fef3c7 100%);position:relative;box-shadow:0 2px 8px rgba(234,179,8,0.15)}
+.cpn-box::before{content:'🎁 SAVE MORE';position:absolute;top:-9px;left:12px;background:#eab308;color:#0a0a0a;font-size:9px;font-weight:900;letter-spacing:1px;padding:2px 8px;border-radius:100px;box-shadow:0 2px 4px rgba(0,0,0,0.1)}
+.cpn-inp{flex:1;border:none;background:transparent;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:1.2px;outline:none;color:#0a0a0a}
+.cpn-inp::placeholder{color:#92400e;opacity:0.75}
+.cpn-btn{background:#0a0a0a;color:#eab308;border:none;padding:10px 20px;font-size:10px;font-weight:900;letter-spacing:1.5px;text-transform:uppercase;border-radius:6px;cursor:pointer;transition:transform .1s}
+.cpn-btn:hover{transform:scale(1.03)}
+.cpn-hint{display:flex;flex-wrap:wrap;gap:6px;margin:6px 24px 0;font-size:10px;color:#666}
+.cpn-chip{background:#0a0a0a;color:#eab308;border:1px dashed #eab308;padding:4px 10px;border-radius:100px;font-weight:900;letter-spacing:1.5px;cursor:pointer;font-family:monospace;font-size:11px;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
+.cpn-chip:hover{background:#eab308;color:#0a0a0a;transform:translateY(-1px)}
+.cpn-chip .cpn-chip-desc{font-size:9px;letter-spacing:0.3px;color:inherit;opacity:0.85;font-weight:600;font-family:-apple-system,sans-serif;text-transform:none}
+.cpn-copied{color:#16a34a;font-size:10px;font-weight:700;margin-left:6px}
 .cpn-tag{display:inline-flex;align-items:center;gap:6px;background:var(--g100);padding:4px 10px;border-radius:100px;font-size:10px;font-weight:700;margin-top:8px}
 .cpn-rem{cursor:pointer;opacity:0.6}.cpn-rem:hover{opacity:1}
 /* Combo-buy banner (cart drawer) */
@@ -854,9 +863,10 @@ ${aiAnnounceHtml}
       
       <!-- Coupon Selector [AG v15.2] -->
       <div id="couponSection" class="cpn-box">
-        <input type="text" id="couponInput" class="cpn-inp" placeholder="HAVE A COUPON?">
+        <input type="text" id="couponInput" class="cpn-inp" placeholder="ENTER PROMO CODE TO SAVE →">
         <button class="cpn-btn" onclick="applyCoupon()">Apply</button>
       </div>
+      <div id="publicCoupons" class="cpn-hint" style="display:none"></div>
       <div id="appliedCoupon" class="hidden" style="margin:0 24px"></div>
 
       <div class="cmode" id="cmode" style="display:flex;margin-top:12px">
@@ -1032,7 +1042,7 @@ ${aiAnnounceHtml}
   <i class="fab fa-cc-amex" title="Amex" aria-label="American Express"></i>
 </div>
 <div class="ftrbt">
-  <span>&copy; 2026 <a href="https://intru.in" style="color:inherit">intru.in</a> &mdash; Premium Indian Streetwear. All rights reserved.</span>
+  <span>&copy; 2026 <a href="https://intru.in" style="color:inherit">intru.in</a> &mdash; Minimalist streetwear for individuals. All rights reserved.</span>
   <div class="fsoc">
     <a href="https://www.instagram.com/intru.in/" target="_blank" rel="noopener noreferrer" aria-label="Follow Intru on Instagram"><i class="fab fa-instagram"></i></a>
     <a href="mailto:shop@intru.in" aria-label="Email Intru"><i class="fas fa-envelope" style="font-size:16px"></i></a>
@@ -1746,10 +1756,37 @@ function applyCoupon(){
       toast('Coupon applied: ' + d.coupon.code, 'ok-green');
       renderAppliedCoupon();
       renderCartTotals();
+      try{ if(typeof window.track==='function') window.track('promo_applied',{code:d.coupon.code, source:'manual', subtotal:totals.subtotal}); }catch(e){}
     } else {
       toast(d.error || 'Invalid coupon', 'err');
     }
   }).catch(function(){toast('Failed to validate coupon', 'err')});
+}
+
+/* Public coupon chips — click to auto-fill + apply */
+var _publicCoupons = null;
+function loadPublicCoupons(){
+  if(_publicCoupons !== null) return;
+  fetch('/api/coupons/public').then(function(r){return r.json()}).then(function(d){
+    _publicCoupons = d.coupons || [];
+    renderPublicCoupons();
+  }).catch(function(){ _publicCoupons = []; });
+}
+function renderPublicCoupons(){
+  var el = document.getElementById('publicCoupons');
+  if(!el || !_publicCoupons || !_publicCoupons.length){ if(el) el.style.display='none'; return; }
+  var html = '<span style="font-size:9px;font-weight:800;color:#92400e;letter-spacing:1px;text-transform:uppercase;display:flex;align-items:center;gap:4px"><i class="fas fa-hand-pointer"></i> Tap to apply:</span>';
+  _publicCoupons.slice(0,3).forEach(function(c){
+    var safeDesc = String(c.description||'').replace(/'/g,'&#39;').replace(/</g,'&lt;');
+    html += '<button class="cpn-chip" onclick="pickPublicCoupon(\\x27'+c.code+'\\x27)" title="'+safeDesc+'"><i class="fas fa-tag" style="font-size:9px"></i>'+c.code+' <span class="cpn-chip-desc">('+safeDesc+')</span></button>';
+  });
+  el.innerHTML = html;
+  el.style.display = 'flex';
+  try{ if(typeof window.track==='function') window.track('promo_shown',{placement:'cart_chips',count:_publicCoupons.length}); }catch(e){}
+}
+function pickPublicCoupon(code){
+  var inp = document.getElementById('couponInput');
+  if(inp){ inp.value = code; applyCoupon(); }
 }
 
 function renderAppliedCoupon(){
@@ -1958,8 +1995,8 @@ function renderCart(){
 })();
 
 /* ====== DRAWER ENGINE ====== */
-function toggleCart(){var co=document.getElementById('co'),cd=document.getElementById('cd');co.classList.toggle('open');cd.classList.toggle('open');document.body.style.overflow=cd.classList.contains('open')?'hidden':'';if(cd.classList.contains('open')){try{renderCartPromoBanner();}catch(e){}}}
-function openCartDrawer(){document.getElementById('co').classList.add('open');document.getElementById('cd').classList.add('open');document.body.style.overflow='hidden';startCartTimer();}
+function toggleCart(){var co=document.getElementById('co'),cd=document.getElementById('cd');co.classList.toggle('open');cd.classList.toggle('open');document.body.style.overflow=cd.classList.contains('open')?'hidden':'';if(cd.classList.contains('open')){try{renderCartPromoBanner();}catch(e){}try{loadPublicCoupons();}catch(e){}}}
+function openCartDrawer(){document.getElementById('co').classList.add('open');document.getElementById('cd').classList.add('open');document.body.style.overflow='hidden';startCartTimer();try{loadPublicCoupons();}catch(e){}}
 function closeAllDrawers(){
   document.getElementById('co').classList.remove('open');
   document.getElementById('cd').classList.remove('open');

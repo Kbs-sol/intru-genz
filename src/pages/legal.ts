@@ -17,7 +17,7 @@ export function legalPage(page: LegalPage, opts: {
     "@context": "https://schema.org",
     "@type": "WebPage",
     "name": page.title + " | Intru",
-    "description": page.title + " for Intru — Premium Indian Streetwear",
+    "description": page.title + " for Intru — Minimalist Indian Streetwear for Individuals",
     "url": "https://intru.in/p/" + page.slug,
     "dateModified": page.updatedAt
   });
@@ -54,7 +54,7 @@ ${legalPages.map(p => '<a href="/p/' + p.slug + '"' + (p.slug === page.slug ? ' 
 
   return shell(
     page.title + ' | Intru',
-    page.title + ' for Intru — India\'s Premium Oversized Collection and Minimalist Streetwear.',
+    page.title + ' for Intru — Minimalist streetwear for individuals. Heavyweight oversized collection made in India.',
     body,
     { url: 'https://intru.in/p/' + page.slug, schema, razorpayKeyId: opts.razorpayKeyId, googleClientId: opts.googleClientId, products, legalPages, useMagicCheckout: !!opts.useMagicCheckout, maintenanceConfig: opts.maintenanceConfig, storeSettings: opts.storeSettings }
   );
