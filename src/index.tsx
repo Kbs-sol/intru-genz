@@ -3089,19 +3089,36 @@ RULES:
   // if #1 returns 404 ("no such model") or 400 ("model deprecated"), we try #2.
   // Any auth/rate-limit error (401/403/429) short-circuits to next provider —
   // no point burning latency retrying the same broken key on 5 different models.
-  const OR_MODELS = [
-    orModel || 'google/gemini-2.5-flash-lite',   // free tier as of Aug 2026
+  // v19.1 note: we tolerate the admin's stored `AI_OPENROUTER_MODEL` as first pick,
+  // but ALWAYS append several currently-available fallbacks in case the stored one
+  // has been sunset. `filter+dedupe` prevents duplicate calls if admin already
+  // picked one of the fallback IDs.
+  const OR_FALLBACKS = [
+    'google/gemini-2.5-flash-lite',
+    'google/gemini-2.0-flash-exp:free',            // free experimental — usually available
+    'deepseek/deepseek-chat-v3.1:free',            // free tier — active as of Aug 2026
     'meta-llama/llama-3.3-70b-instruct:free',
-    'google/gemini-flash-1.5',                    // legacy fallback
-  ].filter(Boolean);
-  const GQ_MODELS = [
-    gqModel || 'llama-3.3-70b-versatile',
-    'llama-3.1-8b-instant',                       // faster/cheaper fallback
-  ].filter(Boolean);
+    'mistralai/mistral-7b-instruct:free',
+    'google/gemma-2-9b-it:free',
+    'x-ai/grok-4-fast:free',                        // free grok fallback
+  ];
+  const OR_MODELS = Array.from(new Set([orModel, ...OR_FALLBACKS].filter(Boolean)));
+
+  const GQ_FALLBACKS = [
+    'llama-3.3-70b-versatile',
+    'llama-3.1-8b-instant',
+    'gemma2-9b-it',
+    'llama-3.2-3b-preview',
+  ];
+  const GQ_MODELS = Array.from(new Set([gqModel, ...GQ_FALLBACKS].filter(Boolean)));
+
   const GM_MODELS = [
-    'gemini-2.5-flash',                            // current default (Aug 2026)
-    'gemini-2.0-flash',                            // last-gen fallback (still works)
-    'gemini-1.5-flash',                            // legacy
+    'gemini-flash-latest',                         // alias auto-tracks current stable
+    'gemini-2.5-flash',
+    'gemini-2.5-flash-lite',
+    'gemini-2.0-flash',
+    'gemini-2.0-flash-lite',
+    'gemini-1.5-flash-latest',
   ];
 
   const baseMessages = [{ role: 'system', content: fullSystemPrompt }, ...messages];
@@ -3271,7 +3288,7 @@ app.get('/api/admin/ai/health', async (c: Context<{ Bindings: Bindings }>) => {
   }
   if (gmKey) {
     try {
-      const r = await timedFetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${gmKey}`, {
+      const r = await timedFetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${gmKey}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: 'ping' }] }], generationConfig: { maxOutputTokens: 5 } }),
       });
