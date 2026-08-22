@@ -32,8 +32,15 @@ export function adminPage(opts: {
 .ahdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:36px;padding-bottom:20px;border-bottom:1px solid var(--g100)}
 .ahdr h1{font-family:var(--head);font-size:24px;text-transform:uppercase;letter-spacing:-.02em}
 .aout{padding:10px 20px;background:none;border:1.5px solid var(--g200);font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;transition:all .2s;border-radius:4px}.aout:hover{background:var(--bk);color:var(--wh);border-color:var(--bk)}
-.atabs{display:flex;gap:0;margin-bottom:32px;border-bottom:2px solid var(--g100);overflow-x:auto;scrollbar-width:none}.atabs::-webkit-scrollbar{display:none}
-.atab{padding:14px 20px;background:none;border:none;border-bottom:2px solid transparent;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--g400);white-space:nowrap;transition:all .2s}.atab:hover{color:var(--bk)}.atab.act{color:var(--bk);border-bottom-color:var(--bk)}
+/* [v19] Two-level nav: primary groups (Dashboard/Catalog/Content/Analytics/AI/Settings)
+   collapse related tabs. Sub-tabs render as pills inside each group. */
+.atabs{display:flex;gap:4px;margin-bottom:8px;border-bottom:2px solid var(--g100);overflow-x:auto;scrollbar-width:none;padding-bottom:0}.atabs::-webkit-scrollbar{display:none}
+.atab{padding:14px 20px;background:none;border:none;border-bottom:2px solid transparent;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--g400);white-space:nowrap;transition:all .2s;cursor:pointer;font-family:inherit}.atab:hover{color:var(--bk)}.atab.act{color:var(--bk);border-bottom-color:var(--bk)}
+.asub{display:none;gap:4px;margin:12px 0 24px;padding:4px;background:var(--g50);border-radius:8px;flex-wrap:wrap}
+.asub.act{display:flex}
+.asub-btn{padding:8px 14px;background:transparent;border:none;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--g500);border-radius:5px;cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap}
+.asub-btn:hover{color:var(--bk);background:rgba(0,0,0,0.04)}
+.asub-btn.act{background:var(--bk);color:var(--wh)}
 .apan{display:none}.apan.act{display:block}
 .otbl-wrap{width:100%;overflow-x:auto;border:1.5px solid var(--g100);border-radius:8px;background:var(--wh)}
 .otbl{width:100%;border-collapse:collapse;font-size:13px;min-width:860px}
@@ -91,6 +98,16 @@ export function adminPage(opts: {
 /* Order status badges */
 .ostatus{display:inline-block;padding:2px 8px;border-radius:3px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
 .ost-pending{background:#fef3c7;color:#92400e}.ost-placed{background:#dbeafe;color:#1e40af}.ost-paid{background:#d1fae5;color:#065f46}.ost-processing{background:#e0e7ff;color:#3730a3}.ost-shipped{background:#ede9fe;color:#5b21b6}.ost-delivered{background:#dcfce7;color:#166534}.ost-cancelled{background:#fee2e2;color:#991b1b}.ost-verified{background:#d1fae5;color:#065f46}.ost-cod{background:#fef3c7;color:#92400e}.ost-prepaid{background:#dbeafe;color:#1e40af}
+/* [v19] Unified payment badges — same size/shape/typography for COD and prepaid so admin table rows look consistent */
+.pay-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:4px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;line-height:1;border:1px solid transparent;white-space:nowrap}
+.pay-badge i{font-size:10px}
+.pay-cod{background:#fef3c7;color:#92400e;border-color:#fde68a}
+.pay-cod-ok{background:#dcfce7;color:#166534;border-color:#86efac}
+.pay-prepaid{background:#dbeafe;color:#1e40af;border-color:#bfdbfe}
+.price-sub{font-size:10px;color:#92400e;font-weight:700;margin-top:3px;line-height:1.2}
+.price-sub-muted{color:var(--g400);font-weight:600}
+/* [v19] Rows visually identical; the badge column carries the payment-type differentiation */
+.cod-row,.prepaid-row{background:transparent}
 .oselect{padding:8px 10px;border:1.5px solid var(--g200);font-size:12px;font-family:inherit;border-radius:3px;background:var(--wh);width:100%}
 /* Coupon table */
 .cpn-act{background:#d1fae5;color:#065f46}.cpn-inact{background:#fee2e2;color:#991b1b}
@@ -112,21 +129,40 @@ export function adminPage(opts: {
 
 <div class="adsh" id="adsh">
 <div class="ahdr"><h1>Admin &mdash; Intru</h1><button class="aout" onclick="doLogout()">Sign Out</button></div>
-<div class="atabs">
-<button class="atab act" onclick="showTab(this,'tord')">Orders</button>
-<button class="atab" onclick="showTab(this,'tana')">Analytics</button>
-<button class="atab" onclick="showTab(this,'tprod')">Products</button>
-<button class="atab" onclick="showTab(this,'tcpn')">🏷️ Coupons</button>
-<button class="atab" onclick="showTab(this,'tcombo')">🔥 Combos</button>
-<button class="atab" onclick="showTab(this,'tleg')">Legal</button>
-<button class="atab" onclick="showTab(this,'tfaq')">❓ FAQs</button>
-<button class="atab" onclick="showTab(this,'tblog')">📝 Blog</button>
-<button class="atab" onclick="showTab(this,'tsize')">Size Chart</button>
-<button class="atab" onclick="showTab(this,'tig')">IG Feed</button>
-<button class="atab" onclick="showTab(this,'tsett')">Settings</button>
-<button class="atab" onclick="showTab(this,'tai')">AI Stylist</button>
-<button class="atab" onclick="showTab(this,'tlim')">Limits & Status</button>
-<button class="atab" onclick="showTab(this,'tmaint')">&#x1F6A7; Maintenance</button>
+<!-- [v19] Primary group nav (6 groups). Each group has a sub-nav below. -->
+<div class="atabs" role="tablist">
+<button class="atab act" onclick="showGroup(this,'gord','tord')">📦 Orders</button>
+<button class="atab" onclick="showGroup(this,'gcat','tprod')">🧾 Catalog</button>
+<button class="atab" onclick="showGroup(this,'gcnt','tleg')">📝 Content</button>
+<button class="atab" onclick="showGroup(this,'gana','tana')">📊 Analytics</button>
+<button class="atab" onclick="showGroup(this,'gai','tai')">🤖 AI & Auto</button>
+<button class="atab" onclick="showGroup(this,'gset','tsett')">⚙️ Settings</button>
+</div>
+<!-- Sub-navs (one per group, only one visible at a time) -->
+<div class="asub act" id="gord">
+  <button class="asub-btn act" onclick="showPanel(this,'tord')">All Orders</button>
+</div>
+<div class="asub" id="gcat">
+  <button class="asub-btn act" onclick="showPanel(this,'tprod')">Products</button>
+  <button class="asub-btn" onclick="showPanel(this,'tcpn')">🏷️ Coupons</button>
+  <button class="asub-btn" onclick="showPanel(this,'tcombo')">🔥 Combos</button>
+  <button class="asub-btn" onclick="showPanel(this,'tsize')">Size Chart</button>
+</div>
+<div class="asub" id="gcnt">
+  <button class="asub-btn act" onclick="showPanel(this,'tleg')">Legal Pages</button>
+  <button class="asub-btn" onclick="showPanel(this,'tfaq')">❓ FAQs</button>
+  <button class="asub-btn" onclick="showPanel(this,'tblog')">📝 Blog</button>
+  <button class="asub-btn" onclick="showPanel(this,'tig')">Instagram Feed</button>
+</div>
+<div class="asub" id="gana">
+  <button class="asub-btn act" onclick="showPanel(this,'tana')">Overview</button>
+</div>
+<div class="asub" id="gai">
+  <button class="asub-btn act" onclick="showPanel(this,'tai')">AI Stylist</button>
+  <button class="asub-btn" onclick="showPanel(this,'tlim')">Limits & Status</button>
+</div>
+<div class="asub" id="gset">
+  <button class="asub-btn act" onclick="showPanel(this,'tsett')">General Settings</button>
 </div>
 
 <!-- Orders Tab -->
@@ -562,66 +598,18 @@ export function adminPage(opts: {
 <p style="font-size:11px;color:var(--g400);margin:8px 0 0">Tip: set Cloudflare secrets <code>CRON_SECRET</code> (required) and <code>OPENAI_API_KEY</code> (optional — enables richer LLM decisions; without it a built-in heuristic engine is used). Set <code>AI_ANNOUNCEMENT</code>=<code>off</code> to hide the bar.</p>
 </div>
 <div class="sett-card">
-<h4>Site Maintenance</h4>
-<p>Show a banner alerting customers about ongoing maintenance (e.g., missing images) while still allowing orders.</p>
-<div class="sett-toggle" style="margin-bottom:12px">
+<h4>Cookie Consent Banner</h4>
+<p>DPDP Act 2023 / GDPR-friendly cookie disclosure. Toggle OFF if you don't need it (e.g. purely analytics-cookie site with no cross-border transfers). Turn ON to show a bottom banner with Accept/Reject actions and remember visitor choice for 365 days.</p>
+<div class="sett-toggle" style="margin-bottom:8px">
 <label>Banner OFF</label>
-<label class="switch"><input type="checkbox" id="settBannerEn" onchange="saveSetting('MAINTENANCE_BANNER_ENABLED',this.checked?'true':'false')"><span class="slider"></span></label>
+<label class="switch"><input type="checkbox" id="settCookieConsent" onchange="saveSetting('COOKIE_CONSENT_ENABLED',this.checked?'true':'false')"><span class="slider"></span></label>
 <label>Banner ON</label>
 </div>
-<div style="display:flex;flex-direction:column;gap:4px">
-<label style="font-size:13px;font-weight:600">Banner Type:</label>
-<select class="ainp" id="settBannerType" style="margin:0;width:100%;max-width:300px" onchange="saveSetting('MAINTENANCE_BANNER_TYPE',this.value)">
-<option value="skippable">Skippable Full-Width (Allows closing)</option>
-<option value="fixed">Fixed Top Header (Cannot be closed)</option>
-</select>
-</div>
+<p style="font-size:11px;color:var(--g400);margin:0">When OFF, no banner or scripts render for visitors. Applies site-wide on next page reload.</p>
 </div>
 </div>
 
-<!-- Maintenance Tab -->
-<div class="apan" id="tmaint">
-  <div class="sett-card" style="background:var(--g50)">
-    <h4>&#x1F6A7; Site Maintenance Control</h4>
-    <p>Manage how maintenance mode behaves for your customers. Changes are applied instantly.</p>
-  </div>
-
-  <div class="sett-card">
-    <h4>Maintenance Mode <span id="maintModeBadge" style="margin-left:8px;font-size:10px;padding:3px 8px;border-radius:12px;letter-spacing:1px;vertical-align:middle;text-transform:uppercase;font-family:var(--sans)"></span></h4>
-    <p><strong>Off</strong> &mdash; site works normally.<br><strong>Soft</strong> &mdash; users see an agreement modal + top banner.<br><strong>Full</strong> &mdash; site is locked with a dedicated maintenance page.</p>
-    <select class="ainp" id="settMaintMode" style="margin:0;max-width:300px">
-      <option value="off">Off (Normal)</option>
-      <option value="soft">Soft (Acknowledge + Banner)</option>
-      <option value="full">Full (Locked Page)</option>
-    </select>
-  </div>
-
-  <div class="sett-card">
-    <h4>Maintenance Message</h4>
-    <p>The main message shown to users in both soft and full modes.</p>
-    <textarea class="ainp" id="settMaintMsg" style="margin:0;min-height:80px;padding:12px" placeholder="We're making improvements. Back soon!"></textarea>
-  </div>
-
-  <div class="sett-card">
-    <h4>Estimated Return (ETA)</h4>
-    <p>Optional text shown in full mode (e.g. "March 10, 2026").</p>
-    <input type="text" class="ainp" id="settMaintEta" style="margin:0" placeholder="e.g. March 10, 2026">
-  </div>
-
-  <div style="margin-top:24px">
-    <button class="abtn" id="maintenance-save-btn" onclick="saveMaintenanceConfig()" style="max-width:240px">Save Maintenance Settings</button>
-  </div>
-
-  <div class="sett-card" style="margin-top:40px;opacity:0.75">
-    <h4>Preview (Soft Mode Modal)</h4>
-    <div style="border:1.5px solid var(--g100);border-radius:6px;padding:24px;background:#f8f8f8;max-width:400px;text-align:center">
-      <strong style="font-size:14px;font-family:var(--head);text-transform:uppercase;letter-spacing:-.03em">&#x1F6A7; Site Maintenance</strong>
-      <p style="font-size:12px;color:var(--g500);margin:8px 0 16px;line-height:1.5">Your message will appear here. Users must agree to report bugs before browsing.</p>
-      <div style="background:var(--wh);border:1px solid var(--g200);padding:10px;font-size:10px;color:var(--g400);margin-bottom:12px;text-align:left">&#9744; I understand the site is under active maintenance...</div>
-      <div style="background:var(--bk);color:var(--wh);padding:10px;font-size:9px;font-weight:700;letter-spacing:1px;opacity:0.5">I UNDERSTAND — LET ME BROWSE</div>
-    </div>
-  </div>
-</div>
+<!-- [v19] Maintenance tab removed. -->
 
 <!-- AI Stylist Tab [AG] -->
 <div class="apan" id="tai">
@@ -723,7 +711,64 @@ function doLogout(){sessionStorage.removeItem('iadm');sessionStorage.removeItem(
 if(sessionStorage.getItem('iadm')==='1'){document.addEventListener('DOMContentLoaded',function(){
   adminToken=sessionStorage.getItem('iadm_t');document.getElementById('alogin').style.display='none';document.getElementById('adsh').style.display='block';initAdmin()});}
 
-function showTab(btn,id){document.querySelectorAll('.atab').forEach(function(t){t.classList.remove('act')});document.querySelectorAll('.apan').forEach(function(p){p.classList.remove('act')});btn.classList.add('act');document.getElementById(id).classList.add('act')}
+/* [v19] Two-level nav helpers.
+   - showGroup(btn, groupId, defaultPanelId): activates a top-level group,
+     shows its sub-nav, and opens its default panel.
+   - showPanel(btn, panelId): activates one sub-nav pill + shows its panel. */
+function showGroup(btn, groupId, defaultPanelId){
+  document.querySelectorAll('.atab').forEach(function(t){t.classList.remove('act')});
+  document.querySelectorAll('.asub').forEach(function(g){g.classList.remove('act')});
+  document.querySelectorAll('.apan').forEach(function(p){p.classList.remove('act')});
+  btn.classList.add('act');
+  var g = document.getElementById(groupId);
+  if (g){
+    g.classList.add('act');
+    /* activate first sub-btn */
+    var first = g.querySelector('.asub-btn');
+    if (first){
+      g.querySelectorAll('.asub-btn').forEach(function(b){b.classList.remove('act')});
+      first.classList.add('act');
+    }
+  }
+  var p = document.getElementById(defaultPanelId);
+  if (p) p.classList.add('act');
+}
+function showPanel(btn, panelId){
+  var parent = btn.parentElement;
+  if (parent) parent.querySelectorAll('.asub-btn').forEach(function(b){b.classList.remove('act')});
+  btn.classList.add('act');
+  document.querySelectorAll('.apan').forEach(function(p){p.classList.remove('act')});
+  var p = document.getElementById(panelId);
+  if (p) p.classList.add('act');
+}
+/* Back-compat shim: any legacy showTab(this,'tXXX') calls still work. */
+function showTab(btn, id){
+  var map = { tord:'gord', tprod:'gcat', tcpn:'gcat', tcombo:'gcat', tsize:'gcat',
+              tleg:'gcnt', tfaq:'gcnt', tblog:'gcnt', tig:'gcnt', tana:'gana',
+              tai:'gai', tlim:'gai', tsett:'gset' };
+  var groupId = map[id] || 'gord';
+  /* Simulate clicking the group tab, then the sub panel */
+  var atabButtons = document.querySelectorAll('.atab');
+  var subGroups = document.querySelectorAll('.asub');
+  var apans = document.querySelectorAll('.apan');
+  atabButtons.forEach(function(t){t.classList.remove('act')});
+  subGroups.forEach(function(g){g.classList.remove('act')});
+  apans.forEach(function(p){p.classList.remove('act')});
+  /* find the group tab whose onclick includes groupId */
+  atabButtons.forEach(function(t){
+    if ((t.getAttribute('onclick')||'').indexOf("'"+groupId+"'") > -1) t.classList.add('act');
+  });
+  var g = document.getElementById(groupId);
+  if (g){
+    g.classList.add('act');
+    g.querySelectorAll('.asub-btn').forEach(function(b){
+      b.classList.remove('act');
+      if ((b.getAttribute('onclick')||'').indexOf("'"+id+"'") > -1) b.classList.add('act');
+    });
+  }
+  var p = document.getElementById(id);
+  if (p) p.classList.add('act');
+}
 
 function initAdmin(){getAdminSettings();loadOrders();loadAnalytics();loadProducts();loadCoupons();loadCombos();initLegal();loadFaqs();loadBlogs();loadSizeChart();loadIgFeed();loadLimits();loadAIConfig()}
 function getAdminSettings(){loadSettings()}
@@ -812,18 +857,30 @@ function renderOrders(orders){
       var custPhone = o.customer_phone || addr.phone || addr.contact || '—';
       var isCod=pm==='cod';
       var oid = o.id || '';
-      var codVerified = o.cod_verified || o.metadata?.cod_verified;
-      var codBadge = isCod ? (codVerified ? '<span class="ostatus ost-cod" style="background:#dcfce7;color:#166534;border:1px solid #86efac">✓ COD VERIFIED</span>' : '<span class="ostatus ost-cod">🚚 COD PENDING</span>') : '<span class="ostatus ost-prepaid">⚡ PREPAID</span>';
+      var codVerified = o.cod_verified || (o.metadata && o.metadata.cod_verified);
+      // [v19] Unified payment badge — same visual weight for COD & prepaid; single line, consistent icon+label pattern.
+      var payBadge;
+      if(isCod){
+        payBadge = codVerified
+          ? '<span class="pay-badge pay-cod-ok"><i class="fas fa-check-circle"></i> COD · VERIFIED</span>'
+          : '<span class="pay-badge pay-cod"><i class="fas fa-truck"></i> COD · PENDING</span>';
+      } else {
+        payBadge = '<span class="pay-badge pay-prepaid"><i class="fas fa-bolt"></i> PREPAID</span>';
+      }
+      // [v19] Pricing block — same two-line layout for both (line 2 shows either COD fee or a subtle "Paid online" tag), so column height matches.
+      var priceSubline = isCod
+        ? (o.cod_fee>0 ? '<div class="price-sub">+ Rs.'+o.cod_fee+' COD handling</div>' : '<div class="price-sub price-sub-muted">Cash on delivery</div>')
+        : '<div class="price-sub price-sub-muted">Paid online</div>';
       h+='<tr class="'+(isCod?'cod-row':'prepaid-row')+'">'
         +'<td data-label="Order ID" style="min-width:110px"><div style="font-weight:800;font-size:12px;letter-spacing:-0.5px;margin-bottom:6px">#'+(o.razorpay_order_id||o.id||'').slice(-8).toUpperCase()+'</div>'
-        +codBadge+'</td>'
+        +payBadge+'</td>'
         +'<td data-label="Date &amp; Time" style="min-width:130px">'+fmtOrderDate(o.created_at)+'</td>'
         +'<td data-label="Customer Info" style="min-width:200px"><div style="font-size:14px;font-weight:800;color:var(--bk);letter-spacing:-0.2px">'+custName+'</div>'
         +'<div style="font-size:11px;color:var(--g600);font-weight:600;margin:4px 0"><i class="fas fa-envelope" style="font-size:9px;width:12px"></i>'+(o.customer_email||'—')+'</div>'
         +'<div style="font-size:11px;color:var(--g600);font-weight:600"><i class="fas fa-phone" style="font-size:9px;width:12px"></i>'+(o.customer_phone||'—')+'</div>'
         +'<div style="margin-top:10px;font-size:10px;line-height:1.4;color:var(--g500);background:rgba(0,0,0,0.03);padding:6px;border-radius:4px;border:1px solid rgba(0,0,0,0.03)">'+addrStr+'</div></td>'
         +'<td data-label="Items" style="font-size:12px;min-width:180px;color:var(--bk);font-weight:500">'+items+'</td>'
-        +'<td data-label="Pricing" style="min-width:110px"><div style="font-weight:800;font-size:15px;color:var(--bk)">Rs.'+(o.total||0).toLocaleString('en-IN')+'</div>'+(o.cod_fee>0?'<div style="font-size:9px;color:#92400e;font-weight:700;margin-top:2px">+ Rs.'+o.cod_fee+' COD handle</div>':'')+'</td>'
+        +'<td data-label="Pricing" style="min-width:110px"><div style="font-weight:800;font-size:15px;color:var(--bk)">Rs.'+(o.total||0).toLocaleString('en-IN')+'</div>'+priceSubline+'</td>'
         +'<td data-label="Status"> <span class="ostatus ost-'+st+'">'+st+'</span></td>'
         +'<td data-label="Actions" style="min-width:170px"><select class="oselect" style="width:100%;margin-bottom:8px" onchange="updateOrder(\\x27'+oid+'\\x27,this.value)">'
         +'<option value="">Update Status...</option><option value="paid">Mark Paid</option><option value="processing">Processing</option><option value="shipped">Shipped</option><option value="delivered">Delivered</option><option value="cancelled">Cancelled</option></select>'
@@ -1178,11 +1235,9 @@ function loadSettings(){
     document.getElementById('settIgFeed').checked=s.INSTAGRAM_FEED_ENABLED!=='false';
     const settSizeGuide = document.getElementById('settSizeGuide');
     if (settSizeGuide) settSizeGuide.checked=s.SIZE_GUIDE_ENABLED!=='false';
-    // Maintenance
-    var mm=document.getElementById('settMaintMode'); if(mm) mm.value=s.MAINTENANCE_MODE||'off';
-    var mMsg=document.getElementById('settMaintMsg'); if(mMsg) mMsg.value=s.MAINTENANCE_MESSAGE||'';
-    var mEta=document.getElementById('settMaintEta'); if(mEta) mEta.value=s.MAINTENANCE_ETA||'';
-    if(typeof updateMaintBadge === 'function') updateMaintBadge(s.MAINTENANCE_MODE||'off');
+    // [v19] Maintenance mode retired — feature removed from admin.
+    // Cookie consent toggle
+    var _cc=document.getElementById('settCookieConsent'); if(_cc) _cc.checked=s.COOKIE_CONSENT_ENABLED==='true';
   }).catch(function(){});
   if(typeof loadSalesReports==='function') loadSalesReports();
 }
@@ -1288,36 +1343,8 @@ function saveAIConfig(){
     });
   });
 }
-function saveMaintenanceConfig(){
-  var mode = document.getElementById('settMaintMode').value;
-  var msg = document.getElementById('settMaintMsg').value;
-  var eta = document.getElementById('settMaintEta').value;
-  var keys = ['MAINTENANCE_MODE', 'MAINTENANCE_MESSAGE', 'MAINTENANCE_ETA'];
-  var vals = [mode, msg, eta];
-  var count = 0;
-  var failed = false;
-  keys.forEach(function(k, i){
-    fetch('/api/admin/settings/'+encodeURIComponent(k), {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'x-admin-token': sessionStorage.getItem('iadm_t') },
-      body: JSON.stringify({ value: vals[i] })
-    }).then(function(r){ return r.json() }).then(function(d){
-      if(!d.success) failed = true;
-      count++; 
-      if(count === keys.length) {
-        if(!failed) {
-          toast('Maintenance mode updated', 'ok-green');
-          updateMaintBadge(mode);
-        } else {
-          toast('Failed to save &mdash; try again', 'err');
-        }
-      }
-    }).catch(function(e){
-      failed = true; count++;
-      if(count === keys.length) toast('Failed to save &mdash; try again', 'err');
-    });
-  });
-}
+/* [v19] saveMaintenanceConfig removed — maintenance mode retired. */
+
 /* ====== COUPONS [AG v15.4] ====== */
 var cpnData = [];
 function loadCoupons(){
@@ -1661,19 +1688,7 @@ function deleteCombo(id, name){
   }).catch(function(e){ toast('Error: ' + e.message, 'err'); });
 }
 
-function updateMaintBadge(mode) {
-  var b = document.getElementById('maintModeBadge');
-  if(!b) return;
-  if(mode === 'off') {
-    b.innerHTML = '&#9679; OFF';
-    b.style.background = 'var(--g100)';
-    b.style.color = 'var(--g500)';
-  } else {
-    b.innerHTML = '&#9679; LIVE';
-    b.style.background = '#dcfce7';
-    b.style.color = '#166534';
-  }
-}
+/* [v19] updateMaintBadge removed — maintenance mode retired. */
 
 /* ═════════════════════════════════════════════════════════════════
    FAQ CRUD — full admin management for /faq entries

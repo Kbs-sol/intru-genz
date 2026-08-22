@@ -205,94 +205,333 @@ export const SEED_PRODUCTS: Product[] = [
 export const SEED_LEGAL_PAGES: LegalPage[] = [
   {
     slug: "terms", title: "Terms of Service",
-    content: `<h2>1. Agreement to Terms</h2>
-<p>By accessing, browsing, or using this website (<strong>intru.in</strong>), you acknowledge that you have read, understood, and agree to be bound by these Terms and Conditions, including our <a href="/p/shipping">Shipping</a> and <a href="/p/returns">Store-Credit-only Refund Policy</a>. If you do not agree, please discontinue use immediately.</p>
-<h2>2. Limited Drop Model</h2>
-<p>intru.in operates on a <strong>limited-drop model</strong>. Products are released in small, exclusive batches. Due to the limited nature of our drops, <strong>all sales are final</strong>. We do not offer cash refunds under any circumstances. Approved claims are issued as Store Credit only.</p>
-<h2>3. Order Processing</h2>
-<p>We strive to process and hand over all orders to our courier partners within a <strong>36-hour window</strong> from the time of order confirmation. Orders placed on weekends or public holidays will be processed on the next business day.</p>
-<h2>4. Shipping Disclaimer</h2>
-<p>Delivery timelines provided at checkout are estimates only. <strong>intru.in is not responsible for any logistical delays, damages during transit, or failures to deliver caused by the independent delivery partner.</strong></p>
-<h2>5. Pricing &amp; Payment</h2>
-<p>All product prices are listed in Indian Rupees (INR) and are inclusive of applicable taxes. Payment is processed securely through Razorpay. We accept UPI, credit/debit cards, net banking, and popular digital wallets.</p>
-<h2>6. Store Credit</h2>
-<p>Store Credit issued by intru.in is valued at a 1:1 ratio with INR. Store Credit never expires and can be applied to any future purchase. Store Credit is non-transferable and cannot be converted to cash.</p>
-<h2>7. Intellectual Property</h2>
-<p>All content on intru.in — including logos, graphics, product images, and text — is our intellectual property and may not be reproduced without prior written consent.</p>
-<h2>8. Limitation of Liability</h2>
-<p>intru.in shall not be liable for any indirect, incidental, special, consequential, or punitive damages. Our total liability shall not exceed the amount paid for the specific product in question.</p>
-<h2>9. Governing Law &amp; Jurisdiction</h2>
-<p>These terms are governed by the laws of India. Any disputes shall be subject to the exclusive jurisdiction of the courts in Hyderabad, Telangana.</p>
-<h2>10. Grievance Redressal</h2>
-<p>In accordance with the <strong>Consumer Protection (E-Commerce) Rules, 2020</strong> and the Information Technology Act, 2000, our designated Grievance Officer / Nodal Officer is:</p>
-<p><strong>Nodal Officer:</strong> intru.in Grievance Desk<br><strong>Email:</strong> <a href="mailto:shop@intru.in">shop@intru.in</a><br><strong>Response Time:</strong> All grievances will be acknowledged within 48 hours and resolved within 30 days of receipt.</p>
-<h2>11. Changes to Terms</h2>
-<p>We reserve the right to update these Terms at any time. Continued use constitutes acceptance of the new Terms.</p>`,
-    updatedAt: "2026-02-27"
+    content: `<p style="font-size:13px;color:#666;margin-bottom:24px"><em>Last updated: 22 August 2026 · Governing law: India</em></p>
+
+<p>Welcome to <strong>Intru</strong> (<a href="https://intru.in">intru.in</a>), a small-batch streetwear label based in India. These Terms of Service ("Terms") govern your access to and use of this website, our products, and any related services. By browsing, creating an account, or placing an order, you agree to these Terms in full. If you do not agree with any part, please stop using the site.</p>
+
+<h2>1. Who We Are</h2>
+<p>Intru is an independent Indian streetwear brand designing and shipping limited-run, oversized, heavyweight cotton apparel. The store is operated from Hyderabad, Telangana, India. Contact: <a href="mailto:shop@intru.in">shop@intru.in</a> · Instagram: <a href="https://www.instagram.com/intru.in/" target="_blank" rel="noopener">@intru.in</a>.</p>
+
+<h2>2. Who Can Order</h2>
+<p>You must be at least <strong>18 years old</strong> (or the age of majority in your jurisdiction) to place an order. If you are under 18, you may use the site only with the involvement and consent of a parent or legal guardian. By ordering, you confirm that the information you provide (name, address, phone, email) is accurate and that the payment method belongs to you or you have authorisation to use it.</p>
+
+<h2>3. Our Limited-Drop Model — What It Means for You</h2>
+<p>Intru does not run continuous inventory. Every design is released as a <strong>limited drop</strong> — once a size sells out, it is <strong>not restocked</strong>. This is a deliberate choice to keep production small, ethical, and low-waste. Because of this:</p>
+<ul>
+  <li>Product availability shown at checkout is real-time but stock can change between page-view and payment.</li>
+  <li><strong>All sales are final.</strong> We do not offer cash refunds.</li>
+  <li>Approved claims (defects, transit damage, wrong item, size exchanges) are settled as <strong>Store Credit at 1:1 value with INR</strong> — see our <a href="/p/returns">Returns, Exchanges &amp; Refunds Policy</a> for full details.</li>
+</ul>
+
+<h2>4. Placing an Order</h2>
+<ol>
+  <li>Add pieces to your cart and proceed to checkout.</li>
+  <li>Choose <strong>Prepaid</strong> (UPI, cards, net banking, wallets — via Razorpay) or <strong>Cash on Delivery (COD)</strong>. COD carries a ₹99 handling fee and may require a quick verification step (email/SMS/OTP) for high-value orders — this protects our small-batch model from fake orders.</li>
+  <li>You'll receive an order confirmation email at the address you provided. That confirmation is our acceptance of the order.</li>
+  <li>We dispatch within <strong>36 working hours</strong> of order confirmation. Orders placed on Sundays or Indian public holidays move to the next business day.</li>
+</ol>
+<p>We reserve the right to refuse or cancel any order — for example, if we detect fraud, if the product is mispriced due to a technical error, or if the shipping address is outside our serviceable network. In such cases you'll be notified and any pre-payment fully refunded to the original payment method.</p>
+
+<h2>5. Pricing, Taxes &amp; Payment</h2>
+<p>All prices are in <strong>Indian Rupees (₹)</strong> and are inclusive of applicable GST unless stated otherwise. Prices, discounts, and shipping fees can change at any time — the price locked at the moment you pay is the price you pay. Payments are processed by <strong>Razorpay</strong>, a PCI-DSS Level 1 compliant gateway. Intru does not see or store your card, UPI, or banking credentials on its own servers.</p>
+
+<h2>6. Shipping &amp; Delivery</h2>
+<p>Full shipping timelines, fees, and coverage are on our <a href="/p/shipping">Shipping Policy</a> page. In short: prepaid orders ship free across India; COD orders carry ₹99. Estimated delivery is 3–7 business days depending on your city. Once your parcel is with the courier, tracking follows over email/SMS.</p>
+<p>Delivery timelines are estimates. Intru is not liable for delays, damages, or losses that happen after the parcel is handed to the courier partner — but we will actively help you file a claim and share all supporting documentation.</p>
+
+<h2>7. Returns, Exchanges &amp; Store Credit</h2>
+<p>Because we run limited drops, cash refunds are not offered. Defect and size-exchange claims must be raised within <strong>36 hours of delivery</strong> at <a href="mailto:shop@intru.in">shop@intru.in</a>. Approved claims are settled as Store Credit at 1:1 with INR — never expires, non-transferable, cannot be converted to cash. Full mechanics are documented at <a href="/p/returns">Returns, Exchanges &amp; Refunds Policy</a>.</p>
+
+<h2>8. Your Account</h2>
+<p>You can shop as a guest, but a free account (email or Google sign-in) unlocks order history, tracking, Store Credit balance, and early-access to new drops. You are responsible for keeping your login credentials confidential. Notify us at <a href="mailto:shop@intru.in">shop@intru.in</a> immediately if you suspect unauthorised use of your account.</p>
+
+<h2>9. Acceptable Use</h2>
+<p>When you use intru.in you agree not to:</p>
+<ul>
+  <li>Use the site for anything unlawful or fraudulent, including chargeback abuse or fake COD orders.</li>
+  <li>Attempt to hack, reverse-engineer, scrape at abusive volumes, or overload the site.</li>
+  <li>Impersonate anyone, submit false information at checkout, or use the AI Stylist to generate harmful, harassing, or infringing content.</li>
+  <li>Copy, redistribute, or resell our product images, product designs, brand assets, or written content without prior written permission.</li>
+</ul>
+
+<h2>10. Intellectual Property</h2>
+<p>All designs, prints, photographs, illustrations, text, logos, and code on intru.in are owned by Intru (or used under licence). The "Intru" name and logo are trademarks of the brand. You may share our product photos on personal social media with credit to <a href="https://www.instagram.com/intru.in/" target="_blank" rel="noopener">@intru.in</a>. Commercial reuse, dropshipping our images, or reproducing our prints on your own products is not permitted.</p>
+
+<h2>11. AI Stylist &amp; User-Generated Content</h2>
+<p>The AI Stylist on this site is provided as a shopping companion. Recommendations are generated by third-party language models and are guidance, not professional advice. Do not share private, financial, or medical information with the Stylist. Any messages you send may be logged for quality improvement — see our <a href="/p/privacy">Privacy Policy</a>.</p>
+<p>If you submit reviews, photos, or feedback (via email or social tags), you grant Intru a non-exclusive, royalty-free licence to repost that content on our site, email newsletters, and social channels, with credit.</p>
+
+<h2>12. Third-Party Services &amp; Links</h2>
+<p>We rely on trusted third parties to run the store: <strong>Supabase</strong> (database + auth), <strong>Cloudflare</strong> (hosting + edge), <strong>Razorpay</strong> (payments), <strong>Google</strong> (analytics + sign-in), <strong>Meta / Instagram</strong> (social feed), <strong>Resend</strong> (transactional email), and <strong>Shiprocket / partner couriers</strong> (delivery). Each has its own terms and privacy policy — we've listed the roles they play in our <a href="/p/privacy">Privacy Policy</a>.</p>
+
+<h2>13. Disclaimers</h2>
+<p>The site is provided "as is". We make reasonable efforts to keep product descriptions, GSM figures, fit measurements, and photography accurate, but colours can vary slightly across screens and small print-placement variance is a feature of small-batch production, not a defect. We don't guarantee uninterrupted availability of the site — occasional downtime for maintenance or infrastructure updates is possible.</p>
+
+<h2>14. Limitation of Liability</h2>
+<p>To the maximum extent permitted by Indian law, Intru's total liability to you for any claim arising out of your use of the site or a specific order is capped at <strong>the amount you actually paid for the product in question</strong>. We are not liable for indirect, incidental, or consequential losses (missed events, business losses, hurt feelings, etc.).</p>
+
+<h2>15. Force Majeure</h2>
+<p>We are not liable for delays or failures caused by events outside our reasonable control — natural disasters, pandemics, courier strikes, government restrictions, network outages, or acts of terror.</p>
+
+<h2>16. Governing Law &amp; Jurisdiction</h2>
+<p>These Terms are governed by the laws of India. Any dispute that cannot be resolved amicably shall be subject to the <strong>exclusive jurisdiction of the courts of Hyderabad, Telangana, India</strong>.</p>
+
+<h2>17. Grievance Redressal (Consumer Protection E-Commerce Rules, 2020)</h2>
+<p>As required under the <strong>Consumer Protection (E-Commerce) Rules, 2020</strong> and the <strong>Information Technology Act, 2000</strong>:</p>
+<p><strong>Grievance / Nodal Officer:</strong> Intru Grievance Desk<br>
+<strong>Email:</strong> <a href="mailto:shop@intru.in">shop@intru.in</a> (subject line: "Grievance")<br>
+<strong>Acknowledgement:</strong> within 48 hours · <strong>Resolution:</strong> within 30 days of receipt.</p>
+
+<h2>18. Changes to These Terms</h2>
+<p>We may update these Terms as the business evolves — new legal requirements, new features, new services. The "Last updated" date at the top will always reflect the current version. If a change is material (affects your rights or obligations), we'll flag it via the site or email registered users. Continuing to use intru.in after an update means you accept the revised Terms.</p>
+
+<h2>19. Getting in Touch</h2>
+<p>Questions about these Terms, an order, or anything else? Email <a href="mailto:shop@intru.in">shop@intru.in</a>. For faster help on sizing, drops, and styling try our <a href="/stylist">AI Stylist</a> or DM us on Instagram.</p>`,
+    updatedAt: "2026-08-22"
   },
   {
     slug: "returns", title: "Returns, Exchanges & Refunds",
-    content: `<div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:16px 20px;margin-bottom:32px;font-size:14px;line-height:1.7">
-<strong>Important:</strong> intru.in operates on a limited-drop model. All sales are final. We do not offer cash refunds. Approved claims receive <strong>Store Credit only</strong>.
+    content: `<p style="font-size:13px;color:#666;margin-bottom:20px"><em>Last updated: 22 August 2026 · Applies to all orders placed on intru.in</em></p>
+
+<div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:16px 20px;margin-bottom:32px;font-size:14px;line-height:1.7">
+<strong>Short version:</strong> Intru is a limited-drop label — every piece is made in small quantities and never restocked. Because of that, <strong>all sales are final and cash refunds are not offered</strong>. Approved claims (defects, transit damage, wrong item, size exchanges) are settled as <strong>Store Credit at 1:1 with INR</strong>. Store Credit never expires and works on any future drop.
 </div>
-<h2>1. Limited Drop Policy</h2>
-<p>Due to the exclusive and limited nature of intru.in products, <strong>all sales are final</strong>. Once a drop sells out, it is never restocked.</p>
-<h2>2. Store Credit Only — No Cash Refunds</h2>
-<p>Approved returns receive <strong>Store Credit at 1:1 value with INR</strong>. Store Credit can be used for any future drop, never expires, and is non-transferable. Cash refunds are not available under any circumstances.</p>
-<h2>3. 36-Hour Defect Claim Window</h2>
-<p>Customers must raise a claim within <strong>36 hours of receiving the order</strong>. To file a claim, email <a href="mailto:shop@intru.in">shop@intru.in</a> with:</p>
-<ul><li>Your order number</li><li>Clear photographs of the defect or issue</li><li>A brief description of the problem</li></ul>
-<h2>4. Eligible Claims</h2>
-<p><strong>Store Credit approved for:</strong> Manufacturing defects, wrong item received, significantly damaged product during transit.</p>
-<p><strong>NOT eligible:</strong> Change of mind, wrong size ordered, minor color variations between screen and product, claims submitted after the 36-hour window.</p>
-<h2>5. Exchange Process</h2>
-<p>For size exchanges on eligible items, email us within 36 hours. If approved and replacement size is in stock, we ship at no additional cost. If out of stock, Store Credit is issued.</p>
-<h2>6. Grievance Redressal</h2>
-<p>If you are unsatisfied with the resolution of your claim, you may escalate to our Nodal Officer at <a href="mailto:shop@intru.in">shop@intru.in</a>. All escalations are acknowledged within 48 hours and resolved within 30 days.</p>
-<h2>7. Contact</h2>
-<p>For all return queries: <a href="mailto:shop@intru.in">shop@intru.in</a></p>`,
-    updatedAt: "2026-02-27"
+
+<h2>1. Why We Don't Offer Cash Refunds</h2>
+<p>Every Intru drop is produced in a limited quantity — usually a few dozen pieces per size, per design. Once it's sold out, we don't restock. If we accepted cash returns, we'd end up with returned inventory we can't resell, which would force us into the mass-production model we specifically built Intru to avoid. Store Credit at 1:1 preserves the drop model and gives you the same rupee value, useable on any future drop, forever.</p>
+
+<h2>2. The 36-Hour Claim Window</h2>
+<p>All defect, damage, or size-exchange claims must be raised within <strong>36 hours of the parcel being delivered</strong> to your address (as per courier tracking). This tight window protects both sides — it lets us verify the issue against courier condition reports and ensures returned inventory (in the case of exchanges) can still be re-verified as unworn.</p>
+<p>To file a claim, email <a href="mailto:shop@intru.in">shop@intru.in</a> with:</p>
+<ul>
+  <li><strong>Order number</strong> (starts with an <code>#</code> — from your confirmation email)</li>
+  <li><strong>2–4 clear photographs</strong> showing the issue (natural light, whole garment + close-up of the defect)</li>
+  <li>A one-line description of what's wrong</li>
+  <li>For size exchange: your <strong>current size</strong> and the <strong>size you'd like</strong></li>
+</ul>
+<p>We reply within 48 working hours with a decision or a request for one more photo if needed.</p>
+
+<h2>3. What We Cover (Eligible Claims)</h2>
+<p>Store Credit is approved for:</p>
+<ul>
+  <li><strong>Manufacturing defects</strong> — stitching failure, holes, misprints, uneven dye lots, missing labels.</li>
+  <li><strong>Wrong item shipped</strong> — you ordered X, received Y.</li>
+  <li><strong>Significant transit damage</strong> — parcel arrived visibly torn/soaked/stained and the garment is affected. Please also share a photo of the courier packaging if possible.</li>
+  <li><strong>Size exchange</strong> (see next section) — same design, different size, unworn and unwashed.</li>
+</ul>
+
+<h2>4. What We Don't Cover</h2>
+<ul>
+  <li>Change of mind after delivery.</li>
+  <li>Wrong size ordered when a full size chart was provided on the product page.</li>
+  <li>Minor colour variation between screen and physical product (all screens render colour differently — we publish natural-light photos to keep this honest).</li>
+  <li>Slight print-placement variance (each piece is finished individually — a few mm of variance is a feature of small-batch printing, not a defect).</li>
+  <li>Fabric relaxation / softening after wash (a natural characteristic of heavyweight cotton).</li>
+  <li>Damage from wear, wash-mistakes (bleach, hot water), or accidents after delivery.</li>
+  <li>Claims raised after the 36-hour window has closed.</li>
+  <li>Items marked "Final Sale" or purchased during a clearance event.</li>
+</ul>
+
+<h2>5. Size Exchanges — How It Works</h2>
+<ol>
+  <li>Email us within 36 hours of delivery with your order number, current size, and desired size.</li>
+  <li>If the replacement size is in stock <em>and</em> the piece is unworn/unwashed/tags-attached, we approve the swap.</li>
+  <li>You'll receive a return label / pickup arrangement. Pack the piece in its original condition.</li>
+  <li>Once we receive and inspect the piece, we ship the new size — no extra shipping fee for the first swap.</li>
+  <li>If the size you want is out of stock at that moment, we issue Store Credit instead so you're not stuck waiting on a restock that may not happen.</li>
+</ol>
+
+<h2>6. How Store Credit Works</h2>
+<ul>
+  <li>Issued at <strong>1:1 with INR</strong> — a ₹1,499 tee becomes ₹1,499 in Store Credit.</li>
+  <li><strong>Never expires.</strong></li>
+  <li>Applied automatically at checkout when you're logged into the account used for the original order.</li>
+  <li>Can be combined with free shipping on prepaid orders (COD ₹99 fee still applies on COD orders).</li>
+  <li>Non-transferable and cannot be converted to cash.</li>
+  <li>If a piece bought with Store Credit is itself returned under this policy, the credit is re-issued to your account.</li>
+</ul>
+
+<h2>7. Damaged-in-Transit — Extra Step</h2>
+<p>If your parcel arrives with the outer packaging visibly torn, opened, wet, or tampered with, <strong>please film a short unboxing video before opening it</strong> and share it along with the photos. This drastically speeds up our claim with the courier and lets us settle your Store Credit within 24 hours instead of waiting on courier confirmation.</p>
+
+<h2>8. Order Cancellation Before Dispatch</h2>
+<p>If you need to cancel a prepaid order <strong>before</strong> we've handed it to the courier (typically the first 24 hours), email <a href="mailto:shop@intru.in">shop@intru.in</a> with your order number. If we haven't shipped yet, we'll cancel and refund to the original payment method in full (Razorpay refunds usually credit in 5–7 business days). Once dispatched, the order can no longer be cancelled — the 36-hour post-delivery process applies.</p>
+
+<h2>9. Escalation &amp; Grievance Redressal</h2>
+<p>If you're unsatisfied with the resolution of your claim, you can escalate to our Grievance / Nodal Officer under the <strong>Consumer Protection (E-Commerce) Rules, 2020</strong>:</p>
+<p><strong>Nodal Officer:</strong> Intru Grievance Desk<br>
+<strong>Email:</strong> <a href="mailto:shop@intru.in">shop@intru.in</a> (subject line: "Escalation — Order #XXXX")<br>
+<strong>Acknowledgement:</strong> within 48 hours · <strong>Resolution:</strong> within 30 days of receipt.</p>
+
+<h2>10. Contact Us</h2>
+<p>All return queries: <a href="mailto:shop@intru.in">shop@intru.in</a>. For quicker informal questions, DM <a href="https://www.instagram.com/intru.in/" target="_blank" rel="noopener">@intru.in</a> on Instagram.</p>`,
+    updatedAt: "2026-08-22"
   },
   {
     slug: "privacy", title: "Privacy Policy",
-    content: `<h2>1. Information We Collect</h2>
-<p>We collect information you provide directly: name, email address, phone number, shipping address, and payment details. We also collect browsing data through cookies and analytics tools.</p>
-<h2>2. How We Use Your Data</h2>
-<p>Your data is used to: process orders, send order updates and tracking, manage Store Credit balances, improve our services, and communicate about new drops (with your consent). <strong>We do not sell or rent your personal information to any third party.</strong></p>
-<h2>3. Data Security</h2>
-<p>We implement SSL/TLS encryption across the entire site. Payment processing is handled by Razorpay, a PCI-DSS Level 1 compliant payment gateway. We never store full card details on our servers.</p>
-<h2>4. Cookies</h2>
-<p>We use essential cookies for cart management and session authentication. Optional analytics cookies help us understand traffic and improve the shopping experience. You may disable non-essential cookies in your browser settings.</p>
-<h2>5. Third-Party Services</h2>
-<p>We use the following third-party services, each governed by their own privacy policies: Supabase (database), Razorpay (payments), Google (authentication), and our delivery partners (shipping).</p>
-<h2>6. Data Retention</h2>
-<p>We retain your personal data for as long as your account is active or as needed to provide services. Order records are retained for 7 years as required by Indian tax regulations.</p>
-<h2>7. Your Rights</h2>
-<p>You have the right to request access, correction, or deletion of your personal data at any time. Contact us at <a href="mailto:shop@intru.in">shop@intru.in</a>.</p>
-<h2>8. Grievance Redressal</h2>
-<p>For privacy-related grievances, contact our Nodal Officer at <a href="mailto:shop@intru.in">shop@intru.in</a>. Grievances will be acknowledged within 48 hours and resolved within 30 days.</p>
-<h2>9. Updates</h2>
-<p>This policy may be updated periodically. Significant changes will be communicated via email to registered users.</p>`,
-    updatedAt: "2026-02-27"
+    content: `<p style="font-size:13px;color:#666;margin-bottom:24px"><em>Last updated: 22 August 2026 · Compliant with the Digital Personal Data Protection Act, 2023 (India) and the IT (Reasonable Security Practices &amp; Procedures) Rules, 2011</em></p>
+
+<p>This Privacy Policy explains what personal data Intru (<a href="https://intru.in">intru.in</a>) collects when you visit or shop with us, how we use it, who we share it with, and the rights you have as a Data Principal under Indian law. We try to keep this document short and readable. If any part is unclear, email <a href="mailto:shop@intru.in">shop@intru.in</a> and we'll explain.</p>
+
+<h2>1. Who's the Data Fiduciary</h2>
+<p>Intru — an Indian streetwear label operating from Hyderabad, Telangana — is the "Data Fiduciary" (under the DPDP Act 2023) for the personal data collected on intru.in. Our <strong>Grievance / Nodal Officer</strong> is contactable at <a href="mailto:shop@intru.in">shop@intru.in</a>.</p>
+
+<h2>2. What Data We Collect &amp; Why</h2>
+<p>We collect the minimum data needed to run the store. Concretely:</p>
+<ul>
+  <li><strong>Account &amp; order data</strong> — name, email, phone, shipping address, order history. <em>Used to:</em> process orders, send tracking, manage Store Credit, provide support.</li>
+  <li><strong>Payment data</strong> — handled directly by <strong>Razorpay</strong>. We only ever see the last 4 digits / UPI VPA and a payment status. <em>Used to:</em> confirm the payment.</li>
+  <li><strong>Login data</strong> — if you sign in with Google, we receive your name, email, and profile picture from Google (nothing else). <em>Used to:</em> identify you across sessions.</li>
+  <li><strong>Browsing &amp; device data</strong> — pages viewed, referrer, device type, approximate location (city-level, from IP), interaction events. Collected via Google Analytics 4 and Microsoft Clarity. <em>Used to:</em> understand what's working, fix broken flows, improve product pages.</li>
+  <li><strong>Cart &amp; wishlist data</strong> — stored in your browser (localStorage) and, if you're signed in, mirrored to our database. <em>Used to:</em> keep your cart across devices.</li>
+  <li><strong>Support messages &amp; AI Stylist chats</strong> — anything you type to us over email or the AI Stylist. <em>Used to:</em> answer you, improve the Stylist's replies. Please don't share sensitive personal information (Aadhaar, PAN, medical data, financial credentials) with the Stylist.</li>
+  <li><strong>Cookies</strong> — see section 6.</li>
+</ul>
+<p>We <strong>do not</strong> knowingly collect data from anyone under 18. We do not process sensitive personal data (biometric, health, financial-instrument credentials) as part of ordinary shopping.</p>
+
+<h2>3. Lawful Basis for Processing</h2>
+<p>Under the DPDP Act 2023, we process your data on one of three bases:</p>
+<ul>
+  <li><strong>Consent</strong> — you tick a box, accept cookies, subscribe to email, or start a chat.</li>
+  <li><strong>Legitimate use for a specified purpose</strong> — mostly fulfilling an order you placed (a "voluntary purpose" for which you provided data).</li>
+  <li><strong>Legal obligation</strong> — retaining invoices &amp; GST records under Indian tax law.</li>
+</ul>
+
+<h2>4. Who We Share Data With</h2>
+<p>We only share data with the vendors we genuinely need to run the shop. Each of them is bound by its own privacy policy and, where relevant, a Data Processing Agreement:</p>
+<ul>
+  <li><strong>Supabase</strong> (database, auth) — stores your account &amp; order data. Hosted in Singapore region, encrypted at rest.</li>
+  <li><strong>Cloudflare</strong> (hosting, CDN, edge) — routes and secures every request to intru.in.</li>
+  <li><strong>Razorpay</strong> (payment processing) — handles payment credentials so we don't have to.</li>
+  <li><strong>Google</strong> — Sign-in with Google, Google Analytics 4, Google Tag Manager (measurement only, no ads pixel on this site at time of writing).</li>
+  <li><strong>Microsoft Clarity</strong> — anonymous heatmaps and session replays. IPs are anonymised by Clarity.</li>
+  <li><strong>Resend</strong> — sends transactional email (order confirmations, tracking, Store Credit notifications).</li>
+  <li><strong>Shiprocket &amp; partner couriers</strong> — receive name, phone, and shipping address to deliver your parcel.</li>
+  <li><strong>Meta / Instagram</strong> — only if you interact with our embedded Instagram feed or click through to <a href="https://www.instagram.com/intru.in/" target="_blank" rel="noopener">@intru.in</a>.</li>
+  <li><strong>AI providers</strong> (OpenRouter / Groq / Google Gemini) — the AI Stylist forwards your chat message to a language model to generate a reply. Do not share sensitive data with the Stylist.</li>
+</ul>
+<p><strong>We do not sell or rent your personal data to anyone.</strong> We do not run behavioural ad pixels for third-party ad networks on this site at the time of writing.</p>
+
+<h2>5. Cross-Border Data Transfer</h2>
+<p>Some of the vendors above (Supabase, Cloudflare, Google, Resend, OpenRouter, Groq) may process data on servers located outside India. Where required under the DPDP Act, we rely on contractual safeguards and the Indian government's list of permitted jurisdictions. If you'd like a copy of the specific safeguards for a given vendor, email <a href="mailto:shop@intru.in">shop@intru.in</a>.</p>
+
+<h2>6. Cookies &amp; Similar Technologies</h2>
+<p>Cookies are small text files stored in your browser. We use:</p>
+<ul>
+  <li><strong>Strictly necessary</strong> — cart, session, CSRF, admin auth. Cannot be switched off (the site would break).</li>
+  <li><strong>Analytics</strong> — Google Analytics 4 &amp; Microsoft Clarity. Off until you consent (if the cookie banner is enabled by our admin).</li>
+  <li><strong>Preferences</strong> — remembering your Store Credit balance, cookie choice, dark-mode preference.</li>
+</ul>
+<p>You can clear cookies in your browser at any time and re-visit — you'll be re-asked for consent where relevant. Note: the cookie banner itself can be toggled off by the site admin (in which case only strictly necessary cookies are used).</p>
+
+<h2>7. Data Retention</h2>
+<ul>
+  <li>Order records &amp; GST invoices — retained for <strong>8 years</strong> as required by Indian tax law.</li>
+  <li>Account profile — retained as long as your account is active. Deleted 30 days after you submit a deletion request.</li>
+  <li>Analytics events — 14 months (GA4 default), 3 months (Clarity default).</li>
+  <li>AI Stylist chats — up to 90 days for quality review, then deleted.</li>
+  <li>Marketing consent &amp; email opt-ins — kept until you unsubscribe.</li>
+</ul>
+
+<h2>8. Your Rights as a Data Principal</h2>
+<p>Under the DPDP Act 2023 you have the right to:</p>
+<ul>
+  <li><strong>Access</strong> a summary of the personal data we hold about you.</li>
+  <li><strong>Correct or update</strong> inaccurate data.</li>
+  <li><strong>Erase</strong> your data (subject to legal retention obligations above).</li>
+  <li><strong>Withdraw consent</strong> for marketing at any time (unsubscribe link in every email).</li>
+  <li><strong>Nominate</strong> another individual to exercise your rights on your behalf in case of death or incapacity.</li>
+  <li><strong>Register a grievance</strong> with our Grievance Officer, and if unresolved, with the Data Protection Board of India.</li>
+</ul>
+<p>To exercise any right, email <a href="mailto:shop@intru.in">shop@intru.in</a> from the address on your account with the subject line "Data Request — [access / correct / delete / withdraw-consent]". We respond within <strong>7 business days</strong>.</p>
+
+<h2>9. How We Secure Your Data</h2>
+<ul>
+  <li>SSL/TLS across the entire site (HTTPS-only, HSTS enabled).</li>
+  <li>Row-level security on the Supabase database — customer records are isolated per user.</li>
+  <li>Admin dashboard is protected by password + rotated tokens; access is audit-logged.</li>
+  <li>API rate-limiting and bot filtering at the edge (Cloudflare).</li>
+  <li>Payment credentials never touch our servers — Razorpay handles the sensitive path end-to-end.</li>
+  <li>Regular reviews of vendor security posture and access permissions.</li>
+</ul>
+<p>No system is 100% breach-proof. If a personal-data breach affecting you occurs, we will notify you and the Data Protection Board of India within the timeframes required by law.</p>
+
+<h2>10. Grievance Redressal</h2>
+<p><strong>Grievance / Nodal Officer:</strong> Intru Grievance Desk<br>
+<strong>Email:</strong> <a href="mailto:shop@intru.in">shop@intru.in</a> (subject line: "Privacy — Grievance")<br>
+<strong>Acknowledgement:</strong> within 48 hours · <strong>Resolution:</strong> within 30 days of receipt.</p>
+<p>If we can't resolve it to your satisfaction, you can escalate to the <strong>Data Protection Board of India</strong> (once operational) under section 27 of the DPDP Act 2023.</p>
+
+<h2>11. Changes to This Policy</h2>
+<p>Material changes will be flagged on the site or emailed to registered users. The "Last updated" date at the top always reflects the current version. Continuing to use intru.in after a change means you accept the revised policy.</p>`,
+    updatedAt: "2026-08-22"
   },
   {
     slug: "shipping", title: "Shipping Policy",
-    content: `<h2>1. Processing Time</h2>
-<p>All orders are processed within a <strong>36-hour window</strong> from order confirmation (excluding weekends and public holidays).</p>
-<h2>2. Delivery Coverage</h2>
-<p>We ship across India via trusted courier partners. International shipping is not available at this time.</p>
-<h2>3. Estimated Delivery</h2>
-<ul><li><strong>Metro cities (Delhi, Mumbai, Bangalore, etc.):</strong> 3–5 business days</li><li><strong>Tier 2 cities:</strong> 5–7 business days</li><li><strong>Remote / rural areas:</strong> 7–10 business days</li></ul>
-<p>These are estimates and may vary based on courier partner capacity and external factors.</p>
-<h2>4. Shipping Costs</h2>
-<ul><li><strong>Free shipping</strong> on orders above Rs.1,999</li><li>Flat <strong>Rs.99</strong> for orders below Rs.1,999</li></ul>
-<h2>5. Order Tracking</h2>
-<p>A tracking link will be sent to your registered email and phone number once your order ships. You can also check order status by emailing <a href="mailto:shop@intru.in">shop@intru.in</a>.</p>
-<h2>6. Delivery Liability</h2>
-<p><strong>Once the order is handed over to our courier partner, intru.in is not responsible for transit delays, theft, or carrier-caused damage.</strong> We will, however, assist you in filing a claim with the courier and provide necessary documentation.</p>
-<h2>7. Undeliverable Orders</h2>
-<p>If an order is returned to us due to an incorrect address or failed delivery attempts, we will contact you to arrange re-shipment. Additional shipping charges may apply.</p>`,
-    updatedAt: "2026-02-27"
+    content: `<p style="font-size:13px;color:#666;margin-bottom:24px"><em>Last updated: 22 August 2026 · Ships pan-India · Free on all prepaid orders</em></p>
+
+<div style="background:#f0fdf4;border:1px solid #22c55e;border-radius:8px;padding:14px 18px;margin-bottom:28px;font-size:14px;line-height:1.7">
+<strong>At a glance:</strong> Free shipping on <strong>every prepaid order</strong>, no minimum cart. COD orders carry a flat <strong>₹99</strong> handling fee. Dispatched within 36 working hours. Typical delivery 3–7 business days across India.
+</div>
+
+<h2>1. Where We Ship</h2>
+<p>We ship across <strong>India only</strong> at the moment. We service most PIN codes via our courier partners; a handful of remote pin codes may not be serviceable at any given time — the checkout will flag this before you pay. International shipping isn't live yet; if you'd like to be notified when it opens, email <a href="mailto:shop@intru.in">shop@intru.in</a> with your country.</p>
+
+<h2>2. Shipping Fees</h2>
+<table style="width:100%;border-collapse:collapse;font-size:14px;margin:12px 0 20px">
+<tr style="background:#f5f5f5;text-align:left"><th style="padding:10px 12px;border:1px solid #e5e5e5">Payment</th><th style="padding:10px 12px;border:1px solid #e5e5e5">Shipping Fee</th><th style="padding:10px 12px;border:1px solid #e5e5e5">Minimum Cart</th></tr>
+<tr><td style="padding:10px 12px;border:1px solid #e5e5e5"><strong>Prepaid</strong> (UPI, cards, wallets, net banking)</td><td style="padding:10px 12px;border:1px solid #e5e5e5"><strong>Free</strong></td><td style="padding:10px 12px;border:1px solid #e5e5e5">None</td></tr>
+<tr><td style="padding:10px 12px;border:1px solid #e5e5e5"><strong>Cash on Delivery (COD)</strong></td><td style="padding:10px 12px;border:1px solid #e5e5e5"><strong>₹99</strong></td><td style="padding:10px 12px;border:1px solid #e5e5e5">None</td></tr>
+</table>
+<p>The exact charge is shown in your cart before you confirm the order. GST is included in the shown price.</p>
+
+<h2>3. Processing &amp; Dispatch Time</h2>
+<p>We dispatch every order within <strong>36 working hours</strong> of confirmation (usually less). Orders placed on Sundays, Indian public holidays, or during a drop launch surge move to the next business day. You'll receive:</p>
+<ol>
+  <li>An <strong>order confirmation email</strong> immediately after payment.</li>
+  <li>A <strong>dispatch email + SMS</strong> with a live tracking link once the courier picks up the parcel.</li>
+  <li>Optional <strong>out-for-delivery</strong> and <strong>delivered</strong> notifications from the courier.</li>
+</ol>
+
+<h2>4. Estimated Delivery Timelines</h2>
+<p>These are courier estimates from dispatch, not from order placement. Add ~1 day for the pickup / label window.</p>
+<ul>
+  <li><strong>Metro cities</strong> (Delhi NCR, Mumbai, Bangalore, Hyderabad, Chennai, Kolkata, Pune, Ahmedabad) — <strong>3–5 business days</strong></li>
+  <li><strong>Tier-2 cities &amp; state capitals</strong> — <strong>4–7 business days</strong></li>
+  <li><strong>Tier-3 towns, hill stations, North-East, remote pin codes</strong> — <strong>7–10 business days</strong></li>
+  <li><strong>Islands (Andaman &amp; Nicobar, Lakshadweep)</strong> — <strong>10–14 business days</strong> (surface transport)</li>
+</ul>
+<p>Timelines can extend around monsoon, festivals (Diwali, New Year), or courier strikes. If your parcel is significantly delayed, email us with the order number — we'll escalate with the courier the same day.</p>
+
+<h2>5. COD — Cash on Delivery</h2>
+<p>COD is available on most Indian pin codes. Two small nuances:</p>
+<ul>
+  <li>A flat <strong>₹99 handling fee</strong> covers the extra courier surcharge and reconciliation cost.</li>
+  <li>For high-value COD orders (above ₹2,999) we may send a <strong>1-tap email/SMS verification</strong> before dispatch to confirm your intent. Confirming keeps the order moving; ignoring it may cause auto-cancellation after 24 hours. This small step protects our limited-drop inventory from fake COD orders that would otherwise never be delivered.</li>
+</ul>
+
+<h2>6. Tracking Your Order</h2>
+<p>The tracking link in the dispatch email/SMS shows live courier scans. You can also log into your <a href="/account">account</a> — every order has a live tracking widget attached. If tracking hasn't updated in more than 48 hours, email <a href="mailto:shop@intru.in">shop@intru.in</a> and we'll chase the courier.</p>
+
+<h2>7. Address Accuracy &amp; RTO</h2>
+<p>Please double-check your address before you pay — especially flat/house number, landmark, and PIN. If a parcel is <strong>Returned to Origin (RTO)</strong> because of an incomplete address, unreachable phone, or repeated failed delivery attempts, we'll email you within 48 hours of the RTO scan to arrange:</p>
+<ul>
+  <li><strong>Re-shipment</strong> — you cover the fresh shipping fee (₹99), we reship immediately.</li>
+  <li><strong>Store Credit</strong> — for prepaid orders where you no longer want the piece; we issue Store Credit for the product value (shipping fee not refunded).</li>
+</ul>
+
+<h2>8. Failed or Delayed Deliveries</h2>
+<p>If the courier attempts delivery and you're unavailable, they'll usually retry twice. If all attempts fail without contact, the parcel is RTO'd (see previous section). Keeping your phone reachable during the estimated delivery window helps immensely.</p>
+
+<h2>9. Damaged or Missing Parcels</h2>
+<p>If your parcel arrives with the outer packaging visibly damaged, please <strong>film a short unboxing video</strong> before opening. If the garment inside is affected, share the video and photos within <strong>36 hours of delivery</strong> at <a href="mailto:shop@intru.in">shop@intru.in</a> — full process on the <a href="/p/returns">Returns policy</a> page. If the tracking says "delivered" but you haven't received it, notify us within 24 hours so we can raise a formal complaint with the courier.</p>
+
+<h2>10. Delivery Liability</h2>
+<p>Once the parcel is handed to our courier partner, delivery is executed by them and Intru is not liable for transit delays, theft, or carrier-caused damage. That said — we take this seriously. We actively help file every claim, share all documentation, and settle eligible cases as Store Credit within 24 hours so you're never left hanging.</p>
+
+<h2>11. Contact</h2>
+<p>Shipping queries: <a href="mailto:shop@intru.in">shop@intru.in</a>. For quick informal help: DM <a href="https://www.instagram.com/intru.in/" target="_blank" rel="noopener">@intru.in</a> on Instagram.</p>`,
+    updatedAt: "2026-08-22"
   },
 ];
 
