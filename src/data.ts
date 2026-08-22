@@ -92,7 +92,7 @@ export interface Env {
 export const STORE_CONFIG = {
   name: "intru.in",
   tagline: "Not for everyone. Made to feel like you.",
-  description: "INTRU is minimalist streetwear for people tired of seeing everyone in the same clothes, the same patterns. Two best friends design pieces that feel like YOU — limited stock only, never restocked, made with love in India. No overhype, no fake drops. Clean, individual, intentional. When it's gone, it's gone.",
+  description: "Tired of everyone wearing the same thing? Intru is minimalist streetwear for individuals — clean, intentional, oversized tees designed to feel like YOU. Limited stock only, never restocked. Designed and shipped from India.",
   currency: "INR",
   currencySymbol: "Rs.",
   freeShippingThreshold: 1999,

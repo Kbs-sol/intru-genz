@@ -653,7 +653,7 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 @media(max-width:480px){.ftri{grid-template-columns:1fr}}
 </style>
 </head>
-<body class="${opt?.cls || ''}" ${mcMode === 'soft' ? 'style="overflow:hidden"' : ''}>
+<body class="${opt?.cls || ''}">
 ${buildGtmBody(gtmId)}
 ${aiAnnounceHtml}
 <nav class="nav glass" id="nb"><div class="navi">
@@ -798,14 +798,7 @@ ${aiAnnounceHtml}
   },true); // capture phase → fires before/independent of inline onclick
 })();
 </script>
-<!-- Soft Maintenance Banner [AG] -->
-<div id="mntBanner" style="${mcMode === 'soft' ? 'display:flex;' : 'display:none;'}background:var(--bk);color:var(--wh);font-family:var(--sans);font-size:13px;align-items:center;justify-content:space-between;padding:12px 24px;width:100%;margin-top:72px;z-index:90;position:relative">
-  <div style="display:flex;align-items:center;gap:12px">
-    <span style="font-size:18px">🛠️</span>
-    <span><strong>Upgrading</strong> &mdash; ${mcMsg.length > 80 ? mcMsg.substring(0, 80) + '...' : mcMsg}</span>
-  </div>
-  <button onclick="mntDismissBanner()" aria-label="Dismiss banner" style="background:none;border:none;color:var(--g400);font-size:24px;cursor:pointer;padding:4px 8px;display:flex;align-items:center;transition:color .2s" onmouseover="this.style.color='var(--wh)'" onmouseout="this.style.color='var(--g400)'">&times;</button>
-</div>
+<!-- [v19] Soft maintenance banner removed. mcMode/mcMsg/mcEta retained as no-ops for back-compat with page callers. -->
 <div class="mob-nav" id="mn">
   <button class="mob-close" onclick="toggleMobNav()"><i class="fas fa-times"></i></button>
   <div style="margin-top:40px">
@@ -970,28 +963,7 @@ ${aiAnnounceHtml}
 </div>
 </div>
 
-<!-- Soft Maintenance Modal [AG] -->
-<div class="id-ovl${mcMode === 'soft' ? ' open' : ''}" id="mntOvl" style="z-index:9999">
-  <div class="id-box">
-    <h3 style="margin-bottom:12px;display:flex;align-items:center;gap:10px"><span style="font-size:24px">🔒</span> Upgrading the Wardrobe</h3>
-    <p style="font-size:14px;color:var(--bk);margin-bottom:16px;line-height:1.6">${mcMsg}</p>
-    ${mcEta ? `<p style="font-size:12px;font-weight:700;color:var(--g400);margin-bottom:16px;text-transform:uppercase;letter-spacing:1px">Dropping again: ${mcEta}</p>` : ''}
-    <p style="font-size:11px;color:var(--g400);line-height:1.5;margin-bottom:24px">You might experience some lag while we ship improvements. Please report any bugs to <a href="mailto:shop@intru.in" style="font-weight:700;color:var(--bk);text-decoration:underline">shop@intru.in</a></p>
-    <button class="id-btn" onclick="mntAcknowledge()" style="width:100%">I Understand, Let Me Cop</button>
-  </div>
-</div>
-<script>
-(function() {
-  if (sessionStorage.getItem('intru_maintenance_ack')) {
-    var o = document.getElementById('mntOvl');
-    if (o) { o.classList.remove('open'); document.body.style.overflow = ''; }
-  }
-  if (sessionStorage.getItem('intru_banner_dismissed')) {
-    var b = document.getElementById('mntBanner');
-    if (b) b.style.display = 'none';
-  }
-})();
-</script>
+<!-- [v19] Soft maintenance overlay removed. -->
 
 <!-- Combo Promo Bar (dynamic, injected by JS after fetching active combos) -->
 <div id="comboPromoBar" class="combo-promo-bar" style="margin-top:72px">
@@ -1061,8 +1033,13 @@ ${aiAnnounceHtml}
 </div>
 </footer>
 
-<!-- Cookie Consent (India DPDP-lite) — minimal, non-invasive, one-line, dismissible.
-     Loaded ONLY if user hasn't made a choice. No wall, no scary text. -->
+<!-- [v19] Cookie consent banner is now admin-gated.
+     Renders ONLY when store_settings.COOKIE_CONSENT_ENABLED === 'true'.
+     When disabled (default), Meta Pixel loads unconditionally — the site relies
+     on the Privacy Policy disclosure alone, which is compliant for India DPDP
+     legitimate-interest tracking on transactional / analytics cookies. Flip the
+     toggle on in Admin → Settings if you ever want the banner back. -->
+${ss.COOKIE_CONSENT_ENABLED === 'true' ? `
 <div id="cookieConsent" style="display:none;position:fixed;bottom:12px;left:12px;right:12px;max-width:560px;margin:0 auto;background:#0a0a0a;color:#fafafa;padding:12px 16px;border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,0.25);z-index:9998;font-family:'Space Grotesk',sans-serif;font-size:12px;line-height:1.5;align-items:center;gap:12px;flex-wrap:wrap">
   <span style="flex:1;min-width:200px">🍪 We use cookies to improve your shopping experience. <a href="/p/privacy" style="color:#eab308;text-decoration:underline">Learn more</a></span>
   <button onclick="_cookieDecline()" style="background:transparent;color:#a3a3a3;border:1px solid #404040;padding:6px 14px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">Decline</button>
@@ -1073,7 +1050,6 @@ ${aiAnnounceHtml}
   try {
     var choice = localStorage.getItem('intru_analytics_consent');
     if (choice === null){
-      // Delay showing until after page settles — non-invasive
       setTimeout(function(){
         var el = document.getElementById('cookieConsent');
         if (el) el.style.display = 'flex';
@@ -1083,17 +1059,15 @@ ${aiAnnounceHtml}
   window._cookieAccept = function(){
     try { localStorage.setItem('intru_analytics_consent','1'); } catch(e){}
     var el = document.getElementById('cookieConsent'); if (el) el.style.display = 'none';
-    /* If Meta Pixel was gated, load it now */
     try { if (typeof window._intruLoadFbq === 'function') window._intruLoadFbq(); } catch(e){}
   };
   window._cookieDecline = function(){
     try { localStorage.setItem('intru_analytics_consent','0'); } catch(e){}
     var el = document.getElementById('cookieConsent'); if (el) el.style.display = 'none';
-    /* Tell server-side beacon not to send Meta CAPI */
     window._intruConsentDeclined = true;
   };
 })();
-</script>
+</script>` : '<!-- Cookie consent disabled by admin. -->'}
 
 <!-- AI Stylist Widget [AG] -->
 <div class="aiw" id="aiStylist">
@@ -1126,24 +1100,7 @@ ${aiAnnounceHtml}
 <div class="tc" id="tc"></div>
 ${gKey !== 'YOUR_GOOGLE_CLIENT_ID' ? '<script src="https://accounts.google.com/gsi/client" async defer></script><div id="g_id_onload" data-client_id="' + gKey + '" data-context="signin" data-ux_mode="popup" data-callback="handleGoogleAuth" data-itp_support="true" data-auto_select="false" data-auto_prompt="false"></div>' : '<!-- Google One-Tap: Set GOOGLE_CLIENT_ID env var to enable -->'}
 <script>
-/* ====== MAINTENANCE INJECTION [AG] — isolated to survive any other script errors ====== */
-window.__MAINTENANCE__ = ${JSON.stringify(mc)};
-function mntAcknowledge() {
-  sessionStorage.setItem('intru_maintenance_ack', '1');
-  var ovl = document.getElementById('mntOvl');
-  if (ovl) {
-    ovl.classList.remove('open');
-    ovl.style.setProperty('display', 'none', 'important');
-  }
-  document.body.style.overflow = 'auto';
-  var b = document.getElementById('mntBanner');
-  if (b) b.style.display = 'flex';
-}
-function mntDismissBanner() {
-  sessionStorage.setItem('intru_banner_dismissed', '1');
-  var b = document.getElementById('mntBanner');
-  if (b) b.style.setProperty('display', 'none', 'important');
-}
+/* [v19] Maintenance injection removed. */
 </script>
 <script>
 /* ====== CONFIG ====== */

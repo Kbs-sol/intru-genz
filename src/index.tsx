@@ -158,35 +158,12 @@ p{font-size:16px;color:#a3a3a3;line-height:1.6;margin-bottom:24px}
 </body></html>`;
 }
 
-// ============ MAINTENANCE MIDDLEWARE ============
-// Intercepts all page GET requests when MAINTENANCE_MODE='full'
-// API routes and /admin always pass through
-app.use('*', async (c: Context<{ Bindings: Bindings }>, next: Next) => {
-  const path = new URL(c.req.url).pathname;
-  const isAPI = path.startsWith('/api/');
-  const isAdmin = path === '/admin' || path.startsWith('/admin/');
-  const isMaintPage = path === '/maintenance';
-  const isAsset = path.startsWith('/favicon') || path.endsWith('.txt') || path.endsWith('.xml') || path.endsWith('.ico') || path.endsWith('.json');
-  if (isAPI || isAdmin || isMaintPage || isAsset) return next();
-  if (c.req.method !== 'GET') return next();
-
-  const sbUrl = getEnv(c.env, 'SUPABASE_URL');
-  const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY') || getEnv(c.env, 'SUPABASE_ANON_KEY');
-  const mode = await fetchStoreSetting(sbUrl, sbKey, 'MAINTENANCE_MODE');
-  if (mode === 'full') {
-    const msg = await fetchStoreSetting(sbUrl, sbKey, 'MAINTENANCE_MESSAGE') || "We're making some improvements. Back soon!";
-    const eta = await fetchStoreSetting(sbUrl, sbKey, 'MAINTENANCE_ETA') || '';
-    return c.html(fullMaintenancePage(msg, eta), 503);
-  }
-  return next();
-})
+// [v19] Maintenance middleware and /maintenance route removed — feature retired.
+// If the store ever needs a full-site take-down again, the platform-native
+// approach is to disable the Cloudflare Pages deployment or point the DNS at
+// a static holding page. We no longer ship an in-app kill switch.
 
 // ============ PAGE ROUTES ============
-
-app.get('/maintenance', async (c: Context<{ Bindings: Bindings }>) => {
-  const opts = await getPageOpts(c);
-  return c.html(maintenancePage(opts));
-})
 
 app.get('/', async (c: Context<{ Bindings: Bindings }>) => {
   const opts = await getPageOpts(c);
@@ -3078,102 +3055,136 @@ RULES:
 - If asked "when's the next drop / new drop?", say honestly: "We don't pre-announce drop dates — follow @intru.in on Instagram to be the first to know."
 - If a user asks about sizing, remind them our fits are true oversized (built-in drop shoulder + longer body). Direct them to the size chart on the product page.`;
 
-  const payload = {
-    model: orModel || 'google/gemini-2.0-flash-001',
-    messages: [{ role: 'system', content: fullSystemPrompt }, ...messages],
-    temperature: 0.7,
-    max_tokens: 500,
-  };
+  // ---------------- MODEL FALLBACK LISTS (v19) ----------------
+  // Model IDs change frequently — providers sunset old flashes without notice.
+  // Instead of a single hard-coded model per provider, we walk a curated list:
+  // if #1 returns 404 ("no such model") or 400 ("model deprecated"), we try #2.
+  // Any auth/rate-limit error (401/403/429) short-circuits to next provider —
+  // no point burning latency retrying the same broken key on 5 different models.
+  const OR_MODELS = [
+    orModel || 'google/gemini-2.5-flash-lite',   // free tier as of Aug 2026
+    'meta-llama/llama-3.3-70b-instruct:free',
+    'google/gemini-flash-1.5',                    // legacy fallback
+  ].filter(Boolean);
+  const GQ_MODELS = [
+    gqModel || 'llama-3.3-70b-versatile',
+    'llama-3.1-8b-instant',                       // faster/cheaper fallback
+  ].filter(Boolean);
+  const GM_MODELS = [
+    'gemini-2.5-flash',                            // current default (Aug 2026)
+    'gemini-2.0-flash',                            // last-gen fallback (still works)
+    'gemini-1.5-flash',                            // legacy
+  ];
+
+  const baseMessages = [{ role: 'system', content: fullSystemPrompt }, ...messages];
 
   // 4. Provider chain — OpenRouter → Groq → Gemini Direct.
   const debugInfo: any = { keys: { or: !!orKey, gq: !!gqKey, gm: !!gmKey }, tried: [] as any[] };
 
+  // Helper: is this HTTP status "auth/quota broken" (skip provider entirely)
+  // vs "wrong model" (try next model in this provider)?
+  const isFatalAuth = (status: number) => status === 401 || status === 403 || status === 429;
+
   // Provider 1: OpenRouter
   if (orKey) {
     debugInfo.tried.push('openrouter');
-    try {
-      const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), 20000);
-      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${orKey}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': 'https://intru.in',
-          'X-Title': 'Intru Stylist',
-        },
-        body: JSON.stringify(payload),
-        signal: ctrl.signal,
-      });
-      clearTimeout(t);
-      if (res.ok) {
-        const data = await res.json() as any;
-        const content = data?.choices?.[0]?.message?.content;
-        if (content) return c.json({ content, provider: 'openrouter' });
-        debugInfo.orError = 'empty response body';
-      } else {
-        debugInfo.orError = `HTTP ${res.status}: ${(await res.text()).slice(0, 300)}`;
-      }
-    } catch (e: any) { debugInfo.orFailed = String(e?.message || e); }
+    let lastErr = '';
+    for (const model of OR_MODELS) {
+      try {
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), 20000);
+        const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${orKey}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': 'https://intru.in',
+            'X-Title': 'Intru Stylist',
+          },
+          body: JSON.stringify({ model, messages: baseMessages, temperature: 0.7, max_tokens: 500 }),
+          signal: ctrl.signal,
+        });
+        clearTimeout(t);
+        if (res.ok) {
+          const data = await res.json() as any;
+          const content = data?.choices?.[0]?.message?.content;
+          if (content) return c.json({ content, provider: 'openrouter', model });
+          lastErr = 'empty response body';
+        } else {
+          lastErr = `HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`;
+          if (isFatalAuth(res.status)) break;   // don't retry with other models on auth failure
+        }
+      } catch (e: any) { lastErr = String(e?.message || e); }
+    }
+    debugInfo.orError = lastErr;
   }
 
   // Provider 2: Groq
   if (gqKey) {
     debugInfo.tried.push('groq');
-    try {
-      const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), 20000);
-      const gqPayload = { ...payload, model: gqModel || 'llama-3.3-70b-versatile' };
-      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${gqKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(gqPayload),
-        signal: ctrl.signal,
-      });
-      clearTimeout(t);
-      if (res.ok) {
-        const data = await res.json() as any;
-        const content = data?.choices?.[0]?.message?.content;
-        if (content) return c.json({ content, provider: 'groq' });
-        debugInfo.gqError = 'empty response body';
-      } else {
-        debugInfo.gqError = `HTTP ${res.status}: ${(await res.text()).slice(0, 300)}`;
-      }
-    } catch (e: any) { debugInfo.gqFailed = String(e?.message || e); }
+    let lastErr = '';
+    for (const model of GQ_MODELS) {
+      try {
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), 20000);
+        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${gqKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ model, messages: baseMessages, temperature: 0.7, max_tokens: 500 }),
+          signal: ctrl.signal,
+        });
+        clearTimeout(t);
+        if (res.ok) {
+          const data = await res.json() as any;
+          const content = data?.choices?.[0]?.message?.content;
+          if (content) return c.json({ content, provider: 'groq', model });
+          lastErr = 'empty response body';
+        } else {
+          lastErr = `HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`;
+          if (isFatalAuth(res.status)) break;
+        }
+      } catch (e: any) { lastErr = String(e?.message || e); }
+    }
+    debugInfo.gqError = lastErr;
   }
 
-  // Provider 3: Gemini Direct
+  // Provider 3: Gemini Direct — walks GM_MODELS same way
   if (gmKey) {
     debugInfo.tried.push('gemini');
-    try {
-      const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), 20000);
-      // Flatten to Gemini's contents format — include ALL messages, not just the last one.
-      const contents = [
-        { role: 'user', parts: [{ text: fullSystemPrompt }] },
-        { role: 'model', parts: [{ text: 'Understood. I will follow those rules.' }] },
-        ...messages.map((m: any) => ({
-          role: m.role === 'assistant' ? 'model' : 'user',
-          parts: [{ text: String(m.content || '') }],
-        })),
-      ];
-      const gmUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${gmKey}`;
-      const res = await fetch(gmUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents, generationConfig: { temperature: 0.7, maxOutputTokens: 500 } }),
-        signal: ctrl.signal,
-      });
-      clearTimeout(t);
-      if (res.ok) {
-        const data = await res.json() as any;
-        const content = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (content) return c.json({ content, provider: 'gemini' });
-        debugInfo.gmError = 'empty response body';
-      } else {
-        debugInfo.gmError = `HTTP ${res.status}: ${(await res.text()).slice(0, 300)}`;
-      }
-    } catch (e: any) { debugInfo.gmFailed = String(e?.message || e); }
+    let lastErr = '';
+    // Flatten to Gemini's contents format — include ALL messages, not just the last one.
+    const contents = [
+      { role: 'user', parts: [{ text: fullSystemPrompt }] },
+      { role: 'model', parts: [{ text: 'Understood. I will follow those rules.' }] },
+      ...messages.map((m: any) => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: String(m.content || '') }],
+      })),
+    ];
+    for (const model of GM_MODELS) {
+      try {
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), 20000);
+        const gmUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${gmKey}`;
+        const res = await fetch(gmUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents, generationConfig: { temperature: 0.7, maxOutputTokens: 500 } }),
+          signal: ctrl.signal,
+        });
+        clearTimeout(t);
+        if (res.ok) {
+          const data = await res.json() as any;
+          const content = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (content) return c.json({ content, provider: 'gemini', model });
+          lastErr = 'empty response body';
+        } else {
+          lastErr = `HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`;
+          if (isFatalAuth(res.status)) break;
+        }
+      } catch (e: any) { lastErr = String(e?.message || e); }
+    }
+    debugInfo.gmError = lastErr;
   }
 
   // No provider succeeded — return graceful text so the chat still feels alive.
@@ -3206,12 +3217,14 @@ app.get('/api/admin/ai/health', async (c: Context<{ Bindings: Bindings }>) => {
     finally { clearTimeout(t); }
   }
 
+  // Health probes use the SAME primary models the chat endpoint tries first,
+  // so if the probe passes we're confident chat will work.
   if (orKey) {
     try {
       const r = await timedFetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${orKey}`, 'Content-Type': 'application/json', 'HTTP-Referer': 'https://intru.in', 'X-Title': 'Intru Health' },
-        body: JSON.stringify({ ...probe, model: 'google/gemini-2.0-flash-001' }),
+        body: JSON.stringify({ ...probe, model: 'google/gemini-2.5-flash-lite' }),
       });
       results.openrouter.live = r.ok;
       if (!r.ok) results.openrouter.error = `HTTP ${r.status}: ${(await r.text()).slice(0, 200)}`;
@@ -3230,7 +3243,7 @@ app.get('/api/admin/ai/health', async (c: Context<{ Bindings: Bindings }>) => {
   }
   if (gmKey) {
     try {
-      const r = await timedFetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${gmKey}`, {
+      const r = await timedFetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${gmKey}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: 'ping' }] }], generationConfig: { maxOutputTokens: 5 } }),
       });
