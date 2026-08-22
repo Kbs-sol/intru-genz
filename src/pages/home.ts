@@ -106,7 +106,22 @@ export function homePage(opts: {
         {
           "@type": "Question",
           "name": "How do I get access to the next Intru drop?",
-          "acceptedAnswer": { "@type": "Answer", "text": "Join the priority list by entering your email on intru.in. Drops sell out within hours so early access is essential." }
+          "acceptedAnswer": { "@type": "Answer", "text": "Join the priority list by entering your email on intru.in or follow @intru.in on Instagram. Drops are limited-run and vaulted permanently once sold out — early access matters." }
+        },
+        {
+          "@type": "Question",
+          "name": "Does Intru deliver to Mumbai, Bangalore, Delhi, and other Indian cities?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes — Intru ships to every serviceable Indian PIN code including all metros (Hyderabad, Mumbai, Bangalore, Delhi NCR, Pune, Chennai, Kolkata, Ahmedabad) and tier-2 cities. Metro deliveries typically arrive in 3–5 business days. Free shipping on all prepaid orders." }
+        },
+        {
+          "@type": "Question",
+          "name": "Is Intru legit and worth buying?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes. Intru is an independent Hyderabad-based streetwear brand with transparent INR pricing, real-time stock, secure Razorpay payments, verified-purchase ratings, and a listed Grievance Officer per Consumer Protection E-Commerce Rules 2020. It is a direct-to-consumer boutique brand — not a reseller." }
+        },
+        {
+          "@type": "Question",
+          "name": "Is Intru's oversized fit true to size?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes — the oversized silhouette (dropped shoulders, wider body, longer length) is built into the pattern. If you wear a Medium in a regular-fit tee, stay in Medium at Intru; the extra room is already there. Size up for an extreme drop, size down for a fitted look." }
         }
       ]
     }
@@ -307,8 +322,8 @@ function subscribeEmail(form){
 `;
 
   return shell(
-    'Intru | Minimalist Streetwear India — Pieces That Feel Like You',
-    'Tired of everyone wearing the same thing? Intru is minimalist streetwear for individuals — clean, intentional, oversized tees designed to feel like YOU. Limited stock only, never restocked, made with love in India. Ships across India.',
+    'Intru | Minimalist Streetwear India — Oversized Heavyweight Tees, Made in India',
+    'Tired of everyone wearing the same thing? Intru is minimalist streetwear for individuals — clean, intentional, oversized 220–260 GSM heavyweight tees, crop tops and shirts. Limited drops, never restocked. Free shipping across India (Hyderabad, Mumbai, Bangalore, Delhi, Pune, Chennai, Kolkata & more). COD available.',
     body,
     { url: 'https://intru.in', schema, razorpayKeyId: opts.razorpayKeyId, googleClientId: opts.googleClientId, products, legalPages, useMagicCheckout: !!opts.useMagicCheckout, maintenanceConfig: opts.maintenanceConfig, storeSettings: opts.storeSettings }
   );

@@ -4,12 +4,68 @@
 - **Name**: intru.in
 - **Goal**: Engineered for High Organic Traffic (SEO) and High Conversion (using deep direct-response psychology)
 - **Stack**: Hono + TypeScript + Cloudflare Pages + Supabase + Razorpay + Resend
-- **Version**: v18 (Date: August 21, 2026) — Meta Ads (Pixel + CAPI dedup), cookie consent (DPDP-lite), AI Stylist chain recovery via `resolveAIKey`, combo-promo visibility fixes, admin custom email, all-template rewrite (IG-DM first), 30+ "premium" scrubs, Clarity a11y + WebView error fixes, /404 rescue page, GA4 Apps Script exporter, per-IP rate limits on 6 public endpoints
+- **Version**: v19 (Date: August 22, 2026) — GA4-driven refresh: AI Stylist model fallbacks (multi-model per provider + auth short-circuit), maintenance mode retired, admin dashboard consolidated (14 tabs → 6 grouped nav), COD/prepaid order rows unified visually, cookie banner is now admin-toggleable (default OFF), 4 legal pages fully rewritten (DPDP Act 2023-aligned Privacy, plain-English Terms/Returns/Shipping), organic-traffic AEO improvements (llms.txt refreshed, India-city Q&A, home FAQ Schema expanded with 4 new answer-engine questions), footer grammar/brand-claim cleanup. All prior v18 work retained.
 
 ## URLs
 - **Production**: https://intru-genz.pages.dev (staging) → https://intru.in (custom domain pending)
 - **GitHub**: https://github.com/Kbs-sol/intru-genz
 - **Admin**: Hidden — enter Robust Konami Code (↑↑↓↓←→←→ba) on any page
+
+## v19 Changes (August 22, 2026) — GA4-Driven UX & AEO Refresh
+
+Ground truth from `_ga4_clarity_data.xlsx` (real GA4 export, 66 days): **3,078 users → 3 purchases (0.097% CVR)**, **ChatGPT.com = 4.5% of traffic** (AEO already working), Hyderabad 301 users / Mumbai 209 / Bangalore ~ (strong metro concentration), Singapore 1,726 sessions (bot inflation — excluded from real-user maths). Every v19 change targets one of these signals.
+
+### AI Stylist — Multi-Model Fallback per Provider
+- **Root cause of "shows the popular product" behavior**: OpenRouter's `google/gemini-2.0-flash-001` was sunset (404), Groq returned 401 (key rotation needed), and Gemini direct's `gemini-2.0-flash` was deprecated (404). All 3 providers failed within seconds → chat auto-fell-back to the static "popular product" reply.
+- **Fix**: each provider now walks a **model array** with correct 2026-current defaults — `google/gemini-2.5-flash-lite` → `meta-llama/llama-3.3-70b-instruct:free` → `google/gemini-flash-1.5` for OpenRouter; `llama-3.3-70b-versatile` → `llama-3.1-8b-instant` for Groq; `gemini-2.5-flash` → `gemini-2.0-flash` → `gemini-1.5-flash` for Gemini direct.
+- **Auth short-circuit** — 401/403/429 skips the entire provider (bad key won't get better with another model); 404/400 walks to the next model in the same provider.
+- **Health probe** (`/api/admin/ai/health`) updated to use the same current primary models so the ✅/❌ per-provider dot in admin reflects live reality.
+
+### Admin Dashboard — 14 Flat Tabs → 6 Grouped Sections
+User said the admin dashboard was "too scattered." New two-level navigation:
+- **Orders** → Orders panel
+- **Catalog** → Products · Coupons · Combos · Sizes
+- **Content** → Legal · FAQ · Blog · Instagram Feed
+- **Analytics** → GA4/Clarity insights
+- **AI & Auto** → AI Stylist · Free-tier limits
+- **Settings** → Store settings (analytics IDs, exit intent, cookie banner toggle, AI sales agent)
+
+All existing panel IDs (`tord`, `tprod`, `tcpn`, etc.) preserved so downstream JS keeps working. Legacy `showTab()` calls still work via a back-compat shim that maps panel → parent group.
+
+### Maintenance Mode — Retired
+User: "remove the maintainance mmode i think it of no use now." Removed the middleware in `src/index.tsx`, the `/maintenance` route, the banner + full-page overlay in `src/components/shell.ts`, the entire admin tab, its save handler and the badge updater — plus the corresponding CSS. Nothing about maintenance ships to end-users anymore.
+
+### COD vs Prepaid Order Rows — Now Visually Consistent
+User: "cod orders formatting is scattered vs prepaid." Two root causes: the `codBadge` used two different inline-style layouts for verified vs pending, and the pricing column had a stray "+ Rs.99 COD handle" sub-line that shifted row height only for COD orders. Fix: unified `.pay-badge` class with the same padding/font/border for all three states (`pay-cod`, `pay-cod-ok`, `pay-prepaid`) and a matching `.price-sub` sub-line applied to **both** COD and prepaid so column heights match ("Paid online" vs "+ Rs.99 COD handling").
+
+### Cookie Banner — Now Admin-Toggleable (Default OFF)
+User: "remove the cookie consent banner or make it toggleable via admin." Compromise: the banner is gated behind a new store-setting `COOKIE_CONSENT_ENABLED` (default OFF, so it disappears from the live site immediately). Admin dashboard → Settings tab has a toggle to flip it back ON if legal ever asks. When OFF, no cookie-banner HTML or JS ships to visitors.
+
+### Legal Pages — Fully Rewritten (Terms, Returns, Privacy, Shipping)
+User: "should be more clear and informational." All four pages rebuilt from scratch to be:
+- **Plain-English & scannable** (short paragraphs, bullet lists, quick-glance tables where useful)
+- **Aligned to Indian law** — DPDP Act 2023 (Privacy), Consumer Protection E-Commerce Rules 2020 (Terms + Returns), IT Reasonable Security Practices Rules 2011 (Privacy)
+- **Complete list of vendors & data flows** (Supabase, Cloudflare, Razorpay, Google, Clarity, Resend, Shiprocket, Meta, AI providers)
+- **Real answers to common buyer questions** — how COD verification works, what the 36-hour window covers, how Store Credit is calculated, why we don't offer cash refunds, RTO handling
+
+### Organic-Traffic AEO Improvements (GA4-Driven)
+GA4 shows ChatGPT.com already sends 4.5% of traffic — that channel is the biggest untapped growth lever.
+- **`/llms.txt`** — refreshed with 12 new answer-engine Q&A written the way ChatGPT users actually phrase them ("Is Intru legit?", "Does Intru deliver to Mumbai?", "Where can I buy Intru in India?", oversized-fit clarifications, comparison-answer templates for "best minimalist brand in India").
+- **Home FAQPage JSON-LD** expanded from 5 to 9 questions — added India-city delivery, legitimacy, oversized-fit accuracy, drop-access questions.
+- **Meta description** on home rewritten to include India-city coverage (Hyderabad, Mumbai, Bangalore, Delhi, Pune, Chennai, Kolkata) — matches the geo-concentration of real users.
+- **Removed stale brand claims** — "designed over 2 months," "two best friends" narrative and "founder-designed" verbiage retired from `/llms.txt` (kept in the About page as a stylistic origin story).
+
+### Footer / Store Description Rewrite
+User: "grammar error beside uncompromising streetwear text… has 'it's' in the information." The `STORE_CONFIG.description` was rewritten to a shorter brand-line format without redundant "it's" contractions; the "Two best friends design pieces…" claim was also retired.
+
+### File Ledger (v19)
+| File | Change |
+|---|---|
+| `src/index.tsx` | AI Stylist model fallback arrays (OR/GQ/GM) with auth short-circuit · maintenance middleware + `/maintenance` route removed · `/llms.txt` refreshed |
+| `src/components/shell.ts` | Maintenance banner, overlay, dismiss JS all removed · cookie banner gated behind `ss.COOKIE_CONSENT_ENABLED === 'true'` |
+| `src/pages/admin.ts` | 14 tabs → 6 grouped nav (CSS + HTML + `showGroup()`/`showPanel()`/`showTab()` shim) · maintenance tab, save handler and badge updater removed · Settings gets `COOKIE_CONSENT_ENABLED` toggle · unified `.pay-badge` + `.price-sub` order-row visuals |
+| `src/pages/home.ts` | FAQPage schema expanded to 9 Q&A · home meta description rewritten for India-city coverage |
+| `src/data.ts` | 4 legal pages fully rewritten (Terms, Returns, Privacy, Shipping) · store description brand-line rewrite |
 
 ## v18 Changes (August 21, 2026) — Meta Ads Ready, Conversion Fixes, Data Ops
 This release is a **conversion-rescue + ads-readiness sweep** based on real Clarity + GA4 data (613 sessions, 11.75% dead clicks, 14.68% quick backs, 140 hits to /404, purchase events only 2-3 in 3.5 months). Every change is data-driven.

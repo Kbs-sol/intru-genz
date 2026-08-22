@@ -1,7 +1,29 @@
 # INTRU.IN — Full System Literacy & Architecture Reference
-**Version**: v15.4 | **Date**: April 15, 2026 | **Production**: https://intru-genz.pages.dev (staging for intru.in) [AG]
+**Version**: v19 | **Date**: August 22, 2026 | **Production**: https://intru.in (custom domain live) · https://intru-genz.pages.dev (staging)
 
-> This document is designed to be read by manager of e-commerce website AND used as a context prompt for AI assistants. It contains everything needed to understand, debug, fix, or extend the intru.in codebase.
+> This document is the single source of truth for engineers, operators, and AI assistants working on intru.in. It contains everything needed to understand, debug, fix, or extend the codebase.
+
+---
+
+## 0. CHANGELOG SUMMARY (Most Recent First)
+
+### v19 — August 22, 2026 · GA4-Driven UX & AEO Refresh
+Ground truth from a real GA4 export (`_ga4_clarity_data.xlsx`, 66 days): 3,078 users → 3 purchases (0.097% CVR), ChatGPT.com already sends 4.5% of traffic (AEO working), strong metro geo-concentration (Hyderabad 301, Mumbai 209), Singapore 1,726 sessions is bot inflation. Every v19 change targets one of these signals.
+
+- **AI Stylist multi-model fallback per provider** (`src/index.tsx`): each provider (`OpenRouter`/`Groq`/`Gemini direct`) now walks a **model array** with current 2026 defaults: OR = `google/gemini-2.5-flash-lite` → `meta-llama/llama-3.3-70b-instruct:free` → `google/gemini-flash-1.5`; GQ = `llama-3.3-70b-versatile` → `llama-3.1-8b-instant`; GM = `gemini-2.5-flash` → `gemini-2.0-flash` → `gemini-1.5-flash`. Any 401/403/429 short-circuits the entire provider (bad key won't get better with another model); 404/400 walks to the next model in the same provider. `/api/admin/ai/health` probe uses the same current primary models. Root cause of the "shows the popular product" bug: all 3 providers were 404/401 on their stale default models.
+- **Maintenance mode retired**: removed the middleware + `/maintenance` route in `src/index.tsx`, the banner + full-page overlay + dismiss script in `src/components/shell.ts`, the entire admin tab + `saveMaintenanceConfig` + `updateMaintBadge` in `src/pages/admin.ts`, and all `MAINTENANCE_MODE`/`MAINTENANCE_MESSAGE`/`MAINTENANCE_ETA` references from `loadSettings()`.
+- **Admin dashboard consolidation**: 14 flat tabs → 6 grouped nav (`Orders`, `Catalog`, `Content`, `Analytics`, `AI & Auto`, `Settings`) with sub-nav pills. Existing panel IDs (`tord`, `tprod`, …) preserved. New `showGroup(el, groupId)` + `showPanel(el, panelId)` API; legacy `showTab(el, id)` still works via a back-compat shim.
+- **COD vs Prepaid order-row visual parity** (`renderOrders` in `src/pages/admin.ts`): unified `.pay-badge` class with three states (`pay-cod`, `pay-cod-ok`, `pay-prepaid`) using the same padding/font/border. Matching `.price-sub` sub-line applied to both COD ("+ Rs.99 COD handling" or "Cash on delivery") and prepaid ("Paid online") so pricing column heights match across all rows.
+- **Cookie banner admin-toggleable**: gated behind `ss.COOKIE_CONSENT_ENABLED === 'true'` in `src/components/shell.ts`. Default OFF (banner disappears immediately from live site). Settings tab has a toggle to flip ON if legal ever requires it. When OFF, no banner HTML or JS ships to visitors.
+- **4 legal pages fully rewritten** in `src/data.ts` `SEED_LEGAL_PAGES`: **Terms of Service** (19 sections — buyer eligibility, drop model, order lifecycle, IP, AI Stylist rules, force majeure, jurisdiction), **Returns / Exchanges / Refunds** (11 sections — 36-hour window, size-exchange flow, Store-Credit mechanics, damaged-in-transit unboxing-video protocol, cancellation-before-dispatch), **Privacy Policy** (11 sections — DPDP Act 2023-aligned, full vendor list with data-flow purpose, cross-border transfer notes, 8-point Data Principal rights, breach notification), **Shipping Policy** (11 sections — fee table, timeline table by tier city, COD verification protocol, RTO handling, damage protocol). Compliance references included: DPDP Act 2023, Consumer Protection E-Commerce Rules 2020, IT Reasonable Security Practices Rules 2011.
+- **Organic-traffic AEO improvements**: `/llms.txt` refreshed with 12 new answer-engine Q&A written the way ChatGPT users phrase queries ("Is Intru legit?", "Does Intru deliver to Mumbai?", "Where can I buy Intru in India?", oversized-fit accuracy, comparison-answer templates). Home page `FAQPage` JSON-LD expanded from 5 to 9 questions — added India-city delivery, legitimacy, oversized-fit accuracy, drop-access questions. Home page `<meta name="description">` rewritten to explicitly enumerate Hyderabad, Mumbai, Bangalore, Delhi, Pune, Chennai, Kolkata — matches the real-user geo-concentration in the GA4 data.
+- **Footer / brand-copy cleanup**: `STORE_CONFIG.description` in `src/data.ts` rewritten to a shorter brand-line format without redundant "it's" contractions. Retired stale claims: "Two best friends design pieces," "designed over 2 months," "Founder-Designed" (kept only in the About page as a stylistic origin story).
+
+### v18 — August 21, 2026 · Meta Ads (Pixel + CAPI dedup), Conversion Fixes, Data Ops
+Meta Pixel + server-side Conversions API with browser↔server dedup via shared `event_id`; DPDP-lite cookie consent (superseded by v19's admin toggle); AI Stylist chain recovery via `resolveAIKey(c, envName, settingKey)`; combo-promo visibility fixes; admin custom email composer; all-transactional-template rewrite (IG-DM first); 30+ "premium" scrubs from brand copy; Clarity a11y + WebView error fixes; `/404` rescue page; GA4 Apps Script exporter (`tools/GA4_Clarity_Exporter.gs`); per-IP rate limits on 6 public endpoints.
+
+### v15.4 (baseline documented below) — April 15, 2026
+Original architecture: Hono edge-rendered SSR, Supabase + RLS, Razorpay Standard + Magic Checkout, Resend transactional email, Cloudflare Pages hosting. All architectural sections that follow describe this baseline; changes on top of it are captured in the version blocks above.
 
 ---
 
