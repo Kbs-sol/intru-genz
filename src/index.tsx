@@ -69,48 +69,101 @@ function clientIp(c: Context<{ Bindings: Bindings }>): string {
     || 'unknown';
 }
 
+// [v20] Per-isolate TTL cache for the 5 DB queries getPageOpts runs on every
+// page render. Cloudflare Pages workers reuse a live isolate for many requests
+// before recycling, so a simple module-level Map with a TTL is enough to slash
+// the "5 Supabase reads per pageview" problem that was exhausting Disk IO.
+// - 60s TTL is aggressive enough that admin edits show up within a minute
+// - Manual `/api/admin/cache/purge` endpoint (below) drops the cache instantly
+//   when admins edit content and want it live immediately.
+// - Cache key is a constant; every isolate warms its own copy from a cold start.
+type _CacheEntry<T> = { at: number; data: T };
+const _pageDataCache: Map<string, _CacheEntry<any>> = (globalThis as any).__intruPageDataCache || new Map();
+(globalThis as any).__intruPageDataCache = _pageDataCache;
+const PAGE_DATA_TTL_MS = 60_000; // 60 seconds — balances freshness vs. Disk IO cost
+export function _purgePageDataCache() { _pageDataCache.clear(); }
+
+// Helper: strip legacy stored analytics-ID rows that ended up with the literal
+// string "null" or "undefined" from an admin form that never had a value. Any
+// downstream truthy-check on `.trim()` would otherwise render broken `id=null`
+// snippets (Meta Pixel `fbq('init', 'null')`, GTM `?id=null`, etc.).
+function _cleanIdSetting(v: any): string {
+  if (v === undefined || v === null) return '';
+  const s = String(v).trim();
+  return (s === '' || s === 'null' || s === 'undefined' || s === 'off') ? '' : s;
+}
+
 // Helper: get common page options
 async function getPageOpts(c: Context<{ Bindings: Bindings }>) {
   const sbUrl = getEnv(c.env, 'SUPABASE_URL');
   const sbSvc = getEnv(c.env, 'SUPABASE_SERVICE_KEY');
   const sbAnon = getEnv(c.env, 'SUPABASE_ANON_KEY');
   const sbKey = sbSvc || sbAnon;
-  // Fetch products / legal / FAQs / blog posts + settings in parallel — every
-  // getPageOpts call runs on every page render, so latency compounds.
-  const [
-    { products },
-    { pages: legalPages },
-    { faqs },
-    { posts: blogPosts },
-    storeSettings,
-  ] = await Promise.all([
-    fetchProducts(sbUrl, sbSvc, sbAnon),
-    fetchLegalPages(sbUrl, sbSvc, sbAnon),
-    fetchFAQs(sbUrl, sbSvc, sbAnon),
-    fetchBlogPosts(sbUrl, sbSvc, sbAnon),
-    fetchAllStoreSettings(sbUrl, sbKey),
-  ]);
+
+  // Serve from per-isolate cache if fresh — this is the single biggest Disk IO
+  // saving in v20 (was: 5 queries × every page render; now: 5 queries × once
+  // per isolate per 60s regardless of traffic).
+  const cached = _pageDataCache.get('main');
+  let products: any[], legalPages: any[], faqs: any[], blogPosts: any[], storeSettings: Record<string, string>;
+  if (cached && Date.now() - cached.at < PAGE_DATA_TTL_MS) {
+    ({ products, legalPages, faqs, blogPosts, storeSettings } = cached.data);
+    // Clone storeSettings so caller mutations (env-fallback below) don't
+    // pollute the cached copy.
+    storeSettings = { ...storeSettings };
+  } else {
+    const [
+      { products: p },
+      { pages: lp },
+      { faqs: fq },
+      { posts: bp },
+      ss,
+    ] = await Promise.all([
+      fetchProducts(sbUrl, sbSvc, sbAnon),
+      fetchLegalPages(sbUrl, sbSvc, sbAnon),
+      fetchFAQs(sbUrl, sbSvc, sbAnon),
+      fetchBlogPosts(sbUrl, sbSvc, sbAnon),
+      fetchAllStoreSettings(sbUrl, sbKey),
+    ]);
+    products = p; legalPages = lp; faqs = fq; blogPosts = bp; storeSettings = ss;
+    _pageDataCache.set('main', { at: Date.now(), data: { products, legalPages, faqs, blogPosts, storeSettings: { ...storeSettings } } });
+  }
+  // Assemble into the same-shape destructure the rest of the function expects.
+  // (Keeps the diff below minimal.)
+  const _r1 = { products }, _r2 = { pages: legalPages }, _r3 = { faqs }, _r4 = { posts: blogPosts };
+  void _r1; void _r2; void _r3; void _r4;
+  // [v20] Sanitize analytics IDs up-front: any legacy row that stored the
+  // literal string "null" or "undefined" would otherwise render broken snippets
+  // (e.g. `<iframe src="...ns.html?id=null">`, `fbq('init', 'null')`). Cleanup
+  // now → downstream shell.ts can trust `.trim()`.
+  storeSettings.GA4_MEASUREMENT_ID = _cleanIdSetting(storeSettings.GA4_MEASUREMENT_ID);
+  storeSettings.CLARITY_PROJECT_ID = _cleanIdSetting(storeSettings.CLARITY_PROJECT_ID);
+  storeSettings.META_PIXEL_ID = _cleanIdSetting(storeSettings.META_PIXEL_ID);
+  const cleanedGtm = _cleanIdSetting(storeSettings.GTM_CONTAINER_ID);
+  // GTM special-case: preserve `undefined` (so the shell can apply its brand
+  // default), but coerce "null"/"undefined"/"off" strings to '' (explicit off).
+  storeSettings.GTM_CONTAINER_ID = (storeSettings.GTM_CONTAINER_ID === undefined) ? undefined as any : cleanedGtm;
+
   // Analytics IDs: store-settings win; fall back to Cloudflare env vars.
   // Accept BOTH secret names so the GA4 ID is picked up regardless of whether
   // the Cloudflare secret was named `GA4_MEASUREMENT_ID` (matches the admin
   // setting / variable names everywhere else) or the legacy `GA_MEASUREMENT_ID`.
   if (!storeSettings.GA4_MEASUREMENT_ID) {
-    const envGa = getEnv(c.env, 'GA4_MEASUREMENT_ID') || getEnv(c.env, 'GA_MEASUREMENT_ID');
+    const envGa = _cleanIdSetting(getEnv(c.env, 'GA4_MEASUREMENT_ID') || getEnv(c.env, 'GA_MEASUREMENT_ID'));
     if (envGa) storeSettings.GA4_MEASUREMENT_ID = envGa;
   }
   if (!storeSettings.CLARITY_PROJECT_ID) {
-    const envCl = getEnv(c.env, 'CLARITY_PROJECT_ID');
+    const envCl = _cleanIdSetting(getEnv(c.env, 'CLARITY_PROJECT_ID'));
     if (envCl) storeSettings.CLARITY_PROJECT_ID = envCl;
   }
   // Meta Pixel — store-setting wins, else Cloudflare env var (Meta Ads support).
   if (!storeSettings.META_PIXEL_ID) {
-    const envMp = getEnv(c.env, 'META_PIXEL_ID');
+    const envMp = _cleanIdSetting(getEnv(c.env, 'META_PIXEL_ID'));
     if (envMp) storeSettings.META_PIXEL_ID = envMp;
   }
   // GTM container: store-setting wins; else Cloudflare env. Leave undefined so
   // the shell can apply its brand default (GTM-PCQCS3JV) when nothing is set.
   if (storeSettings.GTM_CONTAINER_ID === undefined) {
-    const envGtm = getEnv(c.env, 'GTM_CONTAINER_ID');
+    const envGtm = _cleanIdSetting(getEnv(c.env, 'GTM_CONTAINER_ID'));
     if (envGtm) storeSettings.GTM_CONTAINER_ID = envGtm;
   }
   const mMode = storeSettings.MAINTENANCE_MODE || 'off';

@@ -21,7 +21,8 @@ import { STORE_CONFIG, type Product, type LegalPage, SEED_LEGAL_PAGES } from '..
  */
 /** GTM <head> loader — rendered only when a container ID is configured. */
 export function buildGtmHead(gtmId?: string): string {
-  const id = (gtmId || '').trim();
+  const raw = (gtmId || '').trim();
+  const id = (raw === 'null' || raw === 'undefined' || raw === 'off') ? '' : raw;
   if (!id) return '';
   return `
 <!-- Google Tag Manager -->
@@ -31,15 +32,24 @@ export function buildGtmHead(gtmId?: string): string {
 
 /** GTM <body> noscript fallback — placed immediately after the opening <body>. */
 export function buildGtmBody(gtmId?: string): string {
-  const id = (gtmId || '').trim();
+  const raw = (gtmId || '').trim();
+  const id = (raw === 'null' || raw === 'undefined' || raw === 'off') ? '' : raw;
   if (!id) return '';
   return `<!-- Google Tag Manager (noscript) --><noscript><iframe src="https://www.googletagmanager.com/ns.html?id=${id}" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript><!-- End Google Tag Manager (noscript) -->`;
 }
 
+// [v20] `_c()` filters the literal strings "null"/"undefined"/"off" that stale
+// admin rows can leave behind — otherwise `.trim()` returns them intact and we
+// end up rendering `fbq('init', 'null')` / `?id=null` snippets that trip Meta
+// & GTM domains.
+function _c(v?: string): string {
+  const s = (v || '').trim();
+  return (s === 'null' || s === 'undefined' || s === 'off') ? '' : s;
+}
 function buildAnalytics(ga4Id?: string, clarityId?: string, metaPixelId?: string): string {
-  const ga = (ga4Id || '').trim();
-  const clarity = (clarityId || '').trim();
-  const fbId = (metaPixelId || '').trim();
+  const ga = _c(ga4Id);
+  const clarity = _c(clarityId);
+  const fbId = _c(metaPixelId);
   const gaSnippet = ga ? `
 <!-- Google Analytics 4 (GA4) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=${ga}"></script>
