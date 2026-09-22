@@ -229,7 +229,25 @@ app.get('/product/:slug', async (c: Context<{ Bindings: Bindings }>) => {
   const sbUrl = getEnv(c.env, 'SUPABASE_URL');
   const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY') || getEnv(c.env, 'SUPABASE_ANON_KEY');
   const product = await fetchProductBySlug(sbUrl, sbKey, slug);
-  if (!product) return c.html(`<html><head><meta http-equiv="refresh" content="0;url=/"></head></html>`, 404);
+
+  // [v20] Short-slug 301 redirect. GA4 shows real users hitting
+  // /product/orange-puff and /product/romanticise-crop (short forms typed
+  // from Instagram DMs / word-of-mouth), but the real slugs are
+  // /product/orange-puff-printed-t-shirt and /product/romanticise-crop-tee →
+  // this saves those visits from 404-ing. We only redirect for a UNIQUE
+  // prefix match on the catalog to prevent accidental clashes.
+  if (!product) {
+    try {
+      const opts = await getPageOpts(c);
+      const cands = (opts.products || []).filter((p: any) => p && p.slug && p.slug.startsWith(slug + '-'));
+      if (cands.length === 1) {
+        return c.redirect(`/product/${cands[0].slug}`, 301);
+      }
+      // No unique match → keep the safe fallback to home so link-equity isn't lost.
+    } catch {}
+    return c.html(`<html><head><meta http-equiv="refresh" content="0;url=/"></head></html>`, 404);
+  }
+
   const opts: any = await getPageOpts(c);
   opts.ratings = await fetchProductRatings(sbUrl, sbKey, product.id);
   c.executionCtx.waitUntil(incrementView(c.env, `/product/${slug}`));
@@ -2663,11 +2681,75 @@ app.patch('/api/admin/legal/:slug', async (c: Context<{ Bindings: Bindings }>) =
     const res = await supabaseFetch(sbUrl, sbKey, `legal_pages?slug=eq.${slug}`, {
       method: 'PATCH', body: JSON.stringify(body),
     });
-    if (res.ok) return c.json({ success: true });
+    if (res.ok) {
+      _purgePageDataCache(); // [v20] flush per-isolate cache
+      return c.json({ success: true });
+    }
     return c.json({ error: await res.text() }, 500);
   }
   return c.json({ error: 'Supabase not configured' }, 500);
 })
+
+// [v20] Force-reseed legal pages from the SEED_LEGAL_PAGES array in data.ts.
+// The initial-seed logic in fetchLegalPages() only runs when the table is
+// EMPTY, so stale rows from earlier deploys don't get refreshed automatically.
+// This endpoint UPSERTS the current SEED_* content over whatever's in the
+// table — used to push the v19 legal-page rewrites (Terms, Returns, Privacy,
+// Shipping) live over the older shorter drafts.
+app.post('/api/admin/legal/reseed', async (c: Context<{ Bindings: Bindings }>) => {
+  const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+  const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY');
+  if (!sbUrl || !sbKey) return c.json({ error: 'Supabase service key required' }, 500);
+  const rows = SEED_LEGAL_PAGES.map(p => ({
+    slug: p.slug, title: p.title, content: p.content, updated_at: p.updatedAt,
+  }));
+  try {
+    const res = await supabaseFetch(sbUrl, sbKey, 'legal_pages?on_conflict=slug', {
+      method: 'POST',
+      headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' } as any,
+      body: JSON.stringify(rows),
+    });
+    if (!res.ok) return c.json({ error: await res.text() }, 500);
+    const saved = await res.json() as any[];
+    _purgePageDataCache();
+    return c.json({ success: true, count: saved.length, slugs: saved.map(r => r.slug) });
+  } catch (e: any) {
+    return c.json({ error: String(e?.message || e) }, 500);
+  }
+});
+
+// [v20] Force-reseed FAQs. UNIQUE(question) + merge-duplicates keeps
+// admin-added FAQs untouched — only rows whose question exactly matches a
+// SEED_FAQS entry are overwritten with the current seed content.
+app.post('/api/admin/faqs/reseed', async (c: Context<{ Bindings: Bindings }>) => {
+  const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+  const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY');
+  if (!sbUrl || !sbKey) return c.json({ error: 'Supabase service key required' }, 500);
+  try {
+    const rows = SEED_FAQS.map(f => ({
+      question: f.question, answer: f.answer, category: f.category,
+      sort_order: f.sort_order, is_active: f.is_active,
+    }));
+    const res = await supabaseFetch(sbUrl, sbKey, 'faqs?on_conflict=question', {
+      method: 'POST',
+      headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' } as any,
+      body: JSON.stringify(rows),
+    });
+    if (!res.ok) return c.json({ error: await res.text() }, 500);
+    const saved = await res.json() as any[];
+    _purgePageDataCache();
+    return c.json({ success: true, count: saved.length });
+  } catch (e: any) {
+    return c.json({ error: String(e?.message || e) }, 500);
+  }
+});
+
+// [v20] Manual cache purge — any admin content edit that bypasses the edit
+// endpoints can call this to force getPageOpts to re-fetch immediately.
+app.post('/api/admin/cache/purge', async (c: Context<{ Bindings: Bindings }>) => {
+  _purgePageDataCache();
+  return c.json({ success: true, purged_at: new Date().toISOString() });
+});
 
 // ============ ADMIN: FAQ CRUD ============
 // Endpoints mirror /api/admin/legal — same auth (x-admin-token via middleware),
@@ -2947,7 +3029,10 @@ app.put('/api/admin/settings/:key', async (c: Context<{ Bindings: Bindings }>) =
       method: 'POST', headers: { 'Prefer': 'resolution=merge-duplicates' } as any,
       body: JSON.stringify({ key, value: body.value }),
     });
-    if (res.ok) return c.json({ success: true });
+    if (res.ok) {
+      _purgePageDataCache(); // [v20] admin settings edit → refresh live within a request
+      return c.json({ success: true });
+    }
     return c.json({ error: await res.text() }, 500);
   }
   return c.json({ error: 'Supabase not configured' }, 500);

@@ -159,8 +159,18 @@ window.track=function(name,params){
         try{window.fbq('track',metaName,metaParams,{eventID:eventId});}catch(_e){}
       }
     }
-    // Internal beacon → server drives Meta CAPI (server-side, dedup by event_id)
-    if(navigator&&navigator.sendBeacon){
+    // Internal beacon → server writes funnel_events + drives Meta CAPI.
+    // [v20] Skip low-value events on the server side to slash Supabase Disk IO.
+    // These events still fire on GA4 / Clarity / Meta Pixel client-side (dedup
+    // via event_id) — we just don't need one Postgres row per scroll tick.
+    // Purchase / add_to_cart / begin_checkout etc. are the ONLY events that
+    // need durable server-side capture (for CAPI + AI-loop reporting).
+    var _SKIP_SERVER = {
+      scroll_depth: 1, anchor_scroll: 1, engaged_session: 1,
+      promo_shown: 1, combo_nudge_shown: 1,
+      exit_intent_shown: 1, share: 1
+    };
+    if(navigator&&navigator.sendBeacon && !_SKIP_SERVER[name]){
       var payload={event:name,meta:params,event_id:eventId,event_time:Math.floor(Date.now()/1000),url:location.href,user_agent:navigator.userAgent};
       // If user declined consent, mark payload so server skips Meta CAPI (funnel_events log still happens)
       if(window._intruConsentDeclined){payload.no_capi=1;}
@@ -2711,8 +2721,12 @@ function handleAdminUpload(inputId, bucket, statusId, btnId, lastUrlId, lastDivI
 
 /* ====== CRO + ENGAGEMENT ANALYTICS [revenue] ====== */
 (function(){
-  /* 1) Scroll-depth milestones — surfaces where visitors disengage (GA4 + Clarity) */
-  var _depths=[25,50,75,90],_hit={};
+  /* 1) Scroll-depth milestones — surfaces where visitors disengage (GA4 + Clarity).
+        [v20] Trimmed from 4 to 2 milestones (75/90 only) to cut server-side
+        Supabase writes ~50% without losing signal. 25/50 rarely mattered — the
+        strong disengagement signal is between 50→90, and GA4/Clarity already
+        capture their own scroll depth natively. */
+  var _depths=[75,90],_hit={};
   function _onScroll(){
     var h=document.documentElement,b=document.body;
     var st=h.scrollTop||b.scrollTop, sh=(h.scrollHeight||b.scrollHeight)-h.clientHeight;

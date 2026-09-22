@@ -598,6 +598,17 @@ export function adminPage(opts: {
 <p style="font-size:11px;color:var(--g400);margin:8px 0 0">Tip: set Cloudflare secrets <code>CRON_SECRET</code> (required) and <code>OPENAI_API_KEY</code> (optional — enables richer LLM decisions; without it a built-in heuristic engine is used). Set <code>AI_ANNOUNCEMENT</code>=<code>off</code> to hide the bar.</p>
 </div>
 <div class="sett-card">
+<h4>Content Refresh (v20)</h4>
+<p>Push the latest bundled Legal Pages and FAQ content over the stale rows in Supabase. Use this after a deploy when you notice a Legal / FAQ page still shows old content because the initial-seed only fires when the table is empty.</p>
+<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px">
+  <button class="asave" style="flex:0 0 auto" onclick="reseedLegal()"><i class="fas fa-file-alt"></i> Reseed Legal Pages</button>
+  <button class="asave" style="flex:0 0 auto" onclick="reseedFaqs()"><i class="fas fa-question-circle"></i> Reseed FAQs</button>
+  <button class="asave" style="flex:0 0 auto;background:#0a0a0a" onclick="purgePageCache()"><i class="fas fa-broom"></i> Purge Cache</button>
+  <span id="reseedStatus" style="font-size:12px;color:var(--g400)"></span>
+</div>
+<p style="font-size:11px;color:var(--g400);margin:0"><b>Reseed</b> = overwrite Supabase rows whose slug / question matches a bundled seed entry (admin-added FAQs are preserved). <b>Purge cache</b> = drop the 60-second edge cache for products / legal / FAQ / blog / settings so the next request re-reads from Supabase immediately.</p>
+</div>
+<div class="sett-card">
 <h4>Cookie Consent Banner</h4>
 <p>DPDP Act 2023 / GDPR-friendly cookie disclosure. Toggle OFF if you don't need it (e.g. purely analytics-cookie site with no cross-border transfers). Turn ON to show a bottom banner with Accept/Reject actions and remember visitor choice for 365 days.</p>
 <div class="sett-toggle" style="margin-bottom:8px">
@@ -1244,6 +1255,53 @@ function loadSettings(){
 function saveSetting(key,val){
   fetch('/api/admin/settings/'+encodeURIComponent(key),{method:'PUT',headers:{'Content-Type':'application/json','x-admin-token':sessionStorage.getItem('iadm_t')},body:JSON.stringify({value:val})})
   .then(function(r){return r.json()}).then(function(d){if(d.success){toast(key+' updated','ok-green')}else{toast('Failed','err')}}).catch(function(e){toast('Error: '+e.message,'err')});
+}
+
+/* ====== v20: CONTENT RESEED + CACHE PURGE ====== */
+function reseedLegal(){
+  var st = document.getElementById('reseedStatus'); if(st) st.textContent='Reseeding legal pages...';
+  fetch('/api/admin/legal/reseed',{method:'POST',headers:{'x-admin-token':sessionStorage.getItem('iadm_t')}})
+    .then(function(r){return r.json()})
+    .then(function(d){
+      if(d.success){
+        if(st) st.textContent='Reseeded '+d.count+' legal pages: '+(d.slugs||[]).join(', ');
+        toast('Legal pages reseeded — refresh /p/privacy etc. to see','ok-green');
+      } else {
+        if(st) st.textContent='Failed: '+(d.error||'unknown');
+        toast('Reseed failed','err');
+      }
+    })
+    .catch(function(e){ if(st) st.textContent='Error: '+e.message; toast('Reseed error','err'); });
+}
+function reseedFaqs(){
+  var st = document.getElementById('reseedStatus'); if(st) st.textContent='Reseeding FAQs...';
+  fetch('/api/admin/faqs/reseed',{method:'POST',headers:{'x-admin-token':sessionStorage.getItem('iadm_t')}})
+    .then(function(r){return r.json()})
+    .then(function(d){
+      if(d.success){
+        if(st) st.textContent='Reseeded '+d.count+' FAQ rows';
+        toast('FAQs reseeded — refresh /faq','ok-green');
+      } else {
+        if(st) st.textContent='Failed: '+(d.error||'unknown');
+        toast('Reseed failed','err');
+      }
+    })
+    .catch(function(e){ if(st) st.textContent='Error: '+e.message; toast('Reseed error','err'); });
+}
+function purgePageCache(){
+  var st = document.getElementById('reseedStatus'); if(st) st.textContent='Purging cache...';
+  fetch('/api/admin/cache/purge',{method:'POST',headers:{'x-admin-token':sessionStorage.getItem('iadm_t')}})
+    .then(function(r){return r.json()})
+    .then(function(d){
+      if(d.success){
+        if(st) st.textContent='Cache purged at '+(d.purged_at||'now');
+        toast('Cache purged — next request re-reads from Supabase','ok-green');
+      } else {
+        if(st) st.textContent='Failed';
+        toast('Purge failed','err');
+      }
+    })
+    .catch(function(e){ if(st) st.textContent='Error: '+e.message; toast('Purge error','err'); });
 }
 
 /* ====== AI SALES AGENT [AG] ====== */
