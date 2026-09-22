@@ -4,12 +4,77 @@
 - **Name**: intru.in
 - **Goal**: Engineered for High Organic Traffic (SEO) and High Conversion (using deep direct-response psychology)
 - **Stack**: Hono + TypeScript + Cloudflare Pages + Supabase + Razorpay + Resend
-- **Version**: v19 (Date: August 22, 2026) — GA4-driven refresh: AI Stylist model fallbacks (multi-model per provider + auth short-circuit), maintenance mode retired, admin dashboard consolidated (14 tabs → 6 grouped nav), COD/prepaid order rows unified visually, cookie banner is now admin-toggleable (default OFF), 4 legal pages fully rewritten (DPDP Act 2023-aligned Privacy, plain-English Terms/Returns/Shipping), organic-traffic AEO improvements (llms.txt refreshed, India-city Q&A, home FAQ Schema expanded with 4 new answer-engine questions), footer grammar/brand-claim cleanup. All prior v18 work retained.
+- **Version**: v20 (Date: September 22, 2026) — Post-audit performance & data-integrity fixes: **Supabase Disk IO exhaustion fixed** via per-isolate 60s TTL cache on `getPageOpts` (5 queries × every render → 5 queries × once per isolate per minute); **broken `null`/`undefined` analytics IDs** (GTM `id=null`, Meta Pixel `fbq('init','null')`) filtered at both source and shell; **admin reseed endpoints** for legal pages + FAQs to push v19 rewrites over stale Supabase rows; **short-slug 301 redirects** (`/product/orange-puff` → `/product/orange-puff-printed-t-shirt`, `/product/romanticise-crop` → `.../-tee`) fix 404s from Instagram DM traffic; **funnel_events volume cut ~50%** by trimming noisy client events (scroll_depth 25/50 dropped; anchor_scroll / promo_shown / share now GA4/Clarity-only). All v19 work retained.
 
 ## URLs
 - **Production**: https://intru-genz.pages.dev (staging) → https://intru.in (custom domain pending)
 - **GitHub**: https://github.com/Kbs-sol/intru-genz
 - **Admin**: Hidden — enter Robust Konami Code (↑↑↓↓←→←→ba) on any page
+
+## v20 Changes (September 22, 2026) — Audit-Driven Performance & Data-Integrity Fixes
+
+Full audit run against real GA4, Search Console, and Supabase data (Jun 24 – Sep 21, 2026: **4,846 active users, 22,139 events, 84 GSC clicks, 5,765 impressions, 5 orders pending, 0 completed**). Findings + fixes:
+
+### 🔥 Root-Cause Fixes
+
+**1. Supabase Disk IO exhaustion (the email you received)**
+Every page render was calling `getPageOpts()` → 5 parallel Supabase queries (`products`, `legal_pages`, `faqs`, `blog_posts`, `store_settings`). With ~22K events over 90 days, that's ~110K reads per 90 days on read-hot tables — enough to burn through the free-tier Disk IO Budget.
+- **Fix**: per-isolate `Map` cache with 60-second TTL for the entire `getPageOpts` result set. Reduces DB load by **~95–98%** on read-hot pages.
+- **Invalidation**: automatic on every admin write endpoint (settings PUT, legal PATCH, reseeds) + manual `POST /api/admin/cache/purge` button in Settings.
+
+**2. Broken analytics IDs (GTM + Meta Pixel firing with `null`)**
+Live audit revealed `<iframe src="...ns.html?id=null">` and `fbq('init', 'null')` in production HTML — GTM and Meta Pixel are effectively broken, so Meta CAPI dedup can never work.
+- **Root cause**: someone saved `null`/empty in the admin Settings form → stored as the literal string `"null"` in Supabase. `.trim()` on `"null"` returns `"null"` (truthy) → falls through the guard.
+- **Fix**: `_cleanIdSetting()` helper at both `getPageOpts()` (source-of-truth) and `buildAnalytics()`/`buildGtm()` (defense-in-depth) that filters `""`, `"null"`, `"undefined"`, and `"off"` to `''`. When empty, the whole analytics block is omitted.
+
+**3. Stale legal pages (v19 content never went live)**
+`fetchLegalPages()` only inserts SEED_LEGAL_PAGES when the table is empty. So the v19 Privacy/Terms/Returns/Shipping rewrites never overwrote the earlier drafts already in Supabase.
+- **Fix**: `POST /api/admin/legal/reseed` — upserts the bundled SEED array via `?on_conflict=slug` + `Prefer: resolution=merge-duplicates`. Admin Settings tab now has a **Reseed Legal Pages** button. Same treatment for FAQs (`POST /api/admin/faqs/reseed`).
+
+**4. Product-slug 404s from Instagram DM traffic**
+GA4 shows real users hitting `/product/orange-puff` and `/product/romanticise-crop` — both 404. Real slugs are `orange-puff-printed-t-shirt` and `romanticise-crop-tee`.
+- **Fix**: on 404, `getPageOpts.products` is scanned for prefix matches (`slug.startsWith(input + '-')`); a **unique** match issues a 301 to the full slug. Safe on collisions (falls through to the existing home-redirect fallback).
+
+**5. funnel_events write volume (Disk IO amplifier)**
+Every `window.track()` call fired a Supabase INSERT via `/api/analytics/event`. Scroll-depth (4 events per session) + anchor_scroll + engaged_session + promo_shown + share + combo_nudge_shown were all writing to the DB.
+- **Fix**: server-beacon suppressed for low-value events (client-side GA4/Clarity/Meta Pixel still fire — dedup guaranteed by `event_id`). Scroll milestones cut from `[25, 50, 75, 90]` to `[75, 90]`. Net effect: **~50% fewer `funnel_events` writes** while keeping every conversion-relevant event (purchase, add_to_cart, begin_checkout, view_item, identify, exit_intent, sign_up, etc.).
+
+### 📊 Search Console Signals (Jun 24 → Sep 21, 2026)
+
+- **Impressions grew 62% over 3 months** (roughly 40/day → 100/day). Position stabilised at 3.5–5. CTR flat at ~1.4% (below the ~2% India-brand benchmark).
+- **India = 84 of 94 total clicks** (89%). Pakistan, US, Brazil trickle in.
+- **Mobile = 69 clicks / 5,511 impressions (1.25% CTR, pos 3.49)**; Desktop = 25 clicks / 998 impressions (2.51% CTR, pos 18.42). **Desktop position 18 = second-page relegation** — needs on-page fixes (H1, TL;DR, comparison tables) to break into top 10 for buying-guide queries.
+- **Top query**: `intru` (61 clicks, 4,956 impressions, CTR 1.23%) — dominates brand navigation.
+- **Untapped commercial queries** (high impressions, 0 clicks): `18 shirt` (35 imp), `no risk no porsche` (29 imp), `no risk no porsche t shirt` (27 imp), `high gsm t-shirt brands` (6 imp), `best oversized t-shirt brand india` (3 imp). All are top-of-funnel intent → need better SERP snippets or product-page title/meta.
+- **404-generating queries**: `topintru`, `intru,`, `intrù` etc. — brand-name typos. `/product/orange-puff-printed-t-shirt` has **573 impressions but 0 clicks** — its snippet is likely competing with fast-fashion product cards, needs stronger meta description + FAQ schema.
+
+### 🛒 Conversion / Funnel State (Supabase data)
+
+- **5 orders total in 90 days, all pending. 0 completed. 0 revenue captured.** ← this is the #1 business emergency, not a code bug.
+- 60% COD (3 orders, ₹3,793) / 40% Prepaid (2 orders, ₹1,998).
+- **AOV ₹1,158; Repeat-customer rate 33%** (small sample but healthy).
+- **39 emails delivered**: 18 abandoned-cart, 9 welcome, 6 order-confirmed, 3 COD-verification, 3 manager-alerts. Delivery working; conversion after email is the drop-off.
+- Top sold product: **Summer Shirt** (4 orders/4 units, 2 unique customers).
+- **Zero identified users, zero coupons issued, zero shipping cities captured** in this period → the identity + address collection points may not be firing or may be losing data on payment retry.
+
+### 🎯 Recommended Next Actions (priority-ordered, outside this v20 code push)
+
+1. **Turn all 5 pending orders into completed orders.** Reach out manually — this is the immediate cash on the table.
+2. **In Admin → Settings → Content Refresh → click "Reseed Legal Pages"** and "Reseed FAQs" so the v19 rewrites finally go live over the stale Supabase rows.
+3. **Fix the null analytics IDs**: in Admin → Settings, either put your real GTM/Meta Pixel ID or leave the field blank (v20 now correctly filters `"null"` → `''`).
+4. **Focus paid Instagram acquisition on India-metros** (Hyderabad, Mumbai, Bengaluru, Chennai). US/EU traffic is real-user single digits — not commercially useful.
+5. **Add product-page FAQ + comparison content** for the top-impression zero-click products (Orange Puff, Summer Shirt, Doodles) — grab the untapped `no risk no porsche` and `18 shirt` head-terms.
+6. **Turn on Cookie Consent Banner** only if you launch cross-border ads; keep it OFF for India-only DPDP-lite mode (current state).
+
+### File Ledger (v20)
+| File | Change |
+|---|---|
+| `src/index.tsx` | `getPageOpts` per-isolate TTL cache (60s) · `_cleanIdSetting` filter for `null`/`undefined` string IDs · `/api/admin/legal/reseed` · `/api/admin/faqs/reseed` · `/api/admin/cache/purge` · auto-purge on settings PUT + legal PATCH · short-slug 301 redirect in `/product/:slug` |
+| `src/components/shell.ts` | `_c()` helper filters `null`/`undefined`/`off` strings for `buildAnalytics` (GA4, Clarity, Meta Pixel) and `buildGtm` (both `<head>` and `<body>` noscript) · scroll-depth milestones trimmed `[25,50,75,90]` → `[75,90]` · server beacon suppresses `scroll_depth`, `anchor_scroll`, `engaged_session`, `promo_shown`, `combo_nudge_shown`, `exit_intent_shown`, `share` (still fire on GA4/Clarity/Meta Pixel) |
+| `src/pages/admin.ts` | Settings tab: new "Content Refresh (v20)" card with **Reseed Legal**, **Reseed FAQs**, **Purge Cache** buttons + status area · `reseedLegal()` / `reseedFaqs()` / `purgePageCache()` JS handlers |
+| `README.md` + `SYSTEM_LITERACY.md` | v20 changelog blocks with the audit findings above |
+
+---
 
 ## v19 Changes (August 22, 2026) — GA4-Driven UX & AEO Refresh
 

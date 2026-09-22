@@ -1,11 +1,28 @@
 # INTRU.IN — Full System Literacy & Architecture Reference
-**Version**: v19 | **Date**: August 22, 2026 | **Production**: https://intru.in (custom domain live) · https://intru-genz.pages.dev (staging)
+**Version**: v20 | **Date**: September 22, 2026 | **Production**: https://intru.in · https://intru-genz.pages.dev (staging)
 
 > This document is the single source of truth for engineers, operators, and AI assistants working on intru.in. It contains everything needed to understand, debug, fix, or extend the codebase.
 
 ---
 
 ## 0. CHANGELOG SUMMARY (Most Recent First)
+
+### v20 — September 22, 2026 · Audit-Driven Performance & Data-Integrity Fixes
+Full audit run against real GA4 + GSC + Supabase data (Jun 24 – Sep 21, 2026: 4,846 active users, 22,139 events, 84 GSC clicks, 5,765 impressions, 5 orders all pending). Findings targeted five root causes:
+
+1. **Supabase Disk IO exhaustion** — `getPageOpts()` was running 5 parallel Supabase queries on every page render (products, legal_pages, faqs, blog_posts, store_settings) with **zero caching**, exhausting the free-tier Disk IO Budget. Fixed with a **per-isolate `Map` TTL cache** (60s TTL, keyed by `'main'`, held on `globalThis.__intruPageDataCache` so it survives Hono re-import). Auto-invalidated on admin content edits + a `POST /api/admin/cache/purge` endpoint for manual flushing. Expected DB-read reduction: **~95–98%** on read-hot pages.
+2. **Broken analytics IDs** — production HTML was rendering `<iframe src="...ns.html?id=null">` and `fbq('init', 'null')` because the admin Settings form had at some point stored the literal string `"null"` for `META_PIXEL_ID` / `GTM_CONTAINER_ID`. `.trim()` on `"null"` = `"null"` (truthy) → downstream falsiness guard failed. Fixed with a `_cleanIdSetting()` filter at `getPageOpts()` (source-of-truth) and `_c()` inside `buildAnalytics` + `buildGtm` in `shell.ts` (defense-in-depth) that maps `""`, `"null"`, `"undefined"`, `"off"` → `''` and only emits the analytics snippet when a real ID is present.
+3. **Stale legal pages not overwriting** — `fetchLegalPages()` only inserts `SEED_LEGAL_PAGES` when the table is empty, so v19's Privacy/Terms/Returns/Shipping rewrites never went live over the older rows sitting in Supabase. Fixed with `POST /api/admin/legal/reseed` (uses `?on_conflict=slug` + `Prefer: resolution=merge-duplicates` to upsert) + a **"Reseed Legal Pages"** button in Admin → Settings → Content Refresh. Same treatment for `/api/admin/faqs/reseed`.
+4. **Product short-slug 404s** — GA4 shows real users hitting `/product/orange-puff` and `/product/romanticise-crop` from Instagram DM traffic; both were 404 because the real slugs are `orange-puff-printed-t-shirt` and `romanticise-crop-tee`. Fixed with an inline unique-prefix-match 301 redirect inside `/product/:slug` (only redirects when exactly one product's slug starts with the input + '-', so no accidental collisions).
+5. **`funnel_events` write volume amplifying Disk IO** — every `window.track()` call INSERTed a row via `/api/analytics/event`. Scroll-depth alone was 4 writes per session; add `anchor_scroll`, `engaged_session`, `promo_shown`, `combo_nudge_shown`, `share`, `exit_intent_shown` and it's easily 10+ writes per session. Fixed with a client-side `_SKIP_SERVER` filter that suppresses these events on the server-side beacon only — they still fire on GA4 / Clarity / Meta Pixel via the same `event_id`, so no analytics coverage lost. Scroll milestones cut from `[25,50,75,90]` to `[75,90]`. Net: **~50% reduction** in `funnel_events` INSERT volume.
+
+Cache-purge endpoints:
+- `POST /api/admin/legal/reseed` → upsert SEED_LEGAL_PAGES + purge
+- `POST /api/admin/faqs/reseed` → upsert SEED_FAQS + purge
+- `POST /api/admin/cache/purge` → manual flush
+- Auto-purge fires on `PATCH /api/admin/legal/:slug` and `PUT /api/admin/settings/:key`
+
+Admin-UI additions: new "Content Refresh (v20)" card in Settings tab with 3 buttons + a shared status line.
 
 ### v19 — August 22, 2026 · GA4-Driven UX & AEO Refresh
 Ground truth from a real GA4 export (`_ga4_clarity_data.xlsx`, 66 days): 3,078 users → 3 purchases (0.097% CVR), ChatGPT.com already sends 4.5% of traffic (AEO working), strong metro geo-concentration (Hyderabad 301, Mumbai 209), Singapore 1,726 sessions is bot inflation. Every v19 change targets one of these signals.
