@@ -210,6 +210,30 @@ html, body { overflow-x: hidden !important; width: 100% !important; max-width: 1
 .story-h{font-family:var(--head);font-size:clamp(26px,8vw,72px);line-height:0.85;font-weight:900;text-transform:uppercase;letter-spacing:-.05em;margin:0;word-wrap:break-word}
 .story-cnt p{font-size:16px;color:var(--g500);line-height:1.7;margin:0}
 @media(max-width:768px){.story{grid-template-columns:1fr;gap:40px;padding:80px 24px}}
+
+/* [v21] Trust bar — surfaced right below hero to combat 86% bounce.
+   Value props (Free shipping / Made in India / 36h dispatch / Store Credit)
+   are what convince cold visitors to scroll → GA4 shows 86% never do. */
+.tbar{background:#0a0a0a;color:#e5e5e5;padding:14px 24px;border-bottom:1px solid rgba(255,255,255,0.08)}
+.tbar-i{display:flex;justify-content:center;align-items:center;gap:44px;flex-wrap:wrap;max-width:1200px;margin:0 auto;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase}
+.tbar-i span{display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.tbar-i i{font-size:12px;color:#fafafa}
+@media(max-width:640px){.tbar-i{gap:16px;font-size:9px;letter-spacing:.8px}.tbar-i i{font-size:10px}}
+
+/* [v21] Instagram feed strip — public rendering of admin-managed IG feed.
+   Was orphaned in v19-v20 (admin CRUD existed but no public UI). */
+.igsec{background:#fafafa;padding:80px 24px;border-top:1px solid #e5e5e5}
+.igsec-h{max-width:1200px;margin:0 auto 32px;display:flex;justify-content:space-between;align-items:end;flex-wrap:wrap;gap:16px;padding-bottom:16px;border-bottom:1.5px solid var(--bk)}
+.igsec-h h2{font-family:var(--head);font-size:clamp(22px,4vw,32px);letter-spacing:-1.5px;text-transform:uppercase;margin:0}
+.igsec-h a{font-size:11px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:var(--bk);text-decoration:none;border-bottom:1.5px solid var(--bk);padding-bottom:4px}
+.iggrid{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+.igitem{aspect-ratio:1;overflow:hidden;background:#e5e5e5;position:relative;display:block;text-decoration:none}
+.igitem img{width:100%;height:100%;object-fit:cover;transition:transform .5s var(--eo)}
+.igitem:hover img{transform:scale(1.05)}
+.igitem::after{content:'\\f16d';font-family:'Font Awesome 6 Brands';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;font-size:22px;opacity:0;transition:opacity .3s}
+.igitem:hover::after{opacity:1;background:rgba(0,0,0,0.35);width:100%;height:100%;top:0;left:0;transform:none;display:flex;align-items:center;justify-content:center}
+@media(max-width:1024px){.iggrid{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:640px){.iggrid{grid-template-columns:repeat(3,1fr);gap:4px}.igitem:nth-child(n+7){display:none}}
 </style>
 
 <section class="hero">
@@ -250,6 +274,17 @@ html, body { overflow-x: hidden !important; width: 100% !important; max-width: 1
     </div>
   </div>
 </section>
+
+<!-- [v21] Trust bar: surfaces value props to reduce 86% homepage bounce.
+     Free shipping / Made in India / 36h dispatch / Store-credit-only refund. -->
+<div class="tbar" aria-label="Store guarantees">
+  <div class="tbar-i">
+    <span><i class="fas fa-truck"></i> Free Shipping (Prepaid)</span>
+    <span><i class="fas fa-bolt"></i> 36h Dispatch</span>
+    <span><i class="fas fa-map-marker-alt"></i> Made in India</span>
+    <span><i class="fas fa-lock"></i> Secure Razorpay + COD</span>
+  </div>
+</div>
 
 <div class="mq">
   <div class="mqt">
@@ -297,6 +332,18 @@ html, body { overflow-x: hidden !important; width: 100% !important; max-width: 1
   </div>
 </section>
 
+<!-- [v21] Instagram feed section — renders admin-managed feed publicly.
+     Was orphaned in v19-v20 (admin CRUD + DB table + /api endpoint all existed
+     but no home-page rendering). Loaded async so a slow Supabase read never
+     blocks LCP. Hidden entirely if empty. -->
+<section class="igsec" id="ig-feed-section" style="display:none">
+  <div class="igsec-h">
+    <h2>@intru.in on Instagram</h2>
+    <a href="https://www.instagram.com/intru.in/" target="_blank" rel="noopener noreferrer">Follow Us →</a>
+  </div>
+  <div class="iggrid" id="igGrid"></div>
+</section>
+
 <section class="nlsec" id="newsletter">
   <h3>Secure the next drop.</h3>
   <p>Our releases sell out within hours. Join the priority list for early access.</p>
@@ -309,6 +356,23 @@ html, body { overflow-x: hidden !important; width: 100% !important; max-width: 1
 <script>
 var obs=new IntersectionObserver(function(entries){entries.forEach(function(e){if(e.isIntersecting){e.target.style.animationPlayState='running';obs.unobserve(e.target)}})},{threshold:.1});
 document.querySelectorAll('.anim').forEach(function(el){el.style.animationPlayState='paused';obs.observe(el)});
+
+// [v21] Lazy-load Instagram feed strip.
+(function(){
+  var IG_URL='https://www.instagram.com/intru.in/';
+  fetch('/api/instagram-feed').then(function(r){return r.json()}).then(function(d){
+    if(!d||!d.feed||!d.feed.length||d.enabled===false)return;
+    var g=document.getElementById('igGrid');var sec=document.getElementById('ig-feed-section');
+    if(!g||!sec)return;
+    var html='';
+    d.feed.slice(0,12).forEach(function(it){
+      var href=it.link_url||IG_URL;
+      var cap=(it.caption||'@intru.in').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+      html+='<a href="'+href+'" target="_blank" rel="noopener noreferrer" class="igitem" aria-label="'+cap+'"><img src="'+it.image_url+'" alt="'+cap+'" loading="lazy"></a>';
+    });
+    g.innerHTML=html;sec.style.display='block';
+  }).catch(function(){});
+})();
 
 function subscribeEmail(form){
   var e=document.getElementById('nlEmail').value; if(!e)return;

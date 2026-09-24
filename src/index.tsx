@@ -2718,9 +2718,11 @@ app.post('/api/admin/legal/reseed', async (c: Context<{ Bindings: Bindings }>) =
   }
 });
 
-// [v20] Force-reseed FAQs. UNIQUE(question) + merge-duplicates keeps
-// admin-added FAQs untouched — only rows whose question exactly matches a
-// SEED_FAQS entry are overwritten with the current seed content.
+// [v21] Force-reseed FAQs. The `faqs` table has NO UNIQUE constraint on
+// `question`, so `on_conflict=question` fails with Postgres 42P10. We instead
+// (a) delete rows whose question matches ANY seed question (preserving admin-
+// added FAQs whose question isn't in the seed), then (b) plain INSERT the
+// current SEED_FAQS.
 app.post('/api/admin/faqs/reseed', async (c: Context<{ Bindings: Bindings }>) => {
   const sbUrl = getEnv(c.env, 'SUPABASE_URL');
   const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY');
@@ -2730,15 +2732,31 @@ app.post('/api/admin/faqs/reseed', async (c: Context<{ Bindings: Bindings }>) =>
       question: f.question, answer: f.answer, category: f.category,
       sort_order: f.sort_order, is_active: f.is_active,
     }));
-    const res = await supabaseFetch(sbUrl, sbKey, 'faqs?on_conflict=question', {
+    // Step 1: delete stale rows whose question matches a seed question.
+    // PostgREST needs the `in.(...)` filter with values wrapped in quotes and
+    // commas escaped — build it via encodeURIComponent so brand-name quotes
+    // don't break the URL.
+    const seedQs = SEED_FAQS.map(f => `"${f.question.replace(/"/g, '\\"')}"`).join(',');
+    const delRes = await supabaseFetch(
+      sbUrl, sbKey,
+      `faqs?question=in.(${encodeURIComponent(seedQs)})`,
+      { method: 'DELETE', headers: { 'Prefer': 'return=representation' } as any }
+    );
+    let deleted = 0;
+    if (delRes.ok) {
+      try { deleted = ((await delRes.json()) as any[]).length; } catch { deleted = 0; }
+    } // non-ok delete is not fatal — insert step will surface real DB errors
+
+    // Step 2: fresh INSERT of the current seed rows.
+    const insRes = await supabaseFetch(sbUrl, sbKey, 'faqs', {
       method: 'POST',
-      headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' } as any,
+      headers: { 'Prefer': 'return=representation' } as any,
       body: JSON.stringify(rows),
     });
-    if (!res.ok) return c.json({ error: await res.text() }, 500);
-    const saved = await res.json() as any[];
+    if (!insRes.ok) return c.json({ error: await insRes.text() }, 500);
+    const saved = await insRes.json() as any[];
     _purgePageDataCache();
-    return c.json({ success: true, count: saved.length });
+    return c.json({ success: true, deleted, inserted: saved.length });
   } catch (e: any) {
     return c.json({ error: String(e?.message || e) }, 500);
   }
