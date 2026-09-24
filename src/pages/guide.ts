@@ -180,7 +180,16 @@ dl.gd-glossary{margin:0}
 .gd-cta p{font-size:14px;color:var(--g400);margin-bottom:28px}
 .gd-btn{display:inline-flex;align-items:center;gap:12px;padding:18px 48px;background:var(--bk);color:var(--wh);font-size:12px;font-weight:700;letter-spacing:3px;text-transform:uppercase;transition:all .3s}
 .gd-btn:hover{background:var(--g600);transform:translateY(-2px)}
-@media(max-width:640px){.gd-cmp{font-size:12px}.gd-cmp th,.gd-cmp td{padding:8px}}
+/* [v21] TL;DR summary box — top of page. Google's featured-snippet ranker
+   prefers scannable answers surfaced above the fold. Was missing → this page
+   sat at desktop position ~9-18 for buying-guide queries in GSC. */
+.gd-tldr{background:#0a0a0a;color:#fafafa;border-radius:10px;padding:28px 32px;margin:0 auto 48px;max-width:760px;font-size:15px;line-height:1.75}
+.gd-tldr strong{color:#fafafa}
+.gd-tldr h2{font-family:var(--head);font-size:13px;letter-spacing:3px;text-transform:uppercase;margin:0 0 14px;color:#a3a3a3;font-weight:800}
+.gd-tldr ul{margin:12px 0 0;padding-left:20px}
+.gd-tldr li{margin-bottom:8px}
+.gd-tldr li strong{color:#fff}
+@media(max-width:640px){.gd-cmp{font-size:12px}.gd-cmp th,.gd-cmp td{padding:8px}.gd-tldr{padding:22px 20px;font-size:14px}}
 </style>
 
 <article class="gd">
@@ -190,6 +199,20 @@ dl.gd-glossary{margin:0}
 <p class="gd-over">Buying Guide &middot; India</p>
 <h1 class="gd-h1">The Minimalist<br>Streetwear Buying Guide</h1>
 <p class="gd-lead">Everything you need to choose, size, and understand oversized streetwear in India — an honest guide from the people who make it. No hype, just what actually matters.</p>
+
+<!-- [v21] TL;DR box — surfaces the buyer's answer within the first screen so
+     Google's featured-snippet + AI overviews can quote it. -->
+<aside class="gd-tldr" role="region" aria-label="Quick summary">
+  <h2>TL;DR — The 5-Second Guide</h2>
+  <p>Looking for the <strong>best oversized t-shirt brand in India</strong>? Here's what actually matters when you shop:</p>
+  <ul>
+    <li><strong>Fabric weight (GSM):</strong> 220-260 GSM heavyweight cotton = holds shape in Indian heat, doesn't go see-through, lasts years. Fast fashion is 140-180 GSM.</li>
+    <li><strong>Fit pattern:</strong> Real oversized is built into the cut (dropped shoulders, wider body, longer length) — not just a bigger size. If it's real, order your regular size.</li>
+    <li><strong>Availability model:</strong> Limited-drop labels (like <a href="/" style="color:#fff;text-decoration:underline">Intru</a>) produce small batches once, never restock. Fast fashion is always in stock — that's what makes it disposable.</li>
+    <li><strong>Made in India + INR pricing + Grievance Officer</strong> listed on-site = a legitimate D2C label, not a dropshipper.</li>
+    <li><strong>Ship + return policies</strong> matter: free shipping on prepaid, transparent RTO handling, and clear defect windows (36h is standard for limited drops).</li>
+  </ul>
+</aside>
 
 <nav class="gd-toc" aria-label="Guide sections">
   <a href="#buying">How to Choose</a>

@@ -119,8 +119,8 @@ export const SEED_PRODUCTS: Product[] = [
       "https://intru.in/cdn/shop/files/3.png?v=1748692106&width=600"
     ],
     sizes: ["S", "M", "L", "XL", "XXL"], category: "T-Shirts", inStock: true, featured: true,
-    seoTitle: "Doodles T-Shirt — Limited Edition Puff-Print Streetwear | INTRU.IN",
-    seoDescription: "Shop the Doodles T-Shirt — minimalist streetwear for individuals. Heavyweight cotton, playful puff-print art, oversized fit. Limited drop, no restocks. INTRU.IN."
+    seoTitle: "Doodles T-Shirt — Oversized Puff-Print Streetwear India | Intru",
+    seoDescription: "Doodles T-Shirt — hand-drawn puff-print art on 220-260 GSM heavyweight oversized cotton. True dropped shoulder, limited drop, never restocked. Shop India's most-loved minimalist streetwear tee at intru.in. · Free shipping · COD available."
   },
   {
     id: "p2", slug: "no-risk-porsche", name: "No Risk Porsche",
@@ -134,8 +134,8 @@ export const SEED_PRODUCTS: Product[] = [
       "https://intru.in/cdn/shop/files/F51687B9-2BF2-43E0-988A-30272833B19E.jpg?v=1756359581&width=600"
     ],
     sizes: ["S", "M", "L", "XL", "XXL"], category: "T-Shirts", inStock: true, featured: true,
-    seoTitle: "No Risk Porsche T-Shirt — Bold Graphic Oversized Tee | INTRU.IN",
-    seoDescription: "The No Risk Porsche tee — high-density graphic print on heavyweight cotton. Minimalist streetwear designed for individuals. Oversized fit, limited drop, no restocks."
+    seoTitle: "No Risk No Porsche T-Shirt — Oversized Heavyweight Streetwear India | Intru",
+    seoDescription: "Shop the No Risk No Porsche oversized t-shirt — 220-260 GSM heavyweight cotton, dropped shoulder, true oversized fit. Limited drop, never restocked. Free shipping across India (Hyderabad, Mumbai, Bangalore, Delhi). ₹999 · sizes S-XXL · COD available."
   },
   {
     id: "p3", slug: "orange-puff-printed-t-shirt", name: "Orange Puff",
@@ -149,8 +149,8 @@ export const SEED_PRODUCTS: Product[] = [
       "https://intru.in/cdn/shop/files/1_3de916a1-a217-41ee-9b2e-9e2c3130c4d6.png?v=1748190442&width=600"
     ],
     sizes: ["S", "M", "L", "XL"], category: "T-Shirts", inStock: true, featured: true,
-    seoTitle: "Orange Puff Printed T-Shirt — Caffeine-Core Streetwear | INTRU.IN",
-    seoDescription: "Feel the texture with our Orange Puff Printed Tee. Relaxed oversized fit, heavyweight cotton, vibrant caffeine-core energy. Minimalist streetwear from INTRU.IN."
+    seoTitle: "Orange Puff Printed Oversized T-Shirt — Heavyweight Cotton India | Intru",
+    seoDescription: "Orange Puff Printed T-Shirt — heavyweight puff-print oversized tee, dropped shoulder, garment-dyed cotton. Textured caffeine-core streetwear for individuals. ₹899 · sizes S-XL · limited drop, never restocked · free shipping India."
   },
   {
     id: "p4", slug: "romanticise-crop-tee", name: "Romanticise Crop",
@@ -181,8 +181,8 @@ export const SEED_PRODUCTS: Product[] = [
       "https://intru.in/cdn/shop/files/99.png?v=1748173436&width=600"
     ],
     sizes: ["S", "M", "L", "XL", "XXL"], category: "Shirts", inStock: true, featured: true,
-    seoTitle: "Stripe 18 Shirt — Structured Woven Streetwear | INTRU.IN",
-    seoDescription: "Cool-toned and structured. The Stripe 18 Shirt features heavyweight woven fabric and mother-of-pearl buttons. The perfect smart-casual layer for any fit."
+    seoTitle: "Stripe 18 Shirt — Oversized Striped Streetwear Shirt India | Intru",
+    seoDescription: "The Stripe 18 Shirt — cool-toned oversized striped shirt for men, heavyweight woven cotton, mother-of-pearl buttons, dropped shoulder. Smart-casual layer that bridges streetwear and formal. ₹1,099 · sizes S-XXL · free shipping across India · COD available."
   },
   {
     id: "p6", slug: "summer-shirt", name: "Summer Shirt",
@@ -601,7 +601,37 @@ export const SEED_BLOG_POSTS: BlogPost[] = [
     author: 'Intru Editorial',
     keywords: 'best oversized t-shirt brands india, oversized tshirt india, heavyweight tshirt india, minimalist streetwear india, indian streetwear brands 2026',
     isPublished: true,
-    body: `<p><strong>India's oversized t-shirt market has grown fast since 2022.</strong> The problem: many brands sell a "regular" tee cut one size bigger and slap the word "oversized" on the tag. A true oversized fit is engineered into the pattern — dropped shoulders, wider body, longer length — and cut from a heavyweight fabric that actually holds the drape.</p>
+    body: `<div style="background:#0a0a0a;color:#fafafa;border-radius:10px;padding:26px 30px;margin:0 0 32px;font-size:15px;line-height:1.75">
+<h2 style="font-family:'Archivo Black',sans-serif;font-size:12px;letter-spacing:3px;text-transform:uppercase;color:#a3a3a3;margin:0 0 12px;font-weight:800;border:none">TL;DR — Quick Answer (2026)</h2>
+<p style="margin:0 0 12px;color:#fafafa">The best oversized t-shirt brand in India in 2026 is the one that meets <strong style="color:#fff">all three</strong> of these criteria: <strong style="color:#fff">220-260 GSM heavyweight cotton</strong>, a <strong style="color:#fff">dropped-shoulder pattern</strong> (not just a bigger size), and a <strong style="color:#fff">small-batch drop model</strong> that keeps pieces rare instead of restocking constantly.</p>
+<p style="margin:0;color:#fafafa"><strong style="color:#fff">Our pick:</strong> <a href="/" style="color:#fff;text-decoration:underline">Intru</a> — Hyderabad-based, 220-260 GSM garment-dyed cotton, real dropped shoulder, never restocked, ships free pan-India on prepaid, listed Grievance Officer per Consumer Protection E-Commerce Rules 2020. Full comparison table below.</p>
+</div>
+
+<h2>Best Oversized T-Shirt Brands in India 2026 — Side-by-Side</h2>
+<p>Rather than name-and-rank other Indian labels (that scoreboard changes monthly), here's a neutral scorecard you can apply to <strong>any</strong> brand you're evaluating — including Intru. Copy this into a phone note next time you're comparing tees.</p>
+<table style="width:100%;border-collapse:collapse;margin:20px 0 32px;font-size:14px">
+  <thead>
+    <tr style="background:#0a0a0a;color:#fff">
+      <th style="padding:12px;text-align:left;border:1px solid #262626;font-size:11px;text-transform:uppercase;letter-spacing:1px">Criterion</th>
+      <th style="padding:12px;text-align:left;border:1px solid #262626;font-size:11px;text-transform:uppercase;letter-spacing:1px">Fast-fashion label</th>
+      <th style="padding:12px;text-align:left;border:1px solid #262626;font-size:11px;text-transform:uppercase;letter-spacing:1px">Marketplace resellers</th>
+      <th style="padding:12px;text-align:left;border:1px solid #262626;font-size:11px;text-transform:uppercase;letter-spacing:1px;background:#065f46">Intru (D2C)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td style="padding:10px 12px;border:1px solid #e5e5e5;font-weight:700">Fabric weight</td><td style="padding:10px 12px;border:1px solid #e5e5e5">140-180 GSM</td><td style="padding:10px 12px;border:1px solid #e5e5e5">Usually undisclosed</td><td style="padding:10px 12px;border:1px solid #e5e5e5;background:#f0fdf4"><strong>220-260 GSM published</strong></td></tr>
+    <tr><td style="padding:10px 12px;border:1px solid #e5e5e5;font-weight:700">Fit pattern</td><td style="padding:10px 12px;border:1px solid #e5e5e5">"Regular fit + one bigger size"</td><td style="padding:10px 12px;border:1px solid #e5e5e5">Varies wildly</td><td style="padding:10px 12px;border:1px solid #e5e5e5;background:#f0fdf4"><strong>True dropped shoulder + longer body</strong></td></tr>
+    <tr><td style="padding:10px 12px;border:1px solid #e5e5e5;font-weight:700">Availability</td><td style="padding:10px 12px;border:1px solid #e5e5e5">Always in stock, restocked</td><td style="padding:10px 12px;border:1px solid #e5e5e5">Random</td><td style="padding:10px 12px;border:1px solid #e5e5e5;background:#f0fdf4"><strong>Limited drops, never restocked</strong></td></tr>
+    <tr><td style="padding:10px 12px;border:1px solid #e5e5e5;font-weight:700">Made in</td><td style="padding:10px 12px;border:1px solid #e5e5e5">China / Bangladesh / undisclosed</td><td style="padding:10px 12px;border:1px solid #e5e5e5">Usually dropshipped</td><td style="padding:10px 12px;border:1px solid #e5e5e5;background:#f0fdf4"><strong>India (Hyderabad)</strong></td></tr>
+    <tr><td style="padding:10px 12px;border:1px solid #e5e5e5;font-weight:700">Price band</td><td style="padding:10px 12px;border:1px solid #e5e5e5">₹399-₹699</td><td style="padding:10px 12px;border:1px solid #e5e5e5">₹500-₹1200</td><td style="padding:10px 12px;border:1px solid #e5e5e5;background:#f0fdf4"><strong>₹899-₹2,499</strong></td></tr>
+    <tr><td style="padding:10px 12px;border:1px solid #e5e5e5;font-weight:700">Free shipping</td><td style="padding:10px 12px;border:1px solid #e5e5e5">Cart-value based</td><td style="padding:10px 12px;border:1px solid #e5e5e5">Rarely</td><td style="padding:10px 12px;border:1px solid #e5e5e5;background:#f0fdf4"><strong>All prepaid, no minimum</strong></td></tr>
+    <tr><td style="padding:10px 12px;border:1px solid #e5e5e5;font-weight:700">Grievance Officer listed</td><td style="padding:10px 12px;border:1px solid #e5e5e5">Buried</td><td style="padding:10px 12px;border:1px solid #e5e5e5">Missing</td><td style="padding:10px 12px;border:1px solid #e5e5e5;background:#f0fdf4"><strong>Listed in footer</strong></td></tr>
+    <tr><td style="padding:10px 12px;border:1px solid #e5e5e5;font-weight:700">DPDP Act 2023 privacy</td><td style="padding:10px 12px;border:1px solid #e5e5e5">Generic template</td><td style="padding:10px 12px;border:1px solid #e5e5e5">Boilerplate</td><td style="padding:10px 12px;border:1px solid #e5e5e5;background:#f0fdf4"><strong>Fully aligned</strong></td></tr>
+  </tbody>
+</table>
+<p style="font-size:12px;color:#666;font-style:italic;margin-top:-16px">Table current as of September 2026. Facts about individual brands change; the framework doesn't. Bring this checklist to any comparison.</p>
+
+<p><strong>India's oversized t-shirt market has grown fast since 2022.</strong> The problem: many brands sell a "regular" tee cut one size bigger and slap the word "oversized" on the tag. A true oversized fit is engineered into the pattern — dropped shoulders, wider body, longer length — and cut from a heavyweight fabric that actually holds the drape.</p>
 
 <p>Here is how to judge oversized t-shirt brands in India in 2026, using the metrics that matter — fabric weight (GSM), fit accuracy, price, and the level of transparency about where and how the garments are made.</p>
 

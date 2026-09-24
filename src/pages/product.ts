@@ -128,21 +128,39 @@ export function productPage(product: Product, opts: {
       "@context": "https://schema.org",
       "@type": "FAQPage",
       "speakable": { "@type": "SpeakableSpecification", "cssSelector": [".pname", ".pdesc"] },
+      // [v21] Per-product FAQ questions target the top zero-click GSC queries
+      // for that specific product ("no risk no porsche shirt", "18 shirt",
+      // "oversized tshirt size" etc.). Base 3 always included, product-specific
+      // block prepended.
       "mainEntity": [
+        ...(product.slug === 'no-risk-porsche' ? [
+          { "@type": "Question", "name": "What does the No Risk No Porsche t-shirt mean?", "acceptedAnswer": { "@type": "Answer", "text": "'No Risk No Porsche' is an Intru original — a play on the 'no risk, no reward' mantra with a nod to bold street culture. High-density graphic print on 220-260 GSM heavyweight cotton, dropped-shoulder oversized fit. Limited drop, never restocked." } },
+          { "@type": "Question", "name": "What is the price of the No Risk No Porsche t-shirt in India?", "acceptedAnswer": { "@type": "Answer", "text": `₹${product.price.toLocaleString('en-IN')} in India (originally ₹${(product.comparePrice || product.price).toLocaleString('en-IN')}). Free shipping on all prepaid orders. COD available with ₹99 handling fee. Ships pan-India within 36 hours.` } },
+          { "@type": "Question", "name": "Is No Risk No Porsche available as a hoodie?", "acceptedAnswer": { "@type": "Answer", "text": "The No Risk No Porsche graphic is currently released as an oversized t-shirt only, in sizes S–XXL. Hoodie versions are not planned — every Intru design stays true to a single silhouette per drop." } },
+        ] : []),
+        ...(product.slug === 'stripe-18-shirt' ? [
+          { "@type": "Question", "name": "What is the Stripe 18 Shirt?", "acceptedAnswer": { "@type": "Answer", "text": "The Stripe 18 Shirt is Intru's cool-toned oversized striped button-down — heavyweight woven cotton, structured collar, mother-of-pearl buttons, and a relaxed dropped-shoulder body. Bridges smart-casual and streetwear. Limited drop, made in India." } },
+          { "@type": "Question", "name": "What is the price of the Stripe 18 Shirt?", "acceptedAnswer": { "@type": "Answer", "text": `₹${product.price.toLocaleString('en-IN')} in India (was ₹${(product.comparePrice || product.price).toLocaleString('en-IN')}). Free shipping on prepaid orders. COD available with ₹99 fee. Sizes S-XXL. Ships within 36 hours pan-India.` } },
+          { "@type": "Question", "name": "How does the Stripe 18 Shirt fit?", "acceptedAnswer": { "@type": "Answer", "text": "It's cut oversized — dropped shoulder, longer body, relaxed sleeves — so take your usual regular-fit shirt size. Size chart is on this page. The heavyweight woven fabric holds its structure so the shirt drapes without clinging." } },
+        ] : []),
+        ...(product.slug === 'doodles-t-shirt' ? [
+          { "@type": "Question", "name": "What is the Doodles T-Shirt?", "acceptedAnswer": { "@type": "Answer", "text": "The Doodles T-Shirt is Intru's signature hand-drawn puff-print oversized tee — 220-260 GSM heavyweight cotton, dropped shoulder, longer body. India's most-loved Intru piece. Limited drop, never restocked." } },
+          { "@type": "Question", "name": "Where can I buy the Doodles T-Shirt in India?", "acceptedAnswer": { "@type": "Answer", "text": "Only on intru.in (direct-to-consumer). Intru does not list on Amazon, Flipkart, Myntra, or Ajio — the drop model works because inventory isn't split across marketplaces. Ships free pan-India on prepaid orders." } },
+        ] : []),
         {
           "@type": "Question",
           "name": "What makes Intru the best oversized t-shirt in India?",
-          "acceptedAnswer": { "@type": "Answer", "text": "Intru uses 240 GSM heavyweight cotton with garment-dyeing, clean intentional design, and produces only limited batches — tired of everyone wearing the same thing? Every piece stays yours alone, never restocked." }
+          "acceptedAnswer": { "@type": "Answer", "text": "Intru uses 220-260 GSM heavyweight garment-dyed cotton, cuts a real dropped-shoulder oversized pattern (not just a bigger size), and produces only limited batches that are never restocked. Made in India, ships free pan-India on prepaid orders, listed Grievance Officer per Consumer Protection E-Commerce Rules 2020." }
         },
         {
           "@type": "Question",
           "name": `Is the ${product.name} available in all sizes?`,
-          "acceptedAnswer": { "@type": "Answer", "text": `The ${product.name} is available in sizes: ${(product.sizes || []).join(', ')}. Check the product page for real-time size-specific availability.` }
+          "acceptedAnswer": { "@type": "Answer", "text": `The ${product.name} is available in sizes: ${(product.sizes || []).join(', ')}. Check the size dropdown on this page for real-time size-specific availability — an out-of-stock size is a permanent vaulted state, not a temporary "sold out".` }
         },
         {
           "@type": "Question",
-          "name": "Does Intru offer free shipping?",
-          "acceptedAnswer": { "@type": "Answer", "text": "Yes — free shipping on all prepaid orders across India. COD orders carry a ₹99 convenience fee. Dispatch within 36 hours." }
+          "name": "Does Intru offer free shipping and COD in India?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes — free shipping on all prepaid orders across India (Hyderabad, Mumbai, Bangalore, Delhi, Chennai, Pune, Kolkata and every serviceable PIN). COD available with a ₹99 handling fee. Dispatch within 36 working hours." }
         }
       ]
     }
@@ -349,6 +367,49 @@ ${!isSoldOut ? `
 <div class="relgrid">
 ${related.map(p => { const d = p.comparePrice ? Math.round((1 - p.price / p.comparePrice) * 100) : 0; return '<a href="/product/' + p.slug + '" class="pcard"><div class="pcimg"><img src="' + p.images[0] + '" alt="intru.in ' + p.name + '" loading="lazy" width="400" height="533">' + (p.images[1] ? '<img class="ih" src="' + p.images[1] + '" alt="' + p.name + '" loading="lazy" width="400" height="533" style="width:100%;height:100%;object-fit:cover">' : '') + (d > 0 ? '<span class="pcbadge">Save ' + d + '%</span>' : '') + '</div><div class="pcinfo"><h3 class="pcname">' + p.name + '</h3><p class="pctag">' + p.tagline + '</p><div class="pcprice"><span class="cur">' + STORE_CONFIG.currencySymbol + p.price.toLocaleString('en-IN') + '</span>' + (p.comparePrice ? ' <span class="cmp">' + STORE_CONFIG.currencySymbol + p.comparePrice.toLocaleString('en-IN') + '</span>' : '') + '</div></div></a>' }).join('')}
 </div></section>
+
+<!-- [v21] Visible per-product FAQ block. Mirrors the FAQPage JSON-LD above
+     so Google can confirm the answer is on-page (recent ranking requirement).
+     Also directly helps buyers who scroll before adding to cart. -->
+<section class="pfaq-sec" itemscope itemtype="https://schema.org/FAQPage" style="max-width:960px;margin:60px auto 0;padding:40px 24px;border-top:2px solid #0a0a0a">
+  <h2 style="font-family:'Archivo Black',sans-serif;font-size:clamp(20px,3vw,28px);text-transform:uppercase;letter-spacing:-1px;margin:0 0 24px">Frequently Asked — ${product.name}</h2>
+  <div style="display:flex;flex-direction:column;gap:12px">
+    ${
+      // Product-specific Q&A first, then the 3 universal ones
+      ((): string[] => {
+        const specific: Array<{ q: string; a: string }> = [];
+        if (product.slug === 'no-risk-porsche') {
+          specific.push({ q: 'What does the No Risk No Porsche t-shirt mean?', a: `"No Risk No Porsche" is an Intru original — a play on the "no risk, no reward" mantra with a nod to bold street culture. High-density graphic print on 220-260 GSM heavyweight cotton, dropped-shoulder oversized fit. Limited drop, never restocked.` });
+          specific.push({ q: 'What is the price of the No Risk No Porsche t-shirt in India?', a: `₹${product.price.toLocaleString('en-IN')} in India (was ₹${(product.comparePrice || product.price).toLocaleString('en-IN')}). Free shipping on all prepaid orders. COD available with ₹99 handling fee. Ships pan-India within 36 hours.` });
+          specific.push({ q: 'Is the No Risk No Porsche available as a hoodie?', a: `Not currently. The No Risk No Porsche graphic is released as an oversized t-shirt only, in sizes S–XXL. Hoodie versions are not planned — every Intru design stays true to a single silhouette per drop.` });
+        } else if (product.slug === 'stripe-18-shirt') {
+          specific.push({ q: 'What is the Stripe 18 Shirt?', a: `The Stripe 18 Shirt is Intru's cool-toned oversized striped button-down — heavyweight woven cotton, structured collar, mother-of-pearl buttons, and a relaxed dropped-shoulder body. Bridges smart-casual and streetwear. Limited drop, made in India.` });
+          specific.push({ q: 'What is the price of the Stripe 18 Shirt in India?', a: `₹${product.price.toLocaleString('en-IN')} in India (was ₹${(product.comparePrice || product.price).toLocaleString('en-IN')}). Free shipping on prepaid orders. COD available with ₹99 handling fee. Sizes S–XXL.` });
+          specific.push({ q: 'How does the Stripe 18 Shirt fit?', a: `Cut oversized — dropped shoulder, longer body, relaxed sleeves. Take your usual regular-fit shirt size. The heavyweight woven fabric holds its structure so the shirt drapes without clinging. Full size chart is on this page.` });
+        } else if (product.slug === 'doodles-t-shirt') {
+          specific.push({ q: 'What is the Doodles T-Shirt?', a: `Intru's signature hand-drawn puff-print oversized tee — 220-260 GSM heavyweight cotton, real dropped shoulder, longer body. Intru's most-loved piece. Limited drop, never restocked.` });
+          specific.push({ q: 'Where can I buy the Doodles T-Shirt in India?', a: `Only on intru.in. We don't list on Amazon, Flipkart, Myntra or Ajio — the drop model works because inventory isn't split across marketplace channels. Free shipping pan-India on prepaid orders.` });
+        }
+        const universal = [
+          { q: `Is the ${product.name} true to size?`, a: `Yes. The oversized silhouette (dropped shoulders, wider body, longer length) is built into the pattern. Take your usual regular-fit size in ${(product.sizes || []).join(', ')}. Size up for an extreme drop; size down for a fitted look.` },
+          { q: `Does Intru ship the ${product.name} across India (Mumbai, Bangalore, Delhi, Hyderabad)?`, a: `Yes — Intru ships to every serviceable Indian PIN code including all metros. Metro deliveries typically arrive in 3-5 business days. Free shipping on all prepaid orders; COD ₹99. Dispatch within 36 working hours.` },
+          { q: `What if the ${product.name} arrives damaged or doesn't fit?`, a: `Email shop@intru.in within 36 hours of delivery with your order number and photos. Approved claims (defects, transit damage, wrong item, size exchange) are settled as Store Credit at 1:1 with INR — never expires. Full policy: <a href="/p/returns" style="text-decoration:underline">Returns, Exchanges & Refunds</a>.` },
+        ];
+        return [...specific, ...universal].map(({ q, a }) => `
+        <details class="pfaq-item" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question" style="border:1.5px solid #e5e5e5;border-radius:8px;overflow:hidden;background:#fff">
+          <summary itemprop="name" style="cursor:pointer;padding:16px 20px;font-size:14px;font-weight:700;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:12px">
+            ${q}
+            <span style="color:#999;font-weight:400;flex-shrink:0">+</span>
+          </summary>
+          <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer" style="padding:0 20px 18px;font-size:14px;color:#525252;line-height:1.75">
+            <span itemprop="text">${a}</span>
+          </div>
+        </details>`);
+      })().join('')
+    }
+  </div>
+  <p style="margin:24px 0 0;font-size:12px;color:#737373">Still have questions? Try our <a href="/stylist" style="color:#0a0a0a;text-decoration:underline">AI Stylist</a> or DM us on <a href="https://www.instagram.com/intru.in/" target="_blank" rel="noopener" style="color:#0a0a0a;text-decoration:underline">Instagram @intru.in</a>.</p>
+</section>
 
 <div class="lb" id="lb" onclick="closeLB()">
 <button class="lbcls" onclick="closeLB()"><i class="fas fa-times"></i></button>

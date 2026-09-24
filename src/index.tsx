@@ -291,6 +291,19 @@ app.get('/stylist', async (c: Context<{ Bindings: Bindings }>) => {
   return c.html(stylistPage(opts));
 })
 
+// [v21] Internal search route + brand-typo trap.
+// GSC shows real users searching for "intruu", "intrù", "in tru", "topintru",
+// "the intru", "intrue", "inourinternest" (64 impressions!) etc. — all brand
+// typos. This route (a) accepts a ?q= query, (b) matches products via a fuzzy
+// score, (c) if the query is a known brand-typo, redirects to home with a
+// friendly "did you mean intru?" banner. Adds indexable per-query pages so
+// typo-searchers land on-site instead of on competitors.
+app.get('/search', async (c: Context<{ Bindings: Bindings }>) => {
+  const opts = await getPageOpts(c);
+  const rawQ = (c.req.query('q') || '').trim();
+  return c.html(searchPage({ ...opts, query: rawQ }));
+})
+
 app.get('/about', async (c: Context<{ Bindings: Bindings }>) => {
   const opts = await getPageOpts(c);
   return c.html(aboutPage(opts));
