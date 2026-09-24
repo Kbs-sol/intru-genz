@@ -4,12 +4,51 @@
 - **Name**: intru.in
 - **Goal**: Engineered for High Organic Traffic (SEO) and High Conversion (using deep direct-response psychology)
 - **Stack**: Hono + TypeScript + Cloudflare Pages + Supabase + Razorpay + Resend
-- **Version**: v20 (Date: September 22, 2026) — Post-audit performance & data-integrity fixes: **Supabase Disk IO exhaustion fixed** via per-isolate 60s TTL cache on `getPageOpts` (5 queries × every render → 5 queries × once per isolate per minute); **broken `null`/`undefined` analytics IDs** (GTM `id=null`, Meta Pixel `fbq('init','null')`) filtered at both source and shell; **admin reseed endpoints** for legal pages + FAQs to push v19 rewrites over stale Supabase rows; **short-slug 301 redirects** (`/product/orange-puff` → `/product/orange-puff-printed-t-shirt`, `/product/romanticise-crop` → `.../-tee`) fix 404s from Instagram DM traffic; **funnel_events volume cut ~50%** by trimming noisy client events (scroll_depth 25/50 dropped; anchor_scroll / promo_shown / share now GA4/Clarity-only). All v19 work retained.
+- **Version**: v21 (Date: September 22, 2026) — Growth-focused shipping of the v20 audit recommendations: **FAQ reseed 42P10 fix** (delete-then-insert now that `question` has no unique constraint), **public Instagram feed section** on home (admin CRUD existed since v15 but had no public UI — orphan fixed), **homepage trust bar** to combat 86% bounce, **`/guide` TL;DR** for desktop-position lift (was #18 on desktop, target top-10), **best-oversized-tshirt-brands blog** now leads with a 7-row comparison table + TL;DR, **per-product FAQ** (visible + FAQPage JSON-LD) targeting GSC zero-click queries (`no risk no porsche`, `18 shirt`, `doodle t shirt`), **updated product meta descriptions** with buyer-intent keywords + India-city coverage + price + COD signal, **`/search` route + brand-typo trap** for `intruu`, `intrù`, `topintru`, `inourinternest` (64 imp), `in tru` etc. that GSC shows real users typing — canonical to home for typos consolidates link equity.
 
 ## URLs
 - **Production**: https://intru-genz.pages.dev (staging) → https://intru.in (custom domain pending)
 - **GitHub**: https://github.com/Kbs-sol/intru-genz
 - **Admin**: Hidden — enter Robust Konami Code (↑↑↓↓←→←→ba) on any page
+
+## v21 Changes (September 22, 2026) — Ship the v20 Audit Recommendations
+
+Post-audit growth-focused shipping. Every change targets a real signal in the GA4 / GSC data reviewed in v20.
+
+### 🔧 Bug fixes
+- **FAQ reseed 42P10** — the `faqs` table has no unique constraint on `question`, so `on_conflict=question` returned `42P10: no unique or exclusion constraint`. Rewrote to a **delete-then-insert** flow: (a) DELETE rows whose `question` matches ANY seed question (preserves admin-added FAQs whose question isn't in the seed), then (b) plain INSERT the full `SEED_FAQS` set.
+- **Orphan Instagram feed** — admin CRUD + `/api/instagram-feed` endpoint + DB table have existed since v15, but there's **never been a public rendering** on the homepage. Anything the admin added was invisible to visitors. Added a lazy-loaded `#ig-feed-section` on home that fetches `/api/instagram-feed`, renders up to 12 items in a responsive grid (6-col desktop, 4-col tablet, 3-col mobile), and hides the section entirely when the feed is empty.
+
+### 🎯 Growth changes
+- **Homepage trust bar** (right below hero): 4 icon-labels — Free Shipping (Prepaid) · 36h Dispatch · Made in India · Secure Razorpay + COD. Targets the 86% homepage bounce rate. Value props are now above the fold on both desktop and mobile.
+- **`/guide` TL;DR box** (dark card, top of page): 5-bullet scannable answer to "best oversized t-shirt brand in India" — GSM, fit pattern, drop model, made-in-India signal, ship/return policy. Google's featured-snippet ranker prefers a scannable answer surfaced above the fold; the existing comparison table alone wasn't enough to lift desktop position (#18) into top 10.
+- **`/blog/best-oversized-tshirt-brands-india-2026`** — now leads with a black TL;DR card + a 7-row Fast-fashion / Marketplace / Intru comparison table (fabric weight, fit, availability, made in, price band, free shipping, Grievance Officer, DPDP alignment). Same rationale as `/guide`.
+- **Per-product FAQ** — every product page now has a **visible** FAQ block (matching JSON-LD FAQPage schema so Google can verify the answer is on-page — a recent ranking requirement). Product-specific questions come first (for `no-risk-porsche`, `stripe-18-shirt`, `doodles-t-shirt`), followed by 3 universal ones (size, India-city delivery, damage policy).
+- **Product meta descriptions** rewritten for the 4 top-impression zero-click products (Doodles, No Risk No Porsche, Stripe 18, Orange Puff). New pattern: `[Product] — [key spec] [key fit] [key drop signal]. [Price] · [size range] · [shipping / COD]. [City-coverage phrase where relevant].` Uses the exact query terms GSC users typed (`no risk no porsche`, `18 shirt`, `oversized tshirt india`, etc.).
+- **`/search` route** — new lightweight product search + brand-typo trap. GSC shows real users searching for `intruu`, `intrù`, `topintru`, `inourinternest` (64 impressions on that single typo!), `the intru`, `in tru`, `intrue` etc. All typo landings now:
+  - Show a friendly "Did you mean **Intru**?" yellow-card hero with a big Shop CTA
+  - Set `<link rel="canonical">` to the home URL so link equity consolidates on the brand entity
+  - Include `Organization` + `SearchAction` JSON-LD for `sitelinks-search-box` eligibility
+  - Fall through to a full product grid so browse behavior still works
+- **`/search` added to sitemap** at priority 0.5 (monthly) so Google discovers it and starts routing brand-typo impressions here.
+
+### 📊 What we're measuring next
+- **Desktop position for `/guide` and `/blog/best-oversized-tshirt-brands-india-2026`** — TL;DR + table should lift these into the top 10 for buying-guide queries within 2-4 weeks (Google usually re-ranks on next crawl).
+- **CTR for product pages with the new meta descriptions** — expect the 573-impression / 0-click Orange Puff page and the 263-impression / 0-click Stripe 18 Shirt to start converting impressions once the new snippets index.
+- **Brand-typo impressions routed to `/search`** — currently these 400+ impressions go to page-not-found or trickle onto competitors; `/search` should absorb them and show as index rank on the brand-name entity.
+- **Homepage bounce rate** — trust bar + IG feed section should reduce the 86% bounce by ~5-8 pp (streetwear benchmark is ~72-78%).
+
+### File Ledger (v21)
+| File | Change |
+|---|---|
+| `src/index.tsx` | FAQ reseed rewritten as delete-then-insert (fixes Postgres 42P10) · `/search?q=` route + `searchPage` import · `/search` added to sitemap |
+| `src/pages/search.ts` | **New file** — brand-typo trap + product search with intent-aware canonical (typo → home; real query → self-canonical) + Organization + SearchAction JSON-LD |
+| `src/pages/home.ts` | Trust bar HTML + CSS below hero · lazy-loaded Instagram feed section (fetches `/api/instagram-feed`, renders 6-col grid, hides if empty) |
+| `src/pages/product.ts` | Per-product FAQ (visible block + FAQPage schema) — product-specific Q&A first (no-risk-porsche, stripe-18-shirt, doodles) then 3 universal (size, city, damage) |
+| `src/pages/guide.ts` | TL;DR dark card above fold with 5-bullet scannable answer for buying-guide queries |
+| `src/data.ts` | Updated seoDescription for 4 top-impression zero-click products with GSC-query keywords + India cities + price + COD signal · comparison-table + TL;DR prepended to `best-oversized-tshirt-brands-india-2026` blog body |
+
+---
 
 ## v20 Changes (September 22, 2026) — Audit-Driven Performance & Data-Integrity Fixes
 

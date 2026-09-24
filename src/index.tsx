@@ -19,6 +19,7 @@ import { adminPage } from './pages/admin'
 import { collectionsPage } from './pages/collections'
 import { aboutPage } from './pages/about'
 import { stylistPage } from './pages/stylist'
+import { searchPage } from './pages/search'
 import { guidePage } from './pages/guide'
 import { maintenancePage } from './pages/maintenance'
 import { faqPage } from './pages/faq'
@@ -578,6 +579,8 @@ app.get('/sitemap.xml', async (c: Context<{ Bindings: Bindings }>) => {
     // [AG: new content] FAQ + Blog hub — high priority to speed indexing
     { loc: '/faq', priority: '0.85', changefreq: 'weekly' },
     { loc: '/blog', priority: '0.9', changefreq: 'weekly' },
+    // [v21] Search landing — brand-typo trap ("intruu", "in tru" etc. from GSC)
+    { loc: '/search', priority: '0.5', changefreq: 'monthly' },
     // Blog posts registered individually below (they need dates from BLOG_POSTS)
   ];
 
