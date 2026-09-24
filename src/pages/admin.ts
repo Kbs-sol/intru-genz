@@ -598,15 +598,17 @@ export function adminPage(opts: {
 <p style="font-size:11px;color:var(--g400);margin:8px 0 0">Tip: set Cloudflare secrets <code>CRON_SECRET</code> (required) and <code>OPENAI_API_KEY</code> (optional — enables richer LLM decisions; without it a built-in heuristic engine is used). Set <code>AI_ANNOUNCEMENT</code>=<code>off</code> to hide the bar.</p>
 </div>
 <div class="sett-card">
-<h4>Content Refresh (v20)</h4>
-<p>Push the latest bundled Legal Pages and FAQ content over the stale rows in Supabase. Use this after a deploy when you notice a Legal / FAQ page still shows old content because the initial-seed only fires when the table is empty.</p>
+<h4>Content Refresh</h4>
+<p>Push the latest bundled content (Legal Pages · FAQs · Blog Posts · Products) over any stale rows in Supabase. Use this after a deploy when you notice a page still shows old content — the initial-seed logic only fires when a table is empty, so DB rows from earlier deploys don't auto-refresh.</p>
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px">
   <button class="asave" style="flex:0 0 auto" onclick="reseedLegal()"><i class="fas fa-file-alt"></i> Reseed Legal Pages</button>
   <button class="asave" style="flex:0 0 auto" onclick="reseedFaqs()"><i class="fas fa-question-circle"></i> Reseed FAQs</button>
+  <button class="asave" style="flex:0 0 auto" onclick="reseedBlog()"><i class="fas fa-newspaper"></i> Reseed Blog Posts</button>
+  <button class="asave" style="flex:0 0 auto" onclick="reseedProducts()"><i class="fas fa-tshirt"></i> Reseed Products</button>
   <button class="asave" style="flex:0 0 auto;background:#0a0a0a" onclick="purgePageCache()"><i class="fas fa-broom"></i> Purge Cache</button>
   <span id="reseedStatus" style="font-size:12px;color:var(--g400)"></span>
 </div>
-<p style="font-size:11px;color:var(--g400);margin:0"><b>Reseed</b> = overwrite Supabase rows whose slug / question matches a bundled seed entry (admin-added FAQs are preserved). <b>Purge cache</b> = drop the 60-second edge cache for products / legal / FAQ / blog / settings so the next request re-reads from Supabase immediately.</p>
+<p style="font-size:11px;color:var(--g400);margin:0"><b>Reseed</b> = overwrite Supabase rows whose slug / question matches a bundled seed entry (admin-added rows without a matching slug/question are preserved). <b>Purge cache</b> = drop the 60-second edge cache for products / legal / FAQ / blog / settings so the next request re-reads from Supabase immediately.</p>
 </div>
 <div class="sett-card">
 <h4>Cookie Consent Banner</h4>
@@ -1279,8 +1281,39 @@ function reseedFaqs(){
     .then(function(r){return r.json()})
     .then(function(d){
       if(d.success){
-        if(st) st.textContent='Reseeded '+d.count+' FAQ rows';
+        if(st) st.textContent='Reseeded FAQs — deleted '+d.deleted+' stale, inserted '+d.inserted;
         toast('FAQs reseeded — refresh /faq','ok-green');
+      } else {
+        if(st) st.textContent='Failed: '+(d.error||'unknown');
+        toast('Reseed failed','err');
+      }
+    })
+    .catch(function(e){ if(st) st.textContent='Error: '+e.message; toast('Reseed error','err'); });
+}
+function reseedBlog(){
+  var st = document.getElementById('reseedStatus'); if(st) st.textContent='Reseeding blog posts...';
+  fetch('/api/admin/blog/reseed',{method:'POST',headers:{'x-admin-token':sessionStorage.getItem('iadm_t')}})
+    .then(function(r){return r.json()})
+    .then(function(d){
+      if(d.success){
+        if(st) st.textContent='Reseeded blog posts — deleted '+d.deleted+' stale, inserted '+d.inserted;
+        toast('Blog posts reseeded — refresh /blog','ok-green');
+      } else {
+        if(st) st.textContent='Failed: '+(d.error||'unknown');
+        toast('Reseed failed','err');
+      }
+    })
+    .catch(function(e){ if(st) st.textContent='Error: '+e.message; toast('Reseed error','err'); });
+}
+function reseedProducts(){
+  if(!confirm('Reseed products?\\n\\nThis overwrites price/description/images/SEO for products whose slug matches a bundled entry. Admin-added products (with slugs not in the seed) are preserved.\\n\\nProceed?'))return;
+  var st = document.getElementById('reseedStatus'); if(st) st.textContent='Reseeding products...';
+  fetch('/api/admin/products/reseed',{method:'POST',headers:{'x-admin-token':sessionStorage.getItem('iadm_t')}})
+    .then(function(r){return r.json()})
+    .then(function(d){
+      if(d.success){
+        if(st) st.textContent='Reseeded products — deleted '+d.deleted+' stale, inserted '+d.inserted;
+        toast('Products reseeded — hard-refresh any product page','ok-green');
       } else {
         if(st) st.textContent='Failed: '+(d.error||'unknown');
         toast('Reseed failed','err');
