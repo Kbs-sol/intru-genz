@@ -1,11 +1,31 @@
 # INTRU.IN — Full System Literacy & Architecture Reference
-**Version**: v20 | **Date**: September 22, 2026 | **Production**: https://intru.in · https://intru-genz.pages.dev (staging)
+**Version**: v21 | **Date**: September 22, 2026 | **Production**: https://intru.in · https://intru-genz.pages.dev (staging)
 
 > This document is the single source of truth for engineers, operators, and AI assistants working on intru.in. It contains everything needed to understand, debug, fix, or extend the codebase.
 
 ---
 
 ## 0. CHANGELOG SUMMARY (Most Recent First)
+
+### v21 — September 22, 2026 · Ship the v20 Audit Recommendations
+Growth-focused shipping of every recommendation in the v20 audit. Every change targets a real GA4 / GSC signal.
+
+- **FAQ reseed 42P10 fix**: the `faqs` table has no unique constraint on `question`, so `on_conflict=question` failed with Postgres 42P10. Rewrote to delete-then-insert — DELETE rows whose `question` matches ANY `SEED_FAQS` question (preserves admin-added FAQs), then plain INSERT the seed set. Returns `{deleted, inserted}` counts.
+- **Orphan Instagram feed rendered publicly**: `/api/instagram-feed` endpoint + admin CRUD + `instagram_feed` DB table have existed since v15, but there was **never a public rendering** on the homepage. Anything admin-added was invisible to visitors. Added a lazy-loaded `#ig-feed-section` in `src/pages/home.ts` that fetches the endpoint, renders up to 12 items in a responsive grid (6-col desktop → 3-col mobile), hides the whole section when `d.feed.length === 0` so admins can toggle by clearing the table or flipping `INSTAGRAM_FEED_ENABLED`.
+- **Homepage trust bar** (targets 86% bounce): 4-icon strip right below hero — Free Shipping (Prepaid) · 36h Dispatch · Made in India · Secure Razorpay + COD. Uses `.tbar` + `.tbar-i` classes with mobile responsive fallback (smaller font, tighter gap under 640px).
+- **`/guide` TL;DR box**: dark card above the fold with a 5-bullet scannable answer to "best oversized t-shirt brand in India" — GSM (220-260), fit pattern (dropped shoulder), drop model, made-in-India signal, ship/return policies. Google's featured-snippet ranker prefers first-fold scannable answers; existing comparison table alone couldn't lift desktop position from #18 to top-10.
+- **`/blog/best-oversized-tshirt-brands-india-2026`** — now leads with a black TL;DR card + a 7-row Fast-fashion / Marketplace-reseller / Intru comparison table (fabric weight, fit pattern, availability, made-in, price band, free shipping, Grievance Officer, DPDP alignment). Same rationale as `/guide`.
+- **Per-product FAQ block** — every product page now has a **visible** FAQ section matching the FAQPage JSON-LD (recent ranking requirement: Google demands the answer be visible on-page, not just in structured data). Product-specific Q&A first (blocks defined for `no-risk-porsche`, `stripe-18-shirt`, `doodles-t-shirt` — the 3 top-impression zero-click products in GSC), then 3 universal questions (size, India-city delivery, damage/exchange policy).
+- **Product meta descriptions** rewritten for 4 top-impression zero-click products using the exact GSC query terms buyers typed (`no risk no porsche`, `18 shirt`, `oversized tshirt india`, `doodle t shirt`). New pattern: `[Product] — [key spec] [key fit] [drop signal]. [Price] · [size range] · [shipping / COD]. [City-coverage phrase where relevant].`
+- **`/search?q=` route + brand-typo trap** (new file `src/pages/search.ts`): GSC shows 400+ impressions across brand typos (`intruu`, `intrù`, `topintru`, `inourinternest` = 64 impressions alone, `the intru`, `in tru`, `intrue`, ~40 more variants). All typos now land on `/search?q=<typo>` which:
+  - Matches against a curated `BRAND_TYPOS` Set built from real GSC data
+  - Shows a friendly yellow "Did you mean **Intru**?" hero with a big "Shop Current Drop →" CTA
+  - Sets `<link rel="canonical">` to `https://intru.in/` so link equity consolidates on the brand entity
+  - Adds `Organization` + `SearchAction` JSON-LD for `sitelinks-search-box` eligibility
+  - Falls through to a full product grid so browse behavior still works
+- **`/search` added to `sitemap.xml`** at priority 0.5 (monthly) so Google discovers it and starts routing brand-typo impressions here.
+
+Files touched: `src/index.tsx` (FAQ reseed fix + `/search` route + sitemap entry), `src/pages/search.ts` (new), `src/pages/home.ts` (trust bar + IG feed section), `src/pages/product.ts` (per-product FAQ block + expanded schema), `src/pages/guide.ts` (TL;DR box), `src/data.ts` (rewrote 4 product seoDescriptions + prepended comparison table to blog body). Build: 674.28 kB (+28 kB from v20).
 
 ### v20 — September 22, 2026 · Audit-Driven Performance & Data-Integrity Fixes
 Full audit run against real GA4 + GSC + Supabase data (Jun 24 – Sep 21, 2026: 4,846 active users, 22,139 events, 84 GSC clicks, 5,765 impressions, 5 orders all pending). Findings targeted five root causes:
