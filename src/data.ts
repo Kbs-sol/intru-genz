@@ -1554,9 +1554,12 @@ export function emailOrderConfirmed(orderId: string, name: string, items: any[],
 }
 
 /** COD Verification Required email — replaces old emailCodReceived with idempotent verify link */
-export function emailCodVerificationRequired(orderId: string, name: string, items: any[], total: number): string {
+export function emailCodVerificationRequired(orderId: string, name: string, items: any[], total: number, verifyToken?: string): string {
   const shortId = orderId.toUpperCase().slice(-8);
-  const verifyUrl = `https://intru.in/verify-order?id=${orderId}`;
+  // [AUDIT 2026-10-03] Include HMAC token in verify URL — /verify-order now requires it.
+  const verifyUrl = verifyToken
+    ? `https://intru.in/verify-order?id=${orderId}&t=${encodeURIComponent(verifyToken)}`
+    : `https://intru.in/verify-order?id=${orderId}`;
   return `<div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:560px;margin:0 auto;background:#fff;border:1px solid #e5e7eb">
     <div style="background:#0a0a0a;padding:36px;text-align:center">
       <h1 style="color:#fff;font-size:20px;margin:0;letter-spacing:4px;text-transform:uppercase">ACTION REQUIRED</h1>

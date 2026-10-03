@@ -20,7 +20,11 @@ export function adminPage(opts: {
     slug: l.slug, title: l.title, content: l.content, updatedAt: l.updatedAt
   })));
 
-  const body = `<style>
+  const body = `<meta name="robots" content="noindex,nofollow">
+<style>
+/* [AUDIT 2026-10-03] A-4: Force light color-scheme on admin to prevent dark mode text issues.
+   25+ hardcoded pastel chips (#fef3c7, #d1fae5, etc.) are unreadable under forced dark. */
+:root { color-scheme: light only; }
 .adm{max-width:1100px;margin:0 auto;padding:40px 24px 100px}
 .alog{max-width:400px;margin:120px auto;text-align:center}
 .alog h1{font-family:var(--head);font-size:28px;text-transform:uppercase;letter-spacing:-.02em;margin-bottom:8px}
@@ -2056,6 +2060,19 @@ function autoSlug(){
     'Admin | Intru',
     'Admin panel for Intru store management.',
     body,
-    { cls: 'admin-page', razorpayKeyId: opts.razorpayKeyId, googleClientId: opts.googleClientId, products, legalPages, useMagicCheckout: !!opts.useMagicCheckout }
+    {
+      cls: 'admin-page',
+      razorpayKeyId: opts.razorpayKeyId,
+      googleClientId: opts.googleClientId,
+      products,
+      legalPages,
+      useMagicCheckout: !!opts.useMagicCheckout,
+      // [AUDIT 2026-10-03] A-3: Suppress GA4/Clarity on admin — they pollute customer analytics.
+      // GA4 showed "Admin | Intru — 21 views, 81 active users, 243 events" from developer activity.
+      ga4Id: '',
+      clarityId: '',
+      metaPixelId: '',
+      gtmId: 'off',
+    }
   );
 }

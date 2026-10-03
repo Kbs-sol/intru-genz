@@ -255,7 +255,7 @@ html, body { overflow-x: hidden !important; width: 100% !important; max-width: 1
       <div class="hf-card anim d${i+3}">
         <a href="/product/${p.slug}" class="hf-img-link" style="display:block;cursor:pointer">
           <div class="hf-img">
-            <img src="${p.images[0]}" alt="${p.name}">
+            <img src="${p.images[0]}" alt="${p.name}" width="400" height="500"${i === 0 ? ' fetchpriority="high" loading="eager"' : ' loading="lazy"'}>
             <div class="hf-sizes-box">
               <div class="hf-sizes">
                 ${(p.sizes || ['S', 'M', 'L', 'XL']).map(sz => `<div class="hf-sz" onclick="event.preventDefault();event.stopPropagation();quickAddToCart('${p.id}','${sz}')">${sz}</div>`).join('')}

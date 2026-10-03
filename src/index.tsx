@@ -217,6 +217,46 @@ p{font-size:16px;color:#a3a3a3;line-height:1.6;margin-bottom:24px}
 // approach is to disable the Cloudflare Pages deployment or point the DNS at
 // a static holding page. We no longer ship an in-app kill switch.
 
+// ============ LEGACY SHOPIFY URL RECOVERY [P0-1 AUDIT 2026-10-03] ============
+// 28,609 Google impressions hit these URLs and get 404 — some at position 2.1.
+// Google has already decided these pages deserve traffic. These 301s recover it.
+// Source: GSC 12-month data verified live. Mapping built from known Shopify slugs.
+const LEGACY_REDIRECTS: Record<string, string> = {
+  '/pages/contact-us':       '/about#contact',
+  '/pages/faqs':             '/faq',
+  '/pages/faq':              '/faq',
+  '/pages/about-us':         '/about',
+  '/pages/shipping-policy':  '/p/shipping',
+  '/pages/refund-policy':    '/p/returns',
+  '/pages/privacy-policy':   '/p/privacy',
+  '/pages/terms-of-service': '/p/terms',
+  '/products/sjirt':         '/product/summer-shirt',
+  '/products/shirt-2':       '/product/stripe-18-shirt',
+  '/products/porsche':       '/product/no-risk-porsche',
+  '/products/doddle':        '/product/doodles-t-shirt',
+  '/products/doodle':        '/product/doodles-t-shirt',
+  '/products/orange-tee':    '/product/orange-puff-printed-t-shirt',
+  '/products/top':           '/collections?cat=Crop-Tops',
+  '/contact':                '/about#contact',
+  '/contact-us':             '/about#contact',
+  '/collections/all':        '/collections',
+};
+
+// /pages/* — always redirect (Shopify page format, not used on this site)
+app.get('/pages/*', (c: Context<{ Bindings: Bindings }>) => {
+  const target = LEGACY_REDIRECTS[c.req.path] || '/collections';
+  return c.redirect(target, 301);
+});
+
+// /products/* — redirect known slugs 301; unknown → search 302 (preserves any equity)
+app.get('/products/*', (c: Context<{ Bindings: Bindings }>) => {
+  const target = LEGACY_REDIRECTS[c.req.path];
+  if (target) return c.redirect(target, 301);
+  // Unknown legacy product slug: send to search so user gets relevant results
+  const slug = c.req.path.replace('/products/', '').split('?')[0];
+  return c.redirect(`/search?q=${encodeURIComponent(slug)}`, 302);
+});
+
 // ============ PAGE ROUTES ============
 
 app.get('/', async (c: Context<{ Bindings: Bindings }>) => {
@@ -268,9 +308,53 @@ app.get('/p/:slug', async (c: Context<{ Bindings: Bindings }>) => {
   return c.html(legalPage(page, opts));
 })
 
+// [AUDIT 2026-10-03] Server-side admin gate. /admin only renders when the
+// httpOnly 'intru_admin_session' cookie matches the ADMIN_PASSWORD env var.
+// Before: page was served to everyone; protection was client-side JS only.
+// After: cookie is set by /admin/login POST and expires in 4 hours.
+// Note: parseCookies() is defined below in the analytics/CAPI section — hoisted via function declaration.
+
+const ADMIN_LOGIN_PAGE = `<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>Admin Login — intru.in</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&family=Archivo+Black&display=swap" rel="stylesheet">
+<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Space Grotesk',sans-serif;background:#0a0a0a;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
+.box{background:#fafafa;max-width:360px;width:100%;padding:48px 36px;border-radius:4px}
+h2{font-family:'Archivo Black',sans-serif;font-size:20px;letter-spacing:2px;text-transform:uppercase;margin-bottom:24px}
+input{width:100%;padding:14px 16px;border:1.5px solid #e5e7eb;font-family:inherit;font-size:14px;margin-bottom:12px;outline:none;border-radius:2px}
+input:focus{border-color:#0a0a0a}
+button{width:100%;padding:16px;background:#0a0a0a;color:#fff;border:none;font-size:11px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;cursor:pointer;border-radius:2px}
+button:hover{background:#404040}
+.err{color:#e53e3e;font-size:12px;margin-bottom:12px}
+</style></head><body><div class="box">
+<h2>Admin Login</h2>
+<form method="POST" action="/admin/login">
+  <input type="password" name="password" placeholder="Admin password" autofocus required>
+  <button type="submit">Enter Admin</button>
+</form></div></body></html>`;
+
 app.get('/admin', async (c: Context<{ Bindings: Bindings }>) => {
+  const adminPwd = getEnv(c.env, 'ADMIN_PASSWORD', STORE_CONFIG.adminPassword);
+  const cookies = parseCookies(c.req.header('cookie') || '');
+  if (!adminPwd || cookies['intru_admin_session'] !== adminPwd) {
+    return c.html(ADMIN_LOGIN_PAGE, 200);
+  }
   const opts = await getPageOpts(c);
   return c.html(adminPage(opts));
+})
+
+app.post('/admin/login', async (c: Context<{ Bindings: Bindings }>) => {
+  const adminPwd = getEnv(c.env, 'ADMIN_PASSWORD', STORE_CONFIG.adminPassword);
+  const body = await c.req.parseBody();
+  const provided = String(body['password'] || '');
+  if (!adminPwd || provided !== adminPwd) {
+    return c.html(ADMIN_LOGIN_PAGE.replace('</form>', '<p class="err">Incorrect password.</p></form>'), 401);
+  }
+  // Set httpOnly cookie — 4 hour session
+  const maxAge = 4 * 60 * 60;
+  c.header('Set-Cookie', `intru_admin_session=${encodeURIComponent(adminPwd)}; Path=/admin; HttpOnly; Secure; SameSite=Strict; Max-Age=${maxAge}`);
+  return c.redirect('/admin', 302);
 })
 
 app.get('/all-collections', async (c: Context<{ Bindings: Bindings }>) => {
@@ -1057,14 +1141,51 @@ app.get('/confirm-order/:id', async (c: Context<{ Bindings: Bindings }>) => {
     </div></body></html>`);
 });
 
-// ============ COD VERIFY ORDER ROUTE — Idempotent [AG Phase2] ============
-// This is the link in the COD verification email.
-// IDEMPOTENCY: Only updates if status is 'pending'. Subsequent visits show the same success screen.
-// RATE LIMITING: The email is sent once (tracked via email_logs). This page itself is safe to revisit.
+// ============ COD VERIFY ORDER ROUTE — Idempotent + HMAC-secured [AUDIT 2026-10-03] ============
+// Link format: /verify-order?id=<uuid>&t=<hmac-token>
+// Token = HMAC-SHA256(RESEND_API_KEY, "<orderId>:verify:<day-bucket>") where
+// day-bucket = Math.floor(Date.now() / 86_400_000) — rotates daily, 7 windows = 7 days validity.
+// This means a leaked UUID is useless without the signed token from the email.
+
+async function generateVerifyToken(secret: string, orderId: string): Promise<string> {
+  const dayBucket = Math.floor(Date.now() / 86_400_000);
+  return hmacSHA256(secret, `${orderId}:verify:${dayBucket}`);
+}
+
+async function validateVerifyToken(secret: string, orderId: string, token: string): Promise<boolean> {
+  const now = Math.floor(Date.now() / 86_400_000);
+  // Check current day and 6 prior days (7-day window total)
+  for (let i = 0; i < 7; i++) {
+    const expected = await hmacSHA256(secret, `${orderId}:verify:${now - i}`);
+    if (expected === token) return true;
+  }
+  return false;
+}
 
 app.get('/verify-order', async (c: Context<{ Bindings: Bindings }>) => {
   const id = c.req.query('id');
+  const token = c.req.query('t');
   if (!id) return c.redirect('/', 302);
+
+  const resendKey = getEnv(c.env, 'RESEND_API_KEY');
+
+  // [AUDIT 2026-10-03] Token required. If missing or invalid, show a safe error page.
+  // We use RESEND_API_KEY as signing secret — always present when COD emails go out.
+  if (!resendKey || !token || !(await validateVerifyToken(resendKey, id, token))) {
+    return c.html(`<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Link Expired — intru.in</title>
+<style>body{font-family:'Helvetica Neue',sans-serif;background:#fafafa;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;text-align:center;padding:24px}
+.card{max-width:400px;background:#fff;padding:48px 32px;border:1px solid #e5e7eb;border-radius:8px}
+h1{font-size:20px;font-weight:800;margin-bottom:12px}
+p{color:#6b7280;font-size:14px;line-height:1.6;margin-bottom:24px}
+a{display:inline-block;padding:14px 28px;background:#0a0a0a;color:#fff;text-decoration:none;font-weight:700;font-size:11px;letter-spacing:2px;text-transform:uppercase;border-radius:4px}</style></head>
+<body><div class="card">
+  <h1>⚠️ Link Expired or Invalid</h1>
+  <p>This verification link has expired (links are valid for 7 days) or is no longer valid. Please contact us on Instagram <strong>@intru.in</strong> or email <a href="mailto:shop@intru.in" style="background:none;color:#0a0a0a;padding:0;letter-spacing:0;font-size:14px;text-transform:none">shop@intru.in</a> and we'll sort it out.</p>
+  <a href="/">Back to Store</a>
+</div></body></html>`, 400);
+  }
 
   const sbUrl = getEnv(c.env, 'SUPABASE_URL');
   const sbSvc = getEnv(c.env, 'SUPABASE_SERVICE_KEY');
@@ -1777,9 +1898,11 @@ app.post('/api/checkout/cod', async (c: Context<{ Bindings: Bindings }>) => {
       const guardResult = await checkResendGuard(sbUrl, writeKey, 'cod_verify');
       if (guardResult.allowed) {
         try {
+          // [AUDIT 2026-10-03] Generate HMAC token for secure verify link
+          const verifyToken = orderId ? await generateVerifyToken(resendKey, orderId) : '';
           await sendResendEmail(resendKey, userEmail,
             `Action Required: Verify your intru.in Order #IN-${shortId}`,
-            emailCodVerificationRequired(effectiveOrderId, userName, validatedItems, total)
+            emailCodVerificationRequired(effectiveOrderId, userName, validatedItems, total, verifyToken)
           );
           await logResendEmail(sbUrl, writeKey, userEmail, 'cod_verify', effectiveOrderId);
         } catch (e) { console.error('COD verify email error:', e); }
@@ -2172,24 +2295,51 @@ app.post('/api/auth/google', async (c: Context<{ Bindings: Bindings }>) => {
     const body = await c.req.json();
     const { credential } = body;
     if (!credential) return c.json({ error: 'No credential' }, 400);
-    const parts = credential.split('.');
-    if (parts.length !== 3) return c.json({ error: 'Invalid token' }, 400);
+
+    // [AUDIT 2026-10-03] Verify Google ID token via Google's tokeninfo endpoint.
+    // Previously: blind atob(parts[1]) — any forged JWT with any email was accepted.
+    // Now: Google cryptographically verifies the token and returns the payload only if valid.
+    let email = '', name = '', picture = '', sub = '';
     try {
-      const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
-      const { email, name, picture, sub } = payload;
-      const sbUrl = getEnv(c.env, 'SUPABASE_URL');
-      const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY') || getEnv(c.env, 'SUPABASE_ANON_KEY');
-      if (sbUrl && sbKey) {
-        try {
-          await supabaseFetch(sbUrl, sbKey, 'users', {
-            method: 'POST',
-            headers: { 'Prefer': 'resolution=merge-duplicates' } as any,
-            body: JSON.stringify({ email, name, picture, google_id: sub, auth_provider: 'google', last_login: new Date().toISOString() }),
-          });
-        } catch (e) { console.error('User upsert error:', e); }
+      const verifyRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
+      });
+      if (!verifyRes.ok) {
+        const err = await verifyRes.json().catch(() => ({}));
+        console.error('Google tokeninfo rejected:', verifyRes.status, err);
+        return c.json({ error: 'Google token verification failed. Please try again.' }, 401);
       }
-      return c.json({ success: true, user: { email, name, picture } });
-    } catch { return c.json({ error: 'Invalid token format' }, 400); }
+      const payload = await verifyRes.json() as any;
+      // Check audience — must match our Google Client ID
+      const gClientId = getEnv(c.env, 'GOOGLE_CLIENT_ID', STORE_CONFIG.googleClientId);
+      if (gClientId && gClientId !== 'YOUR_GOOGLE_CLIENT_ID' && payload.aud !== gClientId) {
+        console.error('Google token audience mismatch. Expected:', gClientId, 'Got:', payload.aud);
+        return c.json({ error: 'Token audience mismatch.' }, 401);
+      }
+      email = payload.email || '';
+      name = payload.name || '';
+      picture = payload.picture || '';
+      sub = payload.sub || '';
+    } catch (e: any) {
+      console.error('Google JWT verify error:', e?.message || e);
+      return c.json({ error: 'Token verification error' }, 401);
+    }
+
+    if (!email) return c.json({ error: 'No email in token' }, 400);
+
+    const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+    const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY') || getEnv(c.env, 'SUPABASE_ANON_KEY');
+    if (sbUrl && sbKey) {
+      try {
+        await supabaseFetch(sbUrl, sbKey, 'users', {
+          method: 'POST',
+          headers: { 'Prefer': 'resolution=merge-duplicates' } as any,
+          body: JSON.stringify({ email, name, picture, google_id: sub, auth_provider: 'google', last_login: new Date().toISOString() }),
+        });
+      } catch (e) { console.error('User upsert error:', e); }
+    }
+    return c.json({ success: true, user: { email, name, picture } });
   } catch (e: any) {
     return c.json({ error: e.message || 'Auth failed' }, 500);
   }
