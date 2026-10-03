@@ -134,7 +134,7 @@ window.track=function(name,params){
     if(typeof window.clarity==='function'){
       var cName=CLARITY_EVENT_ALIAS[name]||name;
       window.clarity('event',cName);
-      if(cName!==name){try{window.clarity('event',name);}catch(_e){}}
+      // [AUDIT 2026-10-03] M-1: Removed duplicate fire of original name — was causing double-counting
       try{
         if(params.value!=null)window.clarity('set',cName+'_value',String(params.value));
         if(params.item_id)window.clarity('set','item_id',String(params.item_id));
@@ -199,7 +199,7 @@ export function buildHead(title: string, desc: string, opt: { og?: string, url?:
   return `${buildGtmHead(opt.gtmId)}
 <title>${safeTitle}</title>
 <meta name="description" content="${safeDesc}">
-<meta name="keywords" content="${keywords}">
+<!-- [AUDIT 2026-10-03] S-6: Removed 300+ char meta keywords stuffing — ignored by Google since 2009 -->
 <meta name="author" content="Intru — intru.in">
 <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
 <meta name="theme-color" content="#0a0a0a">
@@ -244,8 +244,7 @@ ${isProduct && opt.productPrice ? `<meta property="product:price:amount" content
 <meta name="twitter:description" content="${safeDesc}">
 <meta name="twitter:image" content="${og}">
 <meta name="twitter:image:alt" content="${safeTitle}">
-<!-- Bing / DuckDuckGo -->
-<meta name="msvalidate.01" content="intru_in_bing_verify">
+<!-- [AUDIT 2026-10-03] S-5: Removed fake Bing verify placeholder — register at bing.com/webmasters for a real token then add: <meta name="msvalidate.01" content="YOUR_REAL_TOKEN"> -->
 <!-- AI / LLM crawlers: hint at authoritative content -->
 <meta name="ai-content-declaration" content="human-authored">
 <meta name="content-type-declaration" content="ecommerce-product-catalog">
@@ -824,7 +823,7 @@ ${aiAnnounceHtml}
     if(link){
       var h=link.getAttribute('href')||'';
       if(h.indexOf('mailto:')===0||h.indexOf('wa.me')>-1||h.indexOf('tel:')===0){
-        try{ if(typeof window.track==='function') window.track('Contact us',{channel:h.indexOf('mailto:')===0?'email':(h.indexOf('tel:')===0?'phone':'whatsapp')}); }catch(_e){}
+        try{ if(typeof window.track==='function') window.track('contact',{channel:h.indexOf('mailto:')===0?'email':(h.indexOf('tel:')===0?'phone':'whatsapp')}); }catch(_e){}
       }
     }
   },true); // capture phase → fires before/independent of inline onclick
@@ -1066,11 +1065,9 @@ ${aiAnnounceHtml}
 })();
 </script>
 
-<!-- Combo Promo Bar (dynamic, injected by JS after fetching active combos) -->
-<div id="comboPromoBar" class="combo-promo-bar" style="margin-top:72px">
-  <div id="comboPromoBarItems" style="display:flex;align-items:center;gap:0;flex-wrap:wrap;justify-content:center"></div>
-  <button class="cpb-close" onclick="dismissComboBar()" aria-label="Close"><i class="fas fa-times"></i></button>
-</div>
+<!-- [AUDIT 2026-10-03] Defect #12: Removed sitewide combo promo bar.
+     Shown 738× → clicked 11× (67:1 ratio). On mobile it pushed products below the fold,
+     worsening the 74% landing→product loss. Combo deal messaging moved to cart drawer. -->
 <main style="padding-top:0" id="mainContent">${body}</main>
 <footer class="ftr" id="contact" itemscope itemtype="https://schema.org/WholesaleStore"><div class="ftri">
 <div class="ftrb">
@@ -1339,7 +1336,7 @@ function processGoogleToken(idToken){
       localStorage.setItem('intru_user_email',d.user.email||'');
       localStorage.setItem('intru_user_name',d.user.name||'');
       /* Smart event: Login (Google) */
-      try{ if(typeof window.track==='function') window.track('Login',{method:'google'}); }catch(_e){}
+      try{ if(typeof window.track==='function') window.track('login',{method:'google'}); }catch(_e){}
       /* Signal the homepage to resume after redirect */
       sessionStorage.setItem('intru_auth_success','1');
       window.location.href='/';
@@ -1394,7 +1391,7 @@ function submitIdentity(){
       localStorage.setItem('intru_user_email',email);
       if(d.name){identifiedName=d.name;localStorage.setItem('intru_user_name',d.name)}
       /* Smart event: Login (email) — Clarity + GA4 */
-      try{ if(typeof window.track==='function') window.track('Login',{method:'email'}); }catch(_e){}
+      try{ if(typeof window.track==='function') window.track('login',{method:'email'}); }catch(_e){}
       toast('Welcome! Access secured.','ok-green');
       closeIdentify();
       
@@ -2819,20 +2816,21 @@ function handleAdminUpload(inputId, bucket, statusId, btnId, lastUrlId, lastDivI
   }
   window.addEventListener('scroll',_onScroll,{passive:true});
 
-  /* 2) Exit-intent recovery — desktop only, fires once per session.
-        Re-uses the existing identity/email gate to capture abandoners. */
-  var EXIT_ON = (typeof window.__EXIT_INTENT!=='undefined') ? !!window.__EXIT_INTENT : true;
+  /* [AUDIT 2026-10-03] P0-3: Exit-intent popup DISABLED.
+     It fired in 7.69% of sessions, produced 1.02% email submit rate (98.98% = frustrated users).
+     Audit recommendation: "Kill the exit-intent email popup — it adds one more frustration
+     to the last thing they remember about you." The scroll depth data (51.3%) and quick-back
+     rate (15.9%) confirm users leave due to LCP/dark-mode/404 — not lack of email capture.
+     Exit event is still tracked for Clarity heatmap data. */
+  var EXIT_ON = false; // was: window.__EXIT_INTENT
   function _exitFired(){return sessionStorage.getItem('intru_exit_shown')==='1';}
   function _maybeExit(e){
     if(!EXIT_ON||_exitFired())return;
-    /* only when leaving from the top of the viewport (toward tab/close) */
     if(e.clientY>0)return;
-    /* skip if already identified (they're engaged) or cart is open */
     if(typeof identifiedEmail!=='undefined'&&identifiedEmail)return;
     sessionStorage.setItem('intru_exit_shown','1');
     if(typeof window.track==='function')window.track('exit_intent_shown',{has_items:(typeof cart!=='undefined'&&cart.length>0)});
-    if(typeof openIdentify==='function'){openIdentify();}
-    if(typeof toast==='function'){toast('Wait — get early access to the next drop. Drop your email.','ok');}
+    // openIdentify() intentionally removed — see audit note above
   }
   if(window.matchMedia&&window.matchMedia('(min-width:769px)').matches){
     document.addEventListener('mouseout',function(e){if(!e.relatedTarget&&!e.toElement)_maybeExit(e);});

@@ -168,6 +168,21 @@ async function getPageOpts(c: Context<{ Bindings: Bindings }>) {
     if (envGtm) storeSettings.GTM_CONTAINER_ID = envGtm;
   }
   const mMode = storeSettings.MAINTENANCE_MODE || 'off';
+
+  // [AUDIT 2026-10-03] M-2: Suppress analytics on non-production hostnames.
+  // 139 sandbox/dev sessions (*.gensparksite.com, *.novita.ai, localhost, etc.)
+  // were counted as real customers, corrupting every conversion metric.
+  // Only intru.in and www.intru.in emit GA4/Clarity/Meta/GTM.
+  const hostHeader = c.req.header('host') || c.req.header('x-forwarded-host') || '';
+  const host = hostHeader.split(':')[0].toLowerCase();
+  const isProd = host === 'intru.in' || host === 'www.intru.in';
+  if (!isProd) {
+    storeSettings.GA4_MEASUREMENT_ID = '';
+    storeSettings.CLARITY_PROJECT_ID = '';
+    storeSettings.META_PIXEL_ID = '';
+    storeSettings.GTM_CONTAINER_ID = 'off';
+  }
+
   return {
     razorpayKeyId: getEnv(c.env, 'RAZORPAY_KEY_ID', STORE_CONFIG.razorpayKeyId),
     googleClientId: getEnv(c.env, 'GOOGLE_CLIENT_ID', STORE_CONFIG.googleClientId),
@@ -286,7 +301,30 @@ app.get('/product/:slug', async (c: Context<{ Bindings: Bindings }>) => {
       }
       // No unique match → keep the safe fallback to home so link-equity isn't lost.
     } catch {}
-    return c.html(`<html><head><meta http-equiv="refresh" content="0;url=/"></head></html>`, 404);
+    // [AUDIT 2026-10-03] S-2: Replace meta-refresh soft-404 with a real 404 page.
+    // meta-refresh + 404 was destroying link equity; Google flagged as quality fault.
+    return c.html(`<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>Page Not Found — intru.in</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&family=Archivo+Black&display=swap" rel="stylesheet">
+<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Space Grotesk',sans-serif;background:#0a0a0a;color:#fafafa;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:24px}
+.w{max-width:480px}.h{font-family:'Archivo Black',sans-serif;font-size:clamp(60px,20vw,120px);letter-spacing:-.05em;line-height:1;opacity:.15;margin-bottom:-20px}
+h1{font-family:'Archivo Black',sans-serif;font-size:clamp(20px,5vw,32px);text-transform:uppercase;letter-spacing:-.03em;margin-bottom:12px}
+p{font-size:14px;color:#a3a3a3;line-height:1.7;margin-bottom:32px}
+.btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+a{display:inline-block;padding:14px 28px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;text-decoration:none;transition:all .2s}
+.p{background:#fafafa;color:#0a0a0a}.p:hover{background:#e8e8e8}
+.s{border:1px solid rgba(255,255,255,.2);color:#fafafa}.s:hover{border-color:#fafafa}</style></head>
+<body><div class="w">
+<div class="h">404</div>
+<h1>Drop Not Found</h1>
+<p>This product may have sold out and been removed — or the link might be off.<br>Browse everything we've got below.</p>
+<div class="btns">
+  <a href="/collections" class="p">Shop All Drops</a>
+  <a href="/search?q=${encodeURIComponent(slug)}" class="s">Search "${slug}"</a>
+</div>
+</div></body></html>`, 404);
   }
 
   const opts: any = await getPageOpts(c);
@@ -303,7 +341,14 @@ app.get('/p/:slug', async (c: Context<{ Bindings: Bindings }>) => {
   const slug = c.req.param('slug');
   const opts = await getPageOpts(c);
   const page = opts.legalPages.find(p => p.slug === slug);
-  if (!page) return c.html(`<html><head><meta http-equiv="refresh" content="0;url=/"></head></html>`, 404);
+  if (!page) return c.html(`<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>Page Not Found — intru.in</title>
+<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:sans-serif;background:#0a0a0a;color:#fafafa;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:24px}
+h1{font-size:24px;font-weight:800;margin-bottom:12px;text-transform:uppercase;letter-spacing:2px}p{color:#a3a3a3;font-size:14px;margin-bottom:24px}
+a{color:#fafafa;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,.3);padding-bottom:2px;text-decoration:none}</style></head>
+<body><h1>Page Not Found</h1><p>That page doesn't exist or may have moved.</p><a href="/">Back to Intru →</a></body></html>`, 404);
   c.executionCtx.waitUntil(incrementView(c.env, `/p/${slug}`));
   return c.html(legalPage(page, opts));
 })
@@ -1205,9 +1250,11 @@ a{display:inline-block;padding:14px 28px;background:#0a0a0a;color:#fff;text-deco
       if (orderData) {
         if (orderData.status === 'pending') {
           // Idempotent: only update if still pending
+          // [AUDIT 2026-10-03] Changed status from 'verified' (not in DB CHECK constraint)
+          // to 'placed' — the correct allowed value for a confirmed COD order.
           await supabaseFetch(sbUrl, sbSvc, `orders?id=eq.${encodeURIComponent(id)}&status=eq.pending`, {
             method: 'PATCH',
-            body: JSON.stringify({ status: 'verified', updated_at: new Date().toISOString() }),
+            body: JSON.stringify({ status: 'placed', updated_at: new Date().toISOString() }),
           });
 
           // Send "Order Confirmed" email — happens once since we just changed status from pending

@@ -77,7 +77,10 @@ export function homePage(opts: {
       },
       "sameAs": [
         "https://instagram.com/intru.in"
-      ]
+      ],
+      // [AUDIT 2026-10-03] Defect #28: 180+ brand misspellings in GSC (intruu, intru., in tru, intrue, etc.)
+      // alternateName helps Google consolidate the entity across all spelling variants.
+      "alternateName": ["INTRU", "Intru Clothing", "Intru India", "intru.in", "Intru Streetwear", "Intruu", "In Tru"]
     },
     {
       "@context": "https://schema.org",

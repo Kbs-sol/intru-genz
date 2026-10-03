@@ -49,9 +49,34 @@ export function adminPage(opts: {
 .otbl-wrap{width:100%;overflow-x:auto;border:1.5px solid var(--g100);border-radius:8px;background:var(--wh)}
 .otbl{width:100%;border-collapse:collapse;font-size:13px;min-width:860px}
 @media(max-width:768px){
+  /* [AUDIT 2026-10-03] A-1: Complete the mobile table card-collapse pattern.
+     data-label attrs were on 7 cells but the CSS to read them was MISSING — this is it. */
   .adm{padding:20px 16px 80px}
   .ahdr{flex-direction:column;gap:12px;align-items:flex-start}
-  .otbl-wrap{-webkit-overflow-scrolling:touch}
+  .otbl-wrap{-webkit-overflow-scrolling:touch;overflow-x:visible}
+  .otbl, .otbl tbody, .otbl tr, .otbl td { display:block !important; width:100% !important; }
+  .otbl { min-width:0 !important; border:none !important; }
+  .otbl thead { display:none !important; }
+  .otbl tr {
+    margin-bottom:12px; border:1.5px solid var(--g100);
+    border-radius:8px; padding:8px; background:var(--wh);
+    box-shadow:0 1px 3px rgba(0,0,0,.04);
+  }
+  .otbl td {
+    display:flex !important; justify-content:space-between; align-items:flex-start;
+    gap:12px; min-width:0 !important; padding:8px 6px;
+    border-bottom:1px solid var(--g50) !important;
+  }
+  .otbl td::before {
+    content: attr(data-label);  /* ← the missing line from A-1 */
+    font-weight:800; font-size:10px; letter-spacing:.5px;
+    text-transform:uppercase; color:var(--g400);
+    flex-shrink:0; text-align:left; min-width:80px;
+  }
+  .otbl td:last-child { border-bottom:none !important; }
+  .stat-grid { grid-template-columns:repeat(2, 1fr) !important; }
+  .apcards { grid-template-columns:1fr !important; }
+  .ig-grid { grid-template-columns:repeat(2,1fr) !important; }
 }
 .otbl th{text-align:left;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--g500);padding:18px 16px;border-bottom:2px solid var(--g100);background:var(--g50)}
 .otbl td{padding:18px 16px;border-bottom:1px solid var(--g100);vertical-align:top;line-height:1.6}
