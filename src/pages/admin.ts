@@ -20,7 +20,11 @@ export function adminPage(opts: {
     slug: l.slug, title: l.title, content: l.content, updatedAt: l.updatedAt
   })));
 
-  const body = `<style>
+  const body = `<meta name="robots" content="noindex,nofollow">
+<style>
+/* [AUDIT 2026-10-03] A-4: Force light color-scheme on admin to prevent dark mode text issues.
+   25+ hardcoded pastel chips (#fef3c7, #d1fae5, etc.) are unreadable under forced dark. */
+:root { color-scheme: light only; }
 .adm{max-width:1100px;margin:0 auto;padding:40px 24px 100px}
 .alog{max-width:400px;margin:120px auto;text-align:center}
 .alog h1{font-family:var(--head);font-size:28px;text-transform:uppercase;letter-spacing:-.02em;margin-bottom:8px}
@@ -45,9 +49,34 @@ export function adminPage(opts: {
 .otbl-wrap{width:100%;overflow-x:auto;border:1.5px solid var(--g100);border-radius:8px;background:var(--wh)}
 .otbl{width:100%;border-collapse:collapse;font-size:13px;min-width:860px}
 @media(max-width:768px){
+  /* [AUDIT 2026-10-03] A-1: Complete the mobile table card-collapse pattern.
+     data-label attrs were on 7 cells but the CSS to read them was MISSING — this is it. */
   .adm{padding:20px 16px 80px}
   .ahdr{flex-direction:column;gap:12px;align-items:flex-start}
-  .otbl-wrap{-webkit-overflow-scrolling:touch}
+  .otbl-wrap{-webkit-overflow-scrolling:touch;overflow-x:visible}
+  .otbl, .otbl tbody, .otbl tr, .otbl td { display:block !important; width:100% !important; }
+  .otbl { min-width:0 !important; border:none !important; }
+  .otbl thead { display:none !important; }
+  .otbl tr {
+    margin-bottom:12px; border:1.5px solid var(--g100);
+    border-radius:8px; padding:8px; background:var(--wh);
+    box-shadow:0 1px 3px rgba(0,0,0,.04);
+  }
+  .otbl td {
+    display:flex !important; justify-content:space-between; align-items:flex-start;
+    gap:12px; min-width:0 !important; padding:8px 6px;
+    border-bottom:1px solid var(--g50) !important;
+  }
+  .otbl td::before {
+    content: attr(data-label);  /* ← the missing line from A-1 */
+    font-weight:800; font-size:10px; letter-spacing:.5px;
+    text-transform:uppercase; color:var(--g400);
+    flex-shrink:0; text-align:left; min-width:80px;
+  }
+  .otbl td:last-child { border-bottom:none !important; }
+  .stat-grid { grid-template-columns:repeat(2, 1fr) !important; }
+  .apcards { grid-template-columns:1fr !important; }
+  .ig-grid { grid-template-columns:repeat(2,1fr) !important; }
 }
 .otbl th{text-align:left;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--g500);padding:18px 16px;border-bottom:2px solid var(--g100);background:var(--g50)}
 .otbl td{padding:18px 16px;border-bottom:1px solid var(--g100);vertical-align:top;line-height:1.6}
@@ -598,17 +627,15 @@ export function adminPage(opts: {
 <p style="font-size:11px;color:var(--g400);margin:8px 0 0">Tip: set Cloudflare secrets <code>CRON_SECRET</code> (required) and <code>OPENAI_API_KEY</code> (optional — enables richer LLM decisions; without it a built-in heuristic engine is used). Set <code>AI_ANNOUNCEMENT</code>=<code>off</code> to hide the bar.</p>
 </div>
 <div class="sett-card">
-<h4>Content Refresh</h4>
-<p>Push the latest bundled content (Legal Pages · FAQs · Blog Posts · Products) over any stale rows in Supabase. Use this after a deploy when you notice a page still shows old content — the initial-seed logic only fires when a table is empty, so DB rows from earlier deploys don't auto-refresh.</p>
+<h4>Content Refresh (v20)</h4>
+<p>Push the latest bundled Legal Pages and FAQ content over the stale rows in Supabase. Use this after a deploy when you notice a Legal / FAQ page still shows old content because the initial-seed only fires when the table is empty.</p>
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px">
   <button class="asave" style="flex:0 0 auto" onclick="reseedLegal()"><i class="fas fa-file-alt"></i> Reseed Legal Pages</button>
   <button class="asave" style="flex:0 0 auto" onclick="reseedFaqs()"><i class="fas fa-question-circle"></i> Reseed FAQs</button>
-  <button class="asave" style="flex:0 0 auto" onclick="reseedBlog()"><i class="fas fa-newspaper"></i> Reseed Blog Posts</button>
-  <button class="asave" style="flex:0 0 auto" onclick="reseedProducts()"><i class="fas fa-tshirt"></i> Reseed Products</button>
   <button class="asave" style="flex:0 0 auto;background:#0a0a0a" onclick="purgePageCache()"><i class="fas fa-broom"></i> Purge Cache</button>
   <span id="reseedStatus" style="font-size:12px;color:var(--g400)"></span>
 </div>
-<p style="font-size:11px;color:var(--g400);margin:0"><b>Reseed</b> = overwrite Supabase rows whose slug / question matches a bundled seed entry (admin-added rows without a matching slug/question are preserved). <b>Purge cache</b> = drop the 60-second edge cache for products / legal / FAQ / blog / settings so the next request re-reads from Supabase immediately.</p>
+<p style="font-size:11px;color:var(--g400);margin:0"><b>Reseed</b> = overwrite Supabase rows whose slug / question matches a bundled seed entry (admin-added FAQs are preserved). <b>Purge cache</b> = drop the 60-second edge cache for products / legal / FAQ / blog / settings so the next request re-reads from Supabase immediately.</p>
 </div>
 <div class="sett-card">
 <h4>Cookie Consent Banner</h4>
@@ -1281,39 +1308,8 @@ function reseedFaqs(){
     .then(function(r){return r.json()})
     .then(function(d){
       if(d.success){
-        if(st) st.textContent='Reseeded FAQs — deleted '+d.deleted+' stale, inserted '+d.inserted;
+        if(st) st.textContent='Reseeded '+d.count+' FAQ rows';
         toast('FAQs reseeded — refresh /faq','ok-green');
-      } else {
-        if(st) st.textContent='Failed: '+(d.error||'unknown');
-        toast('Reseed failed','err');
-      }
-    })
-    .catch(function(e){ if(st) st.textContent='Error: '+e.message; toast('Reseed error','err'); });
-}
-function reseedBlog(){
-  var st = document.getElementById('reseedStatus'); if(st) st.textContent='Reseeding blog posts...';
-  fetch('/api/admin/blog/reseed',{method:'POST',headers:{'x-admin-token':sessionStorage.getItem('iadm_t')}})
-    .then(function(r){return r.json()})
-    .then(function(d){
-      if(d.success){
-        if(st) st.textContent='Reseeded blog posts — deleted '+d.deleted+' stale, inserted '+d.inserted;
-        toast('Blog posts reseeded — refresh /blog','ok-green');
-      } else {
-        if(st) st.textContent='Failed: '+(d.error||'unknown');
-        toast('Reseed failed','err');
-      }
-    })
-    .catch(function(e){ if(st) st.textContent='Error: '+e.message; toast('Reseed error','err'); });
-}
-function reseedProducts(){
-  if(!confirm('Reseed products?\\n\\nThis overwrites price/description/images/SEO for products whose slug matches a bundled entry. Admin-added products (with slugs not in the seed) are preserved.\\n\\nProceed?'))return;
-  var st = document.getElementById('reseedStatus'); if(st) st.textContent='Reseeding products...';
-  fetch('/api/admin/products/reseed',{method:'POST',headers:{'x-admin-token':sessionStorage.getItem('iadm_t')}})
-    .then(function(r){return r.json()})
-    .then(function(d){
-      if(d.success){
-        if(st) st.textContent='Reseeded products — deleted '+d.deleted+' stale, inserted '+d.inserted;
-        toast('Products reseeded — hard-refresh any product page','ok-green');
       } else {
         if(st) st.textContent='Failed: '+(d.error||'unknown');
         toast('Reseed failed','err');
@@ -2089,6 +2085,19 @@ function autoSlug(){
     'Admin | Intru',
     'Admin panel for Intru store management.',
     body,
-    { cls: 'admin-page', razorpayKeyId: opts.razorpayKeyId, googleClientId: opts.googleClientId, products, legalPages, useMagicCheckout: !!opts.useMagicCheckout }
+    {
+      cls: 'admin-page',
+      razorpayKeyId: opts.razorpayKeyId,
+      googleClientId: opts.googleClientId,
+      products,
+      legalPages,
+      useMagicCheckout: !!opts.useMagicCheckout,
+      // [AUDIT 2026-10-03] A-3: Suppress GA4/Clarity on admin — they pollute customer analytics.
+      // GA4 showed "Admin | Intru — 21 views, 81 active users, 243 events" from developer activity.
+      ga4Id: '',
+      clarityId: '',
+      metaPixelId: '',
+      gtmId: 'off',
+    }
   );
 }

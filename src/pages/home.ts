@@ -77,7 +77,10 @@ export function homePage(opts: {
       },
       "sameAs": [
         "https://instagram.com/intru.in"
-      ]
+      ],
+      // [AUDIT 2026-10-03] Defect #28: 180+ brand misspellings in GSC (intruu, intru., in tru, intrue, etc.)
+      // alternateName helps Google consolidate the entity across all spelling variants.
+      "alternateName": ["INTRU", "Intru Clothing", "Intru India", "intru.in", "Intru Streetwear", "Intruu", "In Tru"]
     },
     {
       "@context": "https://schema.org",
@@ -255,7 +258,7 @@ html, body { overflow-x: hidden !important; width: 100% !important; max-width: 1
       <div class="hf-card anim d${i+3}">
         <a href="/product/${p.slug}" class="hf-img-link" style="display:block;cursor:pointer">
           <div class="hf-img">
-            <img src="${p.images[0]}" alt="${p.name}">
+            <img src="${p.images[0]}" alt="${p.name}" width="400" height="500"${i === 0 ? ' fetchpriority="high" loading="eager"' : ' loading="lazy"'}>
             <div class="hf-sizes-box">
               <div class="hf-sizes">
                 ${(p.sizes || ['S', 'M', 'L', 'XL']).map(sz => `<div class="hf-sz" onclick="event.preventDefault();event.stopPropagation();quickAddToCart('${p.id}','${sz}')">${sz}</div>`).join('')}
