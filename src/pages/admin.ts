@@ -1310,8 +1310,39 @@ function reseedFaqs(){
     .then(function(r){return r.json()})
     .then(function(d){
       if(d.success){
-        if(st) st.textContent='Reseeded '+d.count+' FAQ rows';
+        if(st) st.textContent='Reseeded FAQs — deleted '+(d.deleted||0)+' stale, inserted '+(d.inserted||d.count||0);
         toast('FAQs reseeded — refresh /faq','ok-green');
+      } else {
+        if(st) st.textContent='Failed: '+(d.error||'unknown');
+        toast('Reseed failed','err');
+      }
+    })
+    .catch(function(e){ if(st) st.textContent='Error: '+e.message; toast('Reseed error','err'); });
+}
+function reseedBlog(){
+  var st = document.getElementById('reseedStatus'); if(st) st.textContent='Reseeding blog posts...';
+  fetch('/api/admin/blog/reseed',{method:'POST',headers:{'x-admin-token':sessionStorage.getItem('iadm_t')}})
+    .then(function(r){return r.json()})
+    .then(function(d){
+      if(d.success){
+        if(st) st.textContent='Reseeded blog posts — deleted '+(d.deleted||0)+' stale, inserted '+(d.inserted||0);
+        toast('Blog posts reseeded — refresh /blog','ok-green');
+      } else {
+        if(st) st.textContent='Failed: '+(d.error||'unknown');
+        toast('Reseed failed','err');
+      }
+    })
+    .catch(function(e){ if(st) st.textContent='Error: '+e.message; toast('Reseed error','err'); });
+}
+function reseedProducts(){
+  if(!confirm('Reseed products?\\n\\nThis overwrites price/description/images for products whose slug matches a bundled entry. Admin-added products (with slugs not in the seed) are preserved.\\n\\nProceed?'))return;
+  var st = document.getElementById('reseedStatus'); if(st) st.textContent='Reseeding products...';
+  fetch('/api/admin/products/reseed',{method:'POST',headers:{'x-admin-token':sessionStorage.getItem('iadm_t')}})
+    .then(function(r){return r.json()})
+    .then(function(d){
+      if(d.success){
+        if(st) st.textContent='Reseeded products — deleted '+(d.deleted||0)+' stale, inserted '+(d.inserted||0);
+        toast('Products reseeded — hard-refresh any product page','ok-green');
       } else {
         if(st) st.textContent='Failed: '+(d.error||'unknown');
         toast('Reseed failed','err');

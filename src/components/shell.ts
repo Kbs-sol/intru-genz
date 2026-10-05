@@ -2051,27 +2051,34 @@ function renderCartTotals(){
   document.getElementById('cshp').textContent=shText||'Free';
   document.getElementById('ctot').textContent=fmt(t.total);
 
+  /* [AUDIT P0-3] Shipping progress bar in bag.
+     Audit called out: "Show shipping cost in the bag, before checkout. If it is
+     free over a threshold, show a progress bar: '₹301 away from free shipping'".
+     Prepaid is ALWAYS free (per Shipping policy) — show the win banner.
+     COD progress bar incentivises adding more to clear the free-COD threshold. */
   var fsp = document.getElementById('fsProgress');
   if(fsp) {
     if(t.subtotal === 0) {
       fsp.style.display = 'none';
     } else if (payMode === 'prepaid') {
       fsp.style.display = 'block';
-      fsp.innerHTML = '<i class="fas fa-bolt" style="color:var(--green);margin-right:6px"></i><b>Dispatch Unlocked!</b> <span style="font-weight:500;color:var(--g500)">(Free Shipping)</span>';
+      fsp.innerHTML = '<i class="fas fa-check-circle" style="color:#166534;margin-right:6px"></i><b>FREE Shipping Unlocked</b> <span style="font-weight:500;color:#166534;opacity:0.75">\u00b7 All prepaid orders ship free</span>';
       fsp.style.background = '#dcfce7';
       fsp.style.color = '#166534';
       fsp.style.border = '1px solid #bbf7d0';
     } else {
       var threshold = S.ft || 1999;
       var rem = threshold - t.subtotal;
+      var pct = Math.min(100, Math.round((t.subtotal / threshold) * 100));
       fsp.style.display = 'block';
       if(rem > 0) {
-        fsp.innerHTML = 'Add <span style="color:var(--red)">' + fmt(rem) + '</span> more for <b>FREE COD Delivery</b>';
+        fsp.innerHTML = '<div style="margin-bottom:8px">Add <span style="color:#dc2626;font-weight:800">' + fmt(rem) + '</span> more to unlock <b>FREE COD Delivery</b></div>'
+          + '<div style="height:6px;background:rgba(0,0,0,0.08);border-radius:4px;overflow:hidden"><div style="height:100%;width:' + pct + '%;background:linear-gradient(90deg,#f59e0b,#16a34a);transition:width .4s"></div></div>';
         fsp.style.background = 'var(--g50)';
         fsp.style.color = 'var(--bk)';
         fsp.style.border = '1px solid var(--g200)';
       } else {
-        fsp.innerHTML = '<i class="fas fa-check-circle" style="color:var(--green);margin-right:6px"></i><b>FREE COD Delivery Unlocked!</b>';
+        fsp.innerHTML = '<i class="fas fa-check-circle" style="color:#166534;margin-right:6px"></i><b>FREE COD Delivery Unlocked!</b>';
         fsp.style.background = '#dcfce7';
         fsp.style.color = '#166534';
         fsp.style.border = '1px solid #bbf7d0';
