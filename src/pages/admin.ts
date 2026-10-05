@@ -627,15 +627,17 @@ export function adminPage(opts: {
 <p style="font-size:11px;color:var(--g400);margin:8px 0 0">Tip: set Cloudflare secrets <code>CRON_SECRET</code> (required) and <code>OPENAI_API_KEY</code> (optional — enables richer LLM decisions; without it a built-in heuristic engine is used). Set <code>AI_ANNOUNCEMENT</code>=<code>off</code> to hide the bar.</p>
 </div>
 <div class="sett-card">
-<h4>Content Refresh (v20)</h4>
-<p>Push the latest bundled Legal Pages and FAQ content over the stale rows in Supabase. Use this after a deploy when you notice a Legal / FAQ page still shows old content because the initial-seed only fires when the table is empty.</p>
+<h4>Content Refresh</h4>
+<p>Push the latest bundled content (Legal Pages · FAQs · Blog Posts · Products) over any stale rows in Supabase. Use this after a deploy when you notice a page still shows old content — the initial-seed logic only fires when a table is empty, so DB rows from earlier deploys don't auto-refresh.</p>
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px">
   <button class="asave" style="flex:0 0 auto" onclick="reseedLegal()"><i class="fas fa-file-alt"></i> Reseed Legal Pages</button>
   <button class="asave" style="flex:0 0 auto" onclick="reseedFaqs()"><i class="fas fa-question-circle"></i> Reseed FAQs</button>
+  <button class="asave" style="flex:0 0 auto" onclick="reseedBlog()"><i class="fas fa-newspaper"></i> Reseed Blog Posts</button>
+  <button class="asave" style="flex:0 0 auto" onclick="reseedProducts()"><i class="fas fa-tshirt"></i> Reseed Products</button>
   <button class="asave" style="flex:0 0 auto;background:#0a0a0a" onclick="purgePageCache()"><i class="fas fa-broom"></i> Purge Cache</button>
   <span id="reseedStatus" style="font-size:12px;color:var(--g400)"></span>
 </div>
-<p style="font-size:11px;color:var(--g400);margin:0"><b>Reseed</b> = overwrite Supabase rows whose slug / question matches a bundled seed entry (admin-added FAQs are preserved). <b>Purge cache</b> = drop the 60-second edge cache for products / legal / FAQ / blog / settings so the next request re-reads from Supabase immediately.</p>
+<p style="font-size:11px;color:var(--g400);margin:0"><b>Reseed</b> = overwrite Supabase rows whose slug / question matches a bundled seed entry (admin-added rows without a matching slug/question are preserved). <b>Purge cache</b> = drop the 60-second edge cache for products / legal / FAQ / blog / settings so the next request re-reads from Supabase immediately.</p>
 </div>
 <div class="sett-card">
 <h4>Cookie Consent Banner</h4>

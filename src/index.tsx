@@ -2982,6 +2982,81 @@ app.post('/api/admin/cache/purge', async (c: Context<{ Bindings: Bindings }>) =>
   return c.json({ success: true, purged_at: new Date().toISOString() });
 });
 
+// [v21] Force-reseed blog posts. Delete-then-insert pattern. Preserves admin-
+// authored posts whose slug isn't in the SEED_BLOG_POSTS array.
+app.post('/api/admin/blog/reseed', async (c: Context<{ Bindings: Bindings }>) => {
+  const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+  const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY');
+  if (!sbUrl || !sbKey) return c.json({ error: 'Supabase service key required' }, 500);
+  try {
+    const rows = SEED_BLOG_POSTS.map(p => ({
+      slug: p.slug, title: p.title, seo_title: p.seoTitle, seo_desc: p.seoDesc,
+      excerpt: p.excerpt, cover: p.cover, category: p.category, read_mins: p.readMins,
+      published_iso: p.publishedISO, updated_iso: p.updatedISO, author: p.author,
+      keywords: p.keywords, body: p.body, is_published: p.isPublished !== false,
+    }));
+    const seedSlugs = SEED_BLOG_POSTS.map(p => `"${p.slug}"`).join(',');
+    const delRes = await supabaseFetch(
+      sbUrl, sbKey,
+      `blog_posts?slug=in.(${encodeURIComponent(seedSlugs)})`,
+      { method: 'DELETE', headers: { 'Prefer': 'return=representation' } as any }
+    );
+    let deleted = 0;
+    if (delRes.ok) {
+      try { deleted = ((await delRes.json()) as any[]).length; } catch { deleted = 0; }
+    }
+    const insRes = await supabaseFetch(sbUrl, sbKey, 'blog_posts', {
+      method: 'POST',
+      headers: { 'Prefer': 'return=representation' } as any,
+      body: JSON.stringify(rows),
+    });
+    if (!insRes.ok) return c.json({ error: await insRes.text() }, 500);
+    const saved = await insRes.json() as any[];
+    _purgePageDataCache();
+    return c.json({ success: true, deleted, inserted: saved.length });
+  } catch (e: any) {
+    return c.json({ error: String(e?.message || e) }, 500);
+  }
+});
+
+// [v21] Force-reseed products. Preserves admin-added SKUs whose slug isn't in
+// SEED_PRODUCTS. Column shape matches the auto-seed in fetchProducts().
+app.post('/api/admin/products/reseed', async (c: Context<{ Bindings: Bindings }>) => {
+  const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+  const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY');
+  if (!sbUrl || !sbKey) return c.json({ error: 'Supabase service key required' }, 500);
+  try {
+    const rows = SEED_PRODUCTS.map(p => ({
+      id: p.id, slug: p.slug, name: p.name, tagline: p.tagline,
+      description: p.description, price: p.price,
+      compare_price: p.comparePrice || null, currency: p.currency,
+      images: p.images, sizes: p.sizes, category: p.category,
+      in_stock: p.inStock, featured: (p as any).featured || false,
+    }));
+    const seedSlugs = SEED_PRODUCTS.map(p => `"${p.slug}"`).join(',');
+    const delRes = await supabaseFetch(
+      sbUrl, sbKey,
+      `products?slug=in.(${encodeURIComponent(seedSlugs)})`,
+      { method: 'DELETE', headers: { 'Prefer': 'return=representation' } as any }
+    );
+    let deleted = 0;
+    if (delRes.ok) {
+      try { deleted = ((await delRes.json()) as any[]).length; } catch { deleted = 0; }
+    }
+    const insRes = await supabaseFetch(sbUrl, sbKey, 'products', {
+      method: 'POST',
+      headers: { 'Prefer': 'return=representation' } as any,
+      body: JSON.stringify(rows),
+    });
+    if (!insRes.ok) return c.json({ error: await insRes.text() }, 500);
+    const saved = await insRes.json() as any[];
+    _purgePageDataCache();
+    return c.json({ success: true, deleted, inserted: saved.length });
+  } catch (e: any) {
+    return c.json({ error: String(e?.message || e) }, 500);
+  }
+});
+
 // ============ ADMIN: FAQ CRUD ============
 // Endpoints mirror /api/admin/legal — same auth (x-admin-token via middleware),
 // same Supabase pattern, same error shape. The public /faq page fetches only
