@@ -305,16 +305,25 @@ ${storeSettings.SIZE_GUIDE_ENABLED !== 'false' ? '<button onclick="openSizeGuide
 </div>
 <div class="szopt" id="szopt">
 ${product.sizes.map(s => {
-  // Step 7: Per-size stock gating
+  // Per-size stock gating. Audit called out: sold-out sizes need visible
+  // feedback (strike + "sold out — never restocked" tooltip) rather than a
+  // silent dead click. Reinforces scarcity positioning instead of fighting it.
   if (sizeStock && sizeStock[s] !== undefined) {
     const stock = sizeStock[s];
     if (stock === 0) {
-      return `<button class="szbtn" data-sz="${s}" data-disabled="true" style="opacity:0.3;cursor:not-allowed;text-decoration:line-through;pointer-events:none">${s}</button>`;
+      return `<button class="szbtn sz-sold" data-sz="${s}" data-disabled="true" title="Sold out — never restocked" aria-label="${s} sold out, never restocked" style="opacity:0.4;cursor:not-allowed;text-decoration:line-through;pointer-events:none;position:relative">${s}</button>`;
+    }
+    // Low stock badge (3 or fewer left) to activate scarcity on hover
+    if (stock <= 3) {
+      return `<button class="szbtn sz-low" data-sz="${s}" onclick="selSz(this)" title="Only ${stock} left — never restocked" style="position:relative"><span>${s}</span><span class="sz-stock-tag" style="position:absolute;top:-6px;right:-6px;background:#dc2626;color:#fff;font-size:8px;font-weight:900;padding:2px 4px;border-radius:3px;letter-spacing:.5px;line-height:1">${stock}</span></button>`;
     }
   }
   return `<button class="szbtn" data-sz="${s}" onclick="selSz(this)">${s}</button>`;
 }).join('')}
 </div>
+<!-- Sold-out legend (only shown if any size is actually sold out) -->
+${sizeStock && Object.values(sizeStock as any).some((v: any) => v === 0) ? `
+<p style="font-size:11px;color:var(--g500);margin-top:-8px;margin-bottom:12px"><i class="fas fa-info-circle" style="margin-right:4px;color:var(--g400)"></i>Strike-through = sold out, never restocked. Red number = units remaining.</p>` : ''}
 <p class="sz-hint" id="szHint"><i class="fas fa-exclamation-circle" style="margin-right:4px"></i>Please select a size to continue</p>
 
 <!-- Size Guide Modal -->

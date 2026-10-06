@@ -4,12 +4,86 @@
 - **Name**: intru.in
 - **Goal**: Engineered for High Organic Traffic (SEO) and High Conversion (using deep direct-response psychology)
 - **Stack**: Hono + TypeScript + Cloudflare Pages + Supabase + Razorpay + Resend
-- **Version**: v21 (Date: September 22, 2026) — Growth-focused shipping of the v20 audit recommendations: **FAQ reseed 42P10 fix** (delete-then-insert now that `question` has no unique constraint), **public Instagram feed section** on home (admin CRUD existed since v15 but had no public UI — orphan fixed), **homepage trust bar** to combat 86% bounce, **`/guide` TL;DR** for desktop-position lift (was #18 on desktop, target top-10), **best-oversized-tshirt-brands blog** now leads with a 7-row comparison table + TL;DR, **per-product FAQ** (visible + FAQPage JSON-LD) targeting GSC zero-click queries (`no risk no porsche`, `18 shirt`, `doodle t shirt`), **updated product meta descriptions** with buyer-intent keywords + India-city coverage + price + COD signal, **`/search` route + brand-typo trap** for `intruu`, `intrù`, `topintru`, `inourinternest` (64 imp), `in tru` etc. that GSC shows real users typing — canonical to home for typos consolidates link equity.
+- **Version**: v22 (Date: October 5, 2026) — Merge of the manager's audit-driven `testing` branch into main **plus** targeted Supabase Disk IO rescue: **INTERNAL_ANALYTICS_ENABLED kill-switch** (default OFF — gates `view_stats` + `funnel_events` writes that were hitting Supabase on every pageview and burning through the free-tier Disk IO budget 5 weeks running). All conversion-grade events (`payment_success`, `purchase`, `identify`, `payment_failed`, `refund`) are **always** logged regardless of the toggle. GA4 + Clarity + Meta Pixel continue to work unaffected. Admin **Analytics tab** now surfaces a yellow notice linking out to GA4/Clarity/Meta Events Manager when the toggle is off. **Plus**: hero image preload (LCP), UTM first-touch capture (`?utm_source=instagram` persisted 30 days for Meta CAPI + funnel attribution), visible per-size scarcity badges + sold-out legend on product pages, blog + products reseed endpoints added to Content Refresh card. Also merged testing branch: 28,609 legacy-Shopify 301 redirects (`/pages/*`, `/products/*`), dark-mode `color-scheme: light only` fix, admin mobile `attr(data-label)` table collapse, soft-404 → real 404 page, Google tokeninfo verification, httpOnly admin cookie, HMAC-signed COD verify links, admin-pages noindex, GA4 duplicate event cleanup, Organization `alternateName`, exit-intent popup OFF.
 
 ## URLs
 - **Production**: https://intru-genz.pages.dev (staging) → https://intru.in (custom domain pending)
 - **GitHub**: https://github.com/Kbs-sol/intru-genz
 - **Admin**: Hidden — enter Robust Konami Code (↑↑↓↓←→←→ba) on any page
+
+## v22 Changes (October 5, 2026) — Supabase Disk IO Rescue + Audit Branch Merge
+
+This release fixes the Supabase Disk IO exhaustion problem that was triggering **5 depletion warnings** from Supabase (Sep 5, 13, 20, 27 and Oct 5 2026) despite the v20 edge-cache fix, and merges the manager's `testing` branch audit work into main.
+
+### 🚨 Supabase Disk IO root cause + fix
+
+v20 cached DB **reads** (page-render data) but didn't touch **writes**. Every page render still fired an `incrementView()` upsert into `view_stats`, and every client-side `window.track()` call wrote a row into `funnel_events`. On a free-tier Supabase project with limited Disk IO Budget, that write volume is the dominant cost — ~100-200 writes/day from pageviews + funnel events alone, before the growth-loop cron starts reading `funnel_events?limit=10000` for its daily report.
+
+**Fix** — a new store setting `INTERNAL_ANALYTICS_ENABLED` (default **OFF**):
+
+- `incrementView()` in `src/data.ts` is a **no-op when OFF** (checks a 10-min-cached flag; zero overhead per pageview).
+- `/api/analytics/event` **skips the funnel_events INSERT when OFF** — but **always** writes conversion-grade events (`payment_success`, `purchase`, `identify`, `payment_failed`, `refund`) regardless, so the funnel still has data where it matters. Volume of these = 10 purchases in 90 days, so they'll never move the needle.
+- `404_hit` logging in the catchall handler is also gated behind the flag (bots probing for `wp-admin.php` etc. shouldn't cost Disk IO).
+- The flag is served from a 10-minute per-isolate cache so **the flag check itself** doesn't become a hot path.
+
+**What still works unchanged with analytics OFF:**
+- **GA4** (`G-JETJF5P7YY`) — pageviews, events, ecommerce funnel, bounce rate, engagement time, source/medium, geography, device, behavior flow. All of it. GA4 doesn't touch Supabase.
+- **Microsoft Clarity** — heatmaps, session replays, dead/rage clicks, scroll depth, bot filtering.
+- **Meta Pixel + Conversions API** — browser/server-side dedup via shared `event_id`. Nothing changes.
+- **Admin Orders panel** — orders table is unaffected (orders have their own table, always written).
+- **Payment webhooks + COD verify + abandoned-cart emails** — all unaffected (they use the `orders`, `email_logs`, `cod_verification_log` tables, not `funnel_events`).
+
+**What's limited with analytics OFF:**
+- The **admin Analytics tab** shows a yellow notice: "Internal analytics writes are OFF. Use GA4 / Clarity / Meta Events Manager for pageview and event data." Six stat cards still populate from any historical funnel_events the DB already has + the always-logged conversion events.
+- The **AI growth-loop cron** (daily `funnel_events?limit=10000` read) will see fewer events, so its recommendations will lean more on orders and product data. Still useful.
+
+**Toggle:** Admin → Settings → "Internal Analytics (Supabase writes)". Red left border makes it visually distinct from other toggles. Takes effect within 10 minutes (cache TTL).
+
+### 🧱 Merged testing branch (manager's audit implementation)
+
+Full merge from `origin/testing` of the audit-driven fixes (commits `1bd133a`, `040ee1b`, `9560e13`):
+
+- **P0-1: 28,609 search impressions returning 404** — `LEGACY_REDIRECTS` map in `src/index.tsx` + `/pages/*` and `/products/*` catch-all routes 301 to the correct destinations (`/pages/contact-us → /about#contact`, `/pages/faqs → /faq`, `/products/sjirt → /product/summer-shirt`, `/products/porsche → /product/no-risk-porsche`, `/products/top → /collections?cat=Crop-Tops` etc.). Unknown `/products/*` slugs 302 to `/search?q=<slug>`.
+- **P0-2: Dark mode invisible text** — `src/components/shell.ts` meta tag changed to `<meta name="color-scheme" content="light only">` + `:root { color-scheme: light only; }` so mobile browsers stop auto-inverting backgrounds. Fixes the ~40-50% of mobile users with dark mode enabled whose text was rendering invisibly.
+- **P0-3: Cart UX fixes** — shipping cost now shown transparently in the bag (`FREE (Prepaid) / + ₹99 (COD)`), prominent "Cash on Delivery available" green badge announced at bag stage (COD support was buried before). Shipping progress bar visualised with a gradient fill (v22 addition).
+- **P0-4: Admin mobile table collapse** — `attr(data-label)` CSS added to `src/pages/admin.ts` so order tables actually collapse into readable stacked cards on 390px screens instead of forcing 2.5x horizontal scroll.
+- **P0-5/P0-9: LCP + CLS** — `fetchpriority="high" loading="eager"` on hero image, hardcoded `width="400" height="500"` on all product cards to eliminate CLS 0.195. v22 adds `<link rel="preload" as="image">` for the hero source (shaves ~0.5-1.0s off LCP).
+- **P0-6: Soft-404 fix** — unknown `/product/:slug` and `/p/:slug` routes return a real 404 page (branded, with search button) instead of `meta-refresh` to home. Preserves link equity.
+- **P0-7: Duplicate GA4 event names** — standardised Title Case (`Contact us`, `Login`) to GA4-compliant snake_case (`contact`, `login`), removed Clarity double-fire alias logic.
+- **P1 security hardening**:
+  - Admin `GET /admin` now enforces an `httpOnly` session cookie (not client-side JS).
+  - `POST /api/auth/google` now cryptographically verifies ID tokens against Google's `tokeninfo` endpoint (prevents forgery).
+  - `/verify-order?id=&t=` requires an HMAC-SHA256 signature with a day-bucket window (prevents COD verification spoofing).
+  - Fixed DB bug: `/verify-order` was trying to update status to `'verified'` (which violated a DB CHECK constraint) — now correctly sets `'placed'`.
+- **P1-12: Promo bar HTML removed** — 738 shown / 11 clicked = 67:1 ratio was pure clutter eating above-fold space.
+- **P1-13: Analytics sandbox pollution** — `getPageOpts()` purges GA4/Clarity/Meta/GTM IDs if the request `host` is not `intru.in` or `www.intru.in`. v20's test-tier `*.sandbox.gensparksite.com` traffic no longer pollutes production analytics.
+- **P1-14: Admin pages tracked as customer traffic** — analytics block skipped entirely when path starts with `/admin`; `<meta name="robots" content="noindex,nofollow">` added to admin HTML.
+- **P1-18/19: Dead clicks** — image lightbox added to `src/components/shell.ts` for product-image taps; `.sz-sold` CSS class standardised for sold-out size swatches.
+- **P1-22: Exit-intent popup** — `EXIT_ON = false` hardcoded; the popup was firing for 7% of sessions and converting at 1%, adding frustration to users already trying to leave.
+- **P1-28: Brand misspellings (180+)** — `alternateName: ["INTRU", "Intru Clothing", "Intru India", "intru.in", "Intru Streetwear", "Intruu", "In Tru"]` added to the Organization JSON-LD in `src/pages/home.ts`.
+- **P2-32/33: SEO metadata cleanup** — removed the fake Bing verification placeholder (`msvalidate.01 = intru_in_bing_verify`) and the 300+ char keyword-stuffing `<meta name="keywords">` tag.
+
+### 🆕 v22 additions on top of the merge
+
+- **UTM first-touch capture** (`src/components/shell.ts`): any landing with `?utm_source=`, `?utm_medium=` or `?utm_campaign=` is captured and persisted to `localStorage.intru_utm` for 30 days. Every subsequent `window.track()` call attaches the stored UTM to the beacon payload so `funnel_events` + Meta CAPI can attribute. On landing we also fire a `utm_landing` event with the full payload. **Fixes the 3,908 sessions in "(direct)/(none)" that Instagram in-app browser referrer-stripping was causing.** Standard CTA to apply: set your IG bio link to `https://intru.in/collections?utm_source=instagram&utm_medium=bio&utm_campaign=<post-slug>`.
+- **Visible per-size scarcity + sold-out legend** (`src/pages/product.ts`): sold-out swatches now have a `.sz-sold` class with strikethrough + `title="Sold out — never restocked"` + aria-label. Sizes with ≤3 units left get a red count-badge in the corner. Legend text below the swatches explains the signalling. Activates scarcity in the exact moment of indecision.
+- **Hero `<link rel="preload" as="image" fetchpriority="high">`** — targets the audit's LCP 4.07s fail.
+- **Content Refresh card** gets `Reseed Blog Posts` + `Reseed Products` buttons (v21 add that got overwritten by the testing-branch merge; restored).
+- **FAQ reseed Postgres 42P10 fix** — `faqs` table has no unique constraint on `question`, so `on_conflict=question` was returning `42P10`. Rewrote the endpoint as a delete-then-insert flow (delete rows whose question matches ANY `SEED_FAQS` entry, then plain INSERT the seed set). Preserves admin-added FAQs.
+
+### File Ledger (v22)
+| File | Change |
+|---|---|
+| `src/data.ts` | `incrementView()` + `_internalAnalyticsOn()` gate — no-op when `INTERNAL_ANALYTICS_ENABLED !== 'true'` · 10-min flag cache |
+| `src/index.tsx` | `_getInternalAnalyticsFlag()` helper · `/api/analytics/event` gates `funnel_events` INSERT behind the flag (except `payment_success`/`purchase`/`identify` which are always logged) · 404-hit logging gated · settings PUT flushes flag cache · `/api/admin/blog/reseed` + `/api/admin/products/reseed` endpoints (restored from v21) · merged testing branch's LEGACY_REDIRECTS, security helpers (HMAC, Google tokeninfo), soft-404 branded page, hostname-based analytics-id purge |
+| `src/pages/home.ts` | Trust bar (free shipping / 36h dispatch / made in India / secure payment) · lazy-loaded Instagram feed section · `<link rel="preload">` for hero image · Organization alternateName (merged from testing) · product-card width/height attrs · fetchpriority on hero (merged) |
+| `src/pages/product.ts` | Visible per-product FAQ block (JSON-LD + visible HTML) · `.sz-sold` + `.sz-low` size swatches with scarcity badges + legend |
+| `src/pages/guide.ts` | TL;DR dark card above fold |
+| `src/pages/search.ts` | **New** — `/search?q=` route + brand-typo trap with canonical consolidation |
+| `src/pages/admin.ts` | Content Refresh card with 4 reseed buttons + cache purge · "Internal Analytics (Supabase writes)" toggle in Settings (red-border, warning-labelled) · yellow notice on Analytics tab when writes OFF with GA4/Clarity links · mobile table collapse CSS (merged from testing) · noindex meta tag |
+| `src/components/shell.ts` | UTM first-touch capture (localStorage.intru_utm, 30-day TTL) + attach to beacon · `color-scheme: light only` fix · image lightbox (merged) · `.sz-sold` CSS (merged) · exit-intent EXIT_ON=false (merged) · shipping progress bar with gradient fill |
+
+---
 
 ## v21 Changes (September 22, 2026) — Ship the v20 Audit Recommendations
 

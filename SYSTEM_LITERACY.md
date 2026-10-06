@@ -1,11 +1,48 @@
 # INTRU.IN — Full System Literacy & Architecture Reference
-**Version**: v21 | **Date**: September 22, 2026 | **Production**: https://intru.in · https://intru-genz.pages.dev (staging)
+**Version**: v22 | **Date**: October 5, 2026 | **Production**: https://intru.in · https://intru-genz.pages.dev (staging)
 
 > This document is the single source of truth for engineers, operators, and AI assistants working on intru.in. It contains everything needed to understand, debug, fix, or extend the codebase.
 
 ---
 
 ## 0. CHANGELOG SUMMARY (Most Recent First)
+
+### v22 — October 5, 2026 · Supabase Disk IO Rescue + Audit Branch Merge
+
+**The problem that triggered this release:** 5 Supabase Disk IO depletion emails over Sep 5, Sep 13, Sep 20, Sep 27, Oct 5. v20's edge-cache fixed DB reads but not writes. On a free-tier Supabase project, every page render was still firing `view_stats` upserts and every client `window.track()` was INSERTing into `funnel_events`.
+
+**The fix:** `INTERNAL_ANALYTICS_ENABLED` store setting (default **OFF**).
+- `incrementView()` in `src/data.ts` is a no-op when OFF (checks a 10-min-cached flag; zero overhead per pageview).
+- `/api/analytics/event` skips the `funnel_events` INSERT when OFF — but **always** writes conversion events (`payment_success`, `purchase`, `identify`, `payment_failed`, `refund`) so the funnel reports still have data where it matters (10 purchases in 90 days — these events won't move the needle).
+- `404_hit` logging in the catch-all is also gated.
+- Flag check itself is cached 10 minutes per isolate so it never becomes a hot path.
+- Admin toggle lives in Settings tab with a red left border and explicit warning: "free tier — keep off". Admin Analytics tab shows a yellow notice linking to GA4 / Clarity / Meta Events Manager when OFF.
+
+**What still works unchanged:** GA4 (G-JETJF5P7YY), Microsoft Clarity (x7amii2ej7), Meta Pixel + CAPI, admin Orders panel, payment webhooks, abandoned-cart email cron. None of these touch Supabase's limited tables.
+
+**v22 also merged the manager's `testing` branch:**
+- P0-1: `LEGACY_REDIRECTS` map + `/pages/*` + `/products/*` catch-alls (recovers 28,609 GSC impressions that were returning 404)
+- P0-2: `color-scheme: light only` (fixes invisible dark-mode text)
+- P0-3: Cart UX — shipping cost shown transparently + "Cash on Delivery available" badge in bag
+- P0-4: `attr(data-label)` admin mobile table CSS (collapses 960px tables into cards on 390px screens)
+- P0-5/P0-9: hero `fetchpriority="high"` + width/height on all cards (LCP + CLS)
+- P0-6: soft-404 → branded real 404 page (preserves link equity)
+- P0-7: GA4 duplicate event names cleaned up
+- P1 security: httpOnly admin cookie, Google tokeninfo verification, HMAC-signed COD verify links, admin `noindex` meta
+- P1-12: promo bar HTML removed (738 shown / 11 clicked)
+- P1-13: analytics purged on non-prod hostnames (kills sandbox pollution)
+- P1-14: analytics skipped on `/admin` paths
+- P1-18/19: image lightbox + sold-out size CSS class
+- P1-22: exit-intent popup OFF (7% shown / 1% converted was frustration tax)
+- P1-28: Organization `alternateName` for brand misspellings
+- P2-32/33: fake Bing verify token removed, `<meta name="keywords">` stuffing removed
+
+**v22 additions on top of the merge:**
+- **UTM first-touch capture** in `src/components/shell.ts` — any landing with `?utm_source=` is persisted to `localStorage.intru_utm` for 30 days and attached to every subsequent `window.track()` beacon so `funnel_events` + Meta CAPI can attribute. Fixes the 3,908 sessions in "(direct)/(none)" that IG referrer-stripping caused. CTA: set IG bio link to `https://intru.in/collections?utm_source=instagram&utm_medium=bio&utm_campaign=<post>`.
+- **Visible per-size scarcity badges + sold-out legend** on product pages — sold-out = strikethrough with `title="Sold out — never restocked"` + aria-label; ≤3 units left = red count badge in corner.
+- **Hero `<link rel="preload" as="image" fetchpriority="high">`** targeting LCP 4.07s.
+- **Content Refresh card** gets `Reseed Blog Posts` + `Reseed Products` buttons.
+- **FAQ reseed Postgres 42P10 fix** — rewrote endpoint as delete-then-insert since `faqs` table has no unique constraint on `question`.
 
 ### v21 — September 22, 2026 · Ship the v20 Audit Recommendations
 Growth-focused shipping of every recommendation in the v20 audit. Every change targets a real GA4 / GSC signal.
