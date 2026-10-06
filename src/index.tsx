@@ -3973,11 +3973,13 @@ async function emailAdminPaymentAlert(resendKey: string, managerEmail: string, p
 // analytics like "140 views to 404"), and offers 3 rescue actions instead of one dead-end.
 app.all('*', async (c: Context<{ Bindings: Bindings }>) => {
   const badPath = c.req.path;
-  // Log missing route for admin diagnostics (waitUntil = zero TTFB impact)
+  // [v22] 404 logging gated behind INTERNAL_ANALYTICS_ENABLED. Bot/scanner
+  // 404s otherwise flood funnel_events (we already know what's broken from
+  // GSC's Pages report). Costs Supabase Disk IO on free tier.
   try {
     const sbUrl = getEnv(c.env, 'SUPABASE_URL');
     const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY') || getEnv(c.env, 'SUPABASE_ANON_KEY');
-    if (sbUrl && sbKey) {
+    if (sbUrl && sbKey && await _getInternalAnalyticsFlag(c.env)) {
       c.executionCtx.waitUntil(supabaseFetch(sbUrl, sbKey, 'funnel_events', {
         method: 'POST',
         body: JSON.stringify({

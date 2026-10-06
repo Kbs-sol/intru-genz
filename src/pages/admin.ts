@@ -214,6 +214,15 @@ export function adminPage(opts: {
 
 <!-- Analytics Tab -->
 <div class="apan" id="tana">
+<!-- [v22] Explain to admin where the real numbers live when internal analytics is OFF -->
+<div id="anaDisabledNotice" style="display:none;background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:14px 18px;margin-bottom:20px;font-size:13px;line-height:1.7;color:#78350f">
+  <strong>Internal analytics writes are OFF</strong> (to protect Supabase free-tier Disk IO). The counters below reflect only payment / identify events that are always logged, plus whatever was collected while writes were ON.
+  <br><br>For full pageview, event and funnel data, use:
+  <a href="https://analytics.google.com/" target="_blank" rel="noopener" style="color:#78350f;text-decoration:underline;font-weight:700">GA4</a> ·
+  <a href="https://clarity.microsoft.com/" target="_blank" rel="noopener" style="color:#78350f;text-decoration:underline;font-weight:700">Microsoft Clarity</a> ·
+  <a href="https://business.facebook.com/events_manager2" target="_blank" rel="noopener" style="color:#78350f;text-decoration:underline;font-weight:700">Meta Events Manager</a>.
+  Toggle back ON in <b>Settings</b> when you move to a paid Supabase plan.
+</div>
 <div class="stat-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-bottom:20px">
   <div class="stat-card"><div class="stat-val" id="anaIdentify">...</div><div class="stat-label">Identified Leads</div></div>
   <div class="stat-card"><div class="stat-val" id="anaAddToCart">...</div><div class="stat-label">Add to Cart Events</div></div>
@@ -1292,6 +1301,8 @@ function loadSettings(){
     var _cc=document.getElementById('settCookieConsent'); if(_cc) _cc.checked=s.COOKIE_CONSENT_ENABLED==='true';
     // [v22] Internal Analytics (Supabase writes) toggle — default OFF
     var _ia=document.getElementById('settIntAn'); if(_ia) _ia.checked=s.INTERNAL_ANALYTICS_ENABLED==='true';
+    // Toggle the analytics-off notice on the Analytics tab
+    var _dn=document.getElementById('anaDisabledNotice'); if(_dn) _dn.style.display = (s.INTERNAL_ANALYTICS_ENABLED==='true')?'none':'block';
   }).catch(function(){});
   if(typeof loadSalesReports==='function') loadSalesReports();
 }
