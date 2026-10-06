@@ -88,6 +88,24 @@ export function _purgePageDataCache() { _pageDataCache.clear(); }
 // string "null" or "undefined" from an admin form that never had a value. Any
 // downstream truthy-check on `.trim()` would otherwise render broken `id=null`
 // snippets (Meta Pixel `fbq('init', 'null')`, GTM `?id=null`, etc.).
+// [v22] Internal analytics flag — mirrors data.ts helper. Cached 10 min to
+// avoid becoming a hot path. Admin writes to `store_settings.INTERNAL_ANALYTICS_ENABLED`
+// through the standard settings endpoint which flushes `_pageDataCache` + this cache.
+let _intAnFlagCache: { v: boolean; at: number } | null = null;
+async function _getInternalAnalyticsFlag(env: any): Promise<boolean> {
+  if (_intAnFlagCache && Date.now() - _intAnFlagCache.at < 600_000) return _intAnFlagCache.v;
+  const sbUrl = getEnv(env, 'SUPABASE_URL');
+  const sbKey = getEnv(env, 'SUPABASE_SERVICE_KEY') || getEnv(env, 'SUPABASE_ANON_KEY');
+  if (!sbUrl || !sbKey) { _intAnFlagCache = { v: false, at: Date.now() }; return false; }
+  try {
+    const v = await fetchStoreSetting(sbUrl, sbKey, 'INTERNAL_ANALYTICS_ENABLED');
+    const on = v === 'true';
+    _intAnFlagCache = { v: on, at: Date.now() };
+    return on;
+  } catch { _intAnFlagCache = { v: false, at: Date.now() }; return false; }
+}
+function _purgeInternalAnalyticsFlag() { _intAnFlagCache = null; }
+
 function _cleanIdSetting(v: any): string {
   if (v === undefined || v === null) return '';
   const s = String(v).trim();
@@ -1452,8 +1470,19 @@ app.post('/api/analytics/event', async (c: Context<{ Bindings: Bindings }>) => {
 
   c.executionCtx.waitUntil(
     (async () => {
+      // [v22] Internal analytics kill-switch — gate the funnel_events write to
+      // save Supabase Disk IO on free tier. GA4 + Clarity + Meta Pixel continue
+      // to track client-side (they don't touch Supabase); only in-house funnel
+      // event logging is paused. Toggle via Settings → INTERNAL_ANALYTICS_ENABLED.
+      // Checked once per invocation; underlying setting is cached 10 min.
+      const internalOn = await _getInternalAnalyticsFlag(c.env);
+      // Always persist CONVERSION-grade events (payment_success, identify) even
+      // when OFF — losing a purchase record would break the manager's funnel
+      // reporting. Volume of these is tiny (we had 10 purchases/90 days).
+      const KEEP_ALWAYS = new Set(['payment_success', 'purchase', 'identify', 'payment_failed', 'refund']);
+      const shouldWrite = internalOn || KEEP_ALWAYS.has(String(eventType || ''));
       // 1) Persist funnel event to Supabase
-      if (sbUrl && sbKey) {
+      if (sbUrl && sbKey && shouldWrite) {
         try {
           await supabaseFetch(sbUrl, sbKey, 'funnel_events', {
             method: 'POST',
@@ -3337,6 +3366,7 @@ app.put('/api/admin/settings/:key', async (c: Context<{ Bindings: Bindings }>) =
     });
     if (res.ok) {
       _purgePageDataCache(); // [v20] admin settings edit → refresh live within a request
+      _purgeInternalAnalyticsFlag(); // [v22] flush analytics-flag cache so toggle takes effect immediately
       return c.json({ success: true });
     }
     return c.json({ error: await res.text() }, 500);

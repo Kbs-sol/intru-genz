@@ -649,6 +649,16 @@ export function adminPage(opts: {
 </div>
 <p style="font-size:11px;color:var(--g400);margin:0">When OFF, no banner or scripts render for visitors. Applies site-wide on next page reload.</p>
 </div>
+<div class="sett-card" style="border-left:4px solid #dc2626">
+<h4>Internal Analytics (Supabase writes) <span style="font-size:10px;background:#fef3c7;color:#92400e;padding:3px 8px;border-radius:4px;margin-left:8px;letter-spacing:1px;text-transform:uppercase">free tier &mdash; keep off</span></h4>
+<p>Writes every page-view and funnel event into Supabase (<code>view_stats</code> + <code>funnel_events</code> tables) so the admin dashboard's analytics tab can show in-house numbers. <strong>This is what's exhausting the free-tier Disk IO budget</strong> (5 depletion emails from Supabase in a month). GA4, Microsoft Clarity, and Meta Pixel continue to work either way &mdash; those don't touch Supabase.</p>
+<div class="sett-toggle" style="margin-bottom:8px">
+<label>Writes OFF</label>
+<label class="switch"><input type="checkbox" id="settIntAn" onchange="saveSetting('INTERNAL_ANALYTICS_ENABLED',this.checked?'true':'false')"><span class="slider"></span></label>
+<label>Writes ON</label>
+</div>
+<p style="font-size:11px;color:var(--g400);margin:0">Payment/purchase/identify events are <b>always</b> logged regardless of this toggle &mdash; losing a sale record would break the funnel. Only high-volume view/scroll/promo events are gated. Toggle takes effect within 10 minutes (cache TTL). <b>Recommended:</b> leave OFF while on Supabase free tier; use GA4 for pageview analytics.</p>
+</div>
 </div>
 
 <!-- [v19] Maintenance tab removed. -->
@@ -1280,6 +1290,8 @@ function loadSettings(){
     // [v19] Maintenance mode retired — feature removed from admin.
     // Cookie consent toggle
     var _cc=document.getElementById('settCookieConsent'); if(_cc) _cc.checked=s.COOKIE_CONSENT_ENABLED==='true';
+    // [v22] Internal Analytics (Supabase writes) toggle — default OFF
+    var _ia=document.getElementById('settIntAn'); if(_ia) _ia.checked=s.INTERNAL_ANALYTICS_ENABLED==='true';
   }).catch(function(){});
   if(typeof loadSalesReports==='function') loadSalesReports();
 }
