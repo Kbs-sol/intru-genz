@@ -124,6 +124,40 @@ function _genEventId(){
   }catch(_){}
   return 'evt_'+Date.now()+'_'+Math.random().toString(36).slice(2,10);
 }
+/* [v22] UTM first-touch capture — audit found 3,908 sessions in "(direct)/(none)"
+   because Instagram in-app browser strips referrers (36% of all traffic!). If a
+   visitor lands with ?utm_source=instagram we persist it to localStorage for 30
+   days so every subsequent window.track() call carries attribution. Also sent
+   with the server beacon so funnel_events / Meta CAPI can attribute. */
+(function(){
+  try{
+    var q = new URLSearchParams(location.search || '');
+    var src = q.get('utm_source'); var med = q.get('utm_medium');
+    var camp = q.get('utm_campaign'); var ct = q.get('utm_content'); var tm = q.get('utm_term');
+    if (src || med || camp) {
+      var payload = {
+        source: src || '', medium: med || '', campaign: camp || '',
+        content: ct || '', term: tm || '',
+        at: Date.now(), landing: location.pathname
+      };
+      localStorage.setItem('intru_utm', JSON.stringify(payload));
+      // Dispatch an attribution event on landing so GA4/Pixel/CAPI know which post sold.
+      if (typeof window.track === 'function') {
+        setTimeout(function(){ window.track('utm_landing', payload); }, 50);
+      }
+    }
+  }catch(_e){}
+})();
+function _getStoredUtm(){
+  try{
+    var raw = localStorage.getItem('intru_utm');
+    if (!raw) return null;
+    var p = JSON.parse(raw);
+    // Expire after 30 days (standard last-touch attribution window)
+    if (Date.now() - (p.at||0) > 30*24*60*60*1000) { localStorage.removeItem('intru_utm'); return null; }
+    return p;
+  }catch(_e){ return null; }
+}
 window.track=function(name,params){
   try{params=params||{};
     var eventId=params.event_id||_genEventId();
@@ -171,6 +205,9 @@ window.track=function(name,params){
       exit_intent_shown: 1, share: 1
     };
     if(navigator&&navigator.sendBeacon && !_SKIP_SERVER[name]){
+      /* [v22] Attach stored UTM so server-side funnel_events + Meta CAPI get attribution */
+      var _utm = _getStoredUtm();
+      if (_utm) { params._utm = _utm; }
       var payload={event:name,meta:params,event_id:eventId,event_time:Math.floor(Date.now()/1000),url:location.href,user_agent:navigator.userAgent};
       // If user declined consent, mark payload so server skips Meta CAPI (funnel_events log still happens)
       if(window._intruConsentDeclined){payload.no_capi=1;}

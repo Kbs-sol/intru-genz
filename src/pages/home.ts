@@ -239,6 +239,10 @@ html, body { overflow-x: hidden !important; width: 100% !important; max-width: 1
 @media(max-width:640px){.iggrid{grid-template-columns:repeat(3,1fr);gap:4px}.igitem:nth-child(n+7){display:none}}
 </style>
 
+<!-- [v22] LCP preload — hero product image loads in parallel with HTML parse.
+     Audit called out LCP 4.07s and no preload. Target: shave 0.5-1.0s off LCP. -->
+${featuredOne && featuredOne.images && featuredOne.images[0] ? `<link rel="preload" as="image" href="${featuredOne.images[0]}" fetchpriority="high">` : ''}
+
 <section class="hero">
   <div class="h-split">
     <div class="h-l">
