@@ -1803,8 +1803,30 @@ async function hmacHex(key: ArrayBuffer, data: string): Promise<string> {
 /**
  * Increment view count for a specific path in Supabase.
  */
+// [v22] Internal analytics kill-switch. Supabase free-tier Disk IO budget
+// cannot sustain a per-pageview write (user has received 5 depletion warnings
+// in a month). Every page render was firing an RPC/upsert against view_stats.
+// Default: OFF. Admin can enable via Settings → INTERNAL_ANALYTICS_ENABLED
+// (requires paid Supabase plan to re-enable safely). GA4 + Clarity + Meta Pixel
+// continue to work (none of those touch Supabase) — this only disables the
+// in-house page-view counter in the admin dashboard.
+let _internalAnalyticsCache: { v: boolean; at: number } | null = null;
+async function _internalAnalyticsOn(env: Env): Promise<boolean> {
+  // 10-minute cache to avoid itself-becoming-a-hot-path
+  if (_internalAnalyticsCache && Date.now() - _internalAnalyticsCache.at < 600_000) {
+    return _internalAnalyticsCache.v;
+  }
+  const v = await fetchStoreSetting(env.SUPABASE_URL, env.SUPABASE_SERVICE_KEY, 'INTERNAL_ANALYTICS_ENABLED');
+  const on = v === 'true';
+  _internalAnalyticsCache = { v: on, at: Date.now() };
+  return on;
+}
+export function _purgeInternalAnalyticsCache() { _internalAnalyticsCache = null; }
+
 export async function incrementView(env: Env, path: string): Promise<void> {
   if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_KEY) return;
+  // Fast path: Disk IO kill-switch. Default OFF — see note above.
+  if (!(await _internalAnalyticsOn(env))) return;
   try {
     // First try the RPC function (preferred — atomic increment)
     const rpcRes = await supabaseFetch(env.SUPABASE_URL, env.SUPABASE_SERVICE_KEY, 'rpc/increment_view', {
