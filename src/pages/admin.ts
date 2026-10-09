@@ -831,8 +831,66 @@ function showTab(btn, id){
   if (p) p.classList.add('act');
 }
 
-function initAdmin(){getAdminSettings();loadOrders();loadAnalytics();loadProducts();loadCoupons();loadCombos();initLegal();loadFaqs();loadBlogs();loadSizeChart();loadIgFeed();loadLimits();loadAIConfig()}
+function initAdmin(){getAdminSettings();loadOrders();loadAnalytics();loadProducts();loadCoupons();loadCombos();initLegal();loadFaqs();loadBlogs();loadSizeChart();loadIgFeed();loadLimits();loadAIConfig();_initAutoLabelAdminTables();}
 function getAdminSettings(){loadSettings()}
+
+/* [v23 BUGFIX P2] Auto-label every <td> in every admin table from its
+   column header, so the mobile card-collapse CSS (::before { content: attr(data-label) })
+   actually has text to display. Previously 79 of 88 cells had no data-label and
+   rendered as unlabelled values on mobile. This observer fires once per table
+   body mutation (loadOrders, loadAnalytics, loadFaqs, …) and labels every cell
+   using the <th> text from the same table at the same column index. */
+function _labelOneTable(tbl){
+  if(!tbl || tbl.getAttribute('data-autolabel-active')==='1') { /* re-run below */ }
+  var headers=[];
+  var thead=tbl.querySelector('thead');
+  if(thead){
+    var ths=thead.querySelectorAll('th');
+    for(var i=0;i<ths.length;i++){
+      /* Strip HTML entities + collapse whitespace */
+      var txt=(ths[i].textContent||'').replace(/\\s+/g,' ').trim();
+      headers.push(txt);
+    }
+  }
+  if(!headers.length) return;
+  var rows=tbl.querySelectorAll('tbody tr');
+  for(var r=0;r<rows.length;r++){
+    var tds=rows[r].querySelectorAll('td');
+    /* Skip colspan rows (headings / loading / empty state) — they are already
+       full-width and the ::before pseudo wouldn't be rendered anyway. */
+    if(tds.length===1 && tds[0].hasAttribute('colspan')) continue;
+    for(var c=0;c<tds.length && c<headers.length;c++){
+      if(!tds[c].hasAttribute('data-label') && headers[c]) tds[c].setAttribute('data-label',headers[c]);
+      /* Strip inline min-width that overrides the mobile breakpoint CSS */
+      if(tds[c].style && tds[c].style.minWidth) tds[c].style.minWidth='';
+    }
+  }
+  tbl.setAttribute('data-autolabel-active','1');
+}
+function _initAutoLabelAdminTables(){
+  try{
+    var tables=document.querySelectorAll('.otbl');
+    for(var i=0;i<tables.length;i++) _labelOneTable(tables[i]);
+    /* Re-label on any tbody mutation (every loadX function replaces innerHTML) */
+    if(typeof MutationObserver==='function'){
+      var mo=new MutationObserver(function(muts){
+        var seen=new Set();
+        for(var i=0;i<muts.length;i++){
+          var t=muts[i].target;
+          /* Walk up to the enclosing table */
+          while(t && t.nodeType===1 && t.tagName && t.tagName.toLowerCase()!=='table') t=t.parentNode;
+          if(t && t.classList && t.classList.contains('otbl') && !seen.has(t)){
+            seen.add(t); _labelOneTable(t);
+          }
+        }
+      });
+      for(var j=0;j<tables.length;j++){
+        var tbody=tables[j].querySelector('tbody');
+        if(tbody) mo.observe(tbody,{childList:true,subtree:true});
+      }
+    }
+  }catch(e){}
+}
 
 /* ====== LIMITS [AG] ====== */
 function loadLimits(){

@@ -270,6 +270,15 @@ const LEGACY_REDIRECTS: Record<string, string> = {
   '/products/doodle':        '/product/doodles-t-shirt',
   '/products/orange-tee':    '/product/orange-puff-printed-t-shirt',
   '/products/top':           '/collections?cat=Crop-Tops',
+  // [v23 BUGFIX P4] Blind-box legacy slugs (483 impressions in GSC) were falling
+  // through to /search?q=intru-blind-box-3-items which returns no match + 8 generic
+  // cards. Route them straight to /collections instead so the equity funnels to a
+  // real page with product cards.
+  '/products/intru-blind-box-3-items':   '/collections',
+  '/products/intru-blind-box':           '/collections',
+  '/products/blind-box':                 '/collections',
+  '/products/blind-box-3-items':         '/collections',
+  '/products/blindbox':                  '/collections',
   '/contact':                '/about#contact',
   '/contact-us':             '/about#contact',
   '/collections/all':        '/collections',
@@ -289,6 +298,13 @@ app.get('/products/*', (c: Context<{ Bindings: Bindings }>) => {
   const slug = c.req.path.replace('/products/', '').split('?')[0];
   return c.redirect(`/search?q=${encodeURIComponent(slug)}`, 302);
 });
+
+// [v23 BUGFIX P3] Top-level legacy routes that LEGACY_REDIRECTS listed but no
+// handler ever caught — the /pages/* and /products/* handlers above don't fire
+// on bare paths. These were returning 404 live. Explicit 301 handlers below.
+app.get('/contact',        (c: Context<{ Bindings: Bindings }>) => c.redirect('/about#contact', 301));
+app.get('/contact-us',     (c: Context<{ Bindings: Bindings }>) => c.redirect('/about#contact', 301));
+app.get('/collections/all', (c: Context<{ Bindings: Bindings }>) => c.redirect('/collections', 301));
 
 // ============ PAGE ROUTES ============
 
@@ -397,10 +413,42 @@ button:hover{background:#404040}
   <button type="submit">Enter Admin</button>
 </form></div></body></html>`;
 
+/* [v23 SECURITY N2] HMAC-signed admin session token.
+   Previously: the cookie value WAS the raw password — any leak (XSS exfil
+   via a browser extension, server-log misconfig, shared screenshot) would
+   hand over the actual credential. Now: cookie carries a time-stamped
+   HMAC-SHA256 of the password, with a 4-hour validity window. Rotating
+   ADMIN_PASSWORD invalidates every outstanding session; a leaked cookie
+   value cannot be reverted to the password. */
+async function _signAdminSession(adminPwd: string, issuedAt: number): Promise<string> {
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey('raw', enc.encode(adminPwd), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const sigBuf = await crypto.subtle.sign('HMAC', key, enc.encode(String(issuedAt)));
+  const sigB64 = btoa(String.fromCharCode(...new Uint8Array(sigBuf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  return `${issuedAt}.${sigB64}`;
+}
+async function _verifyAdminSession(adminPwd: string, token: string, maxAgeMs: number): Promise<boolean> {
+  if (!adminPwd || !token) return false;
+  const dot = token.indexOf('.');
+  if (dot < 1) return false;
+  const issuedAt = parseInt(token.slice(0, dot), 10);
+  if (!issuedAt || isNaN(issuedAt)) return false;
+  if (Date.now() - issuedAt > maxAgeMs) return false;
+  const expected = await _signAdminSession(adminPwd, issuedAt);
+  if (expected.length !== token.length) return false;
+  // Constant-time compare
+  let diff = 0;
+  for (let i = 0; i < token.length; i++) diff |= token.charCodeAt(i) ^ expected.charCodeAt(i);
+  return diff === 0;
+}
+const _ADMIN_SESSION_MS = 4 * 60 * 60 * 1000;
+
 app.get('/admin', async (c: Context<{ Bindings: Bindings }>) => {
   const adminPwd = getEnv(c.env, 'ADMIN_PASSWORD', STORE_CONFIG.adminPassword);
   const cookies = parseCookies(c.req.header('cookie') || '');
-  if (!adminPwd || cookies['intru_admin_session'] !== adminPwd) {
+  const token = cookies['intru_admin_session'] || '';
+  const ok = await _verifyAdminSession(adminPwd, token, _ADMIN_SESSION_MS);
+  if (!ok) {
     return c.html(ADMIN_LOGIN_PAGE, 200);
   }
   const opts = await getPageOpts(c);
@@ -414,9 +462,10 @@ app.post('/admin/login', async (c: Context<{ Bindings: Bindings }>) => {
   if (!adminPwd || provided !== adminPwd) {
     return c.html(ADMIN_LOGIN_PAGE.replace('</form>', '<p class="err">Incorrect password.</p></form>'), 401);
   }
-  // Set httpOnly cookie — 4 hour session
-  const maxAge = 4 * 60 * 60;
-  c.header('Set-Cookie', `intru_admin_session=${encodeURIComponent(adminPwd)}; Path=/admin; HttpOnly; Secure; SameSite=Strict; Max-Age=${maxAge}`);
+  // Issue HMAC-signed session token — not the raw password
+  const token = await _signAdminSession(adminPwd, Date.now());
+  const maxAge = Math.floor(_ADMIN_SESSION_MS / 1000);
+  c.header('Set-Cookie', `intru_admin_session=${token}; Path=/admin; HttpOnly; Secure; SameSite=Strict; Max-Age=${maxAge}`);
   return c.redirect('/admin', 302);
 })
 
@@ -593,8 +642,11 @@ app.get('/blog/:slug', async (c: Context<{ Bindings: Bindings }>) => {
     .filter((p: BlogPost) => p.isPublished !== false);
   const post = pool.find((p: BlogPost) => p.slug === slug);
   if (!post) {
-    // Soft-redirect to blog index rather than a hard 404 (Clarity showed 13% quick-back clicks).
-    return c.html(`<html><head><meta http-equiv="refresh" content="0;url=/blog"><title>Redirecting…</title></head><body>Redirecting to <a href="/blog">/blog</a>…</body></html>`, 404);
+    /* [v23 BUGFIX P5] Was a 404 body with a meta-refresh — crawlers see it
+       as a soft-404 (bad for ranking) and users saw a flash of the holding
+       page. Replaced with a proper 301 redirect to /blog so link equity flows
+       to the index and crawlers get a clean signal. */
+    return c.redirect('/blog', 301);
   }
   c.executionCtx.waitUntil(incrementView(c.env, '/blog/' + slug));
   return c.html(blogPostPage(post, { ...opts, posts: pool }));
@@ -2491,12 +2543,24 @@ app.post('/api/auth/magic-link', async (c: Context<{ Bindings: Bindings }>) => {
 app.use('/api/admin/*', async (c: Context<{ Bindings: Bindings }>, next: Next) => {
   const path = c.req.path.replace(/\/+$/, '');
   if (path === '/api/admin/auth') return await next();
-  const token = c.req.header('x-admin-token');
   const adminPwd = getEnv(c.env, 'ADMIN_PASSWORD', STORE_CONFIG.adminPassword);
-  if (!token || token !== adminPwd) {
-    return c.json({ error: 'Unauthorized: Admin token required' }, 401);
+  if (!adminPwd) {
+    return c.json({ error: 'Unauthorized: Admin not configured' }, 401);
   }
-  await next();
+  // Accept either (a) the HMAC-signed httpOnly session cookie [preferred, v23 N2]
+  // or (b) the x-admin-token header carrying the password [legacy admin UI path].
+  // Reject if neither is valid. The cookie path is checked first — it is the
+  // only path that survives a session-storage wipe but still binds to origin.
+  const cookies = parseCookies(c.req.header('cookie') || '');
+  const cookieTok = cookies['intru_admin_session'] || '';
+  if (cookieTok && await _verifyAdminSession(adminPwd, cookieTok, _ADMIN_SESSION_MS)) {
+    return await next();
+  }
+  const headerTok = c.req.header('x-admin-token') || '';
+  if (headerTok && headerTok === adminPwd) {
+    return await next();
+  }
+  return c.json({ error: 'Unauthorized: Admin token required' }, 401);
 });
 
 // ============ ADMIN AUTH ============

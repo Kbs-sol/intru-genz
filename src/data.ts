@@ -100,7 +100,11 @@ export const STORE_CONFIG = {
   email: "shop@intru.in",
   instagram: "intru.in",
   // Defaults — overridden by env vars in production
-  adminPassword: "intru2026admin",
+  // [v23 SECURITY N1] Fail-CLOSED fallback. If the ADMIN_PASSWORD env var is
+  // unset on Cloudflare (fresh deploy, misconfig), auth MUST reject every
+  // attempt — never grant access with a hardcoded public-repo password.
+  // Previous value "intru2026admin" was visible in a public GitHub repo.
+  adminPassword: "",
   googleClientId: "YOUR_GOOGLE_CLIENT_ID",
   razorpayKeyId: "YOUR_RAZORPAY_KEY_ID",
 };

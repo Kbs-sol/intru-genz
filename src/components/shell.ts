@@ -703,8 +703,13 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 .toast-err{background:var(--red);color:#fff}
 .toast-ok-green{background:#065f46;color:#fff}
 .sz-error{animation:shake .3s ease;border-color:var(--red) !important}
-/* [AUDIT 2026-10-03] UI: Sold-out size strikethrough — users shouldn't have to tap to find out */
-.sz-btn.sz-sold{opacity:.35;text-decoration:line-through;cursor:not-allowed;pointer-events:none;border-color:var(--g200) !important;background:var(--g50) !important;color:var(--g400) !important}
+/* [AUDIT 2026-10-03] UI: Sold-out size strikethrough — users shouldn't have to tap to find out
+   [v23 BUGFIX P1] Was `.sz-btn.sz-sold` — the actual class on the button is `szbtn` (no hyphen),
+   so this selector NEVER matched. The strikethrough only showed because of inline styles.
+   Fixed selector + added low-stock variant for consistency. */
+.szbtn.sz-sold{opacity:.35;text-decoration:line-through;cursor:not-allowed;pointer-events:none;border-color:var(--g200) !important;background:var(--g50) !important;color:var(--g400) !important}
+.szbtn.sz-low{border-color:#dc2626 !important;color:#dc2626}
+.szbtn.sz-low:hover{background:#fef2f2}
 /* [AUDIT 2026-10-03] UI: Image lightbox — fixes 117 dead clicks where users tapped product images expecting zoom */
 .img-lightbox-overlay{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s;cursor:zoom-out}
 .img-lightbox-overlay.open{opacity:1;pointer-events:all}
