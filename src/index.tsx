@@ -1730,6 +1730,16 @@ app.post('/api/checkout', async (c: Context<{ Bindings: Bindings }>) => {
     const shipping = 0;
     const total = Math.max(0, subtotal - comboDiscount - couponDiscount) + shipping;
 
+    /* [v23 BUGFIX] Razorpay rejects amounts under 100 paise (= 1 INR).
+       Guard here so we never ship a known-bad amount to Razorpay and burn
+       an API call, and the user gets a clear error instead of
+       "Payment gateway error: amount must be at least 100". */
+    if (total < 1) {
+      return c.json({
+        error: 'Order total must be at least ₹1. If you applied a discount that reduced the total to zero, please remove it or add more items.'
+      }, 400);
+    }
+
     const rzpKeyId = getEnv(c.env, 'RAZORPAY_KEY_ID');
     const rzpKeySecret = getEnv(c.env, 'RAZORPAY_KEY_SECRET');
     let razorpayOrderId: string | null = null;
@@ -1914,6 +1924,13 @@ app.post('/api/checkout/cod', async (c: Context<{ Bindings: Bindings }>) => {
     const codFee = 99;
     const shipping = 0;
     const total = Math.max(0, subtotal - comboDiscountCod - couponDiscountCod) + shipping + codFee;
+
+    /* [v23 BUGFIX] Parity with prepaid: reject tiny/zero orders. COD always
+       has a ₹99 fee so this is defence-in-depth, but still catches ridiculous
+       100% discount edge cases. */
+    if (total < codFee) {
+      return c.json({ error: 'Order total is below the minimum. Please adjust discounts or add more items.' }, 400);
+    }
 
     let orderId = '';
     let dbError = '';

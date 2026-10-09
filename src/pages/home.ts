@@ -26,8 +26,8 @@ export function homePage(opts: {
     {
       "@context": "https://schema.org",
       "@type": "ItemList",
-      "name": "Intru Drop Catalog — Current Collection",
-      "description": "Minimalist streetwear drops by intru.in — for individuals. Heavyweight oversized t-shirts, clean intentional designs, made in India.",
+      "name": "Intru Drop Catalog — Current Collection with Combo Offers",
+      "description": "Minimalist streetwear drops by intru.in — for individuals. Heavyweight oversized t-shirts, clean intentional designs, made in India. Active promo codes and bundle combos auto-applied at checkout.",
       "url": "https://intru.in/#products",
       "numberOfItems": products.length,
       "itemListElement": products.map((p, i) => ({
@@ -125,6 +125,11 @@ export function homePage(opts: {
           "@type": "Question",
           "name": "Is Intru's oversized fit true to size?",
           "acceptedAnswer": { "@type": "Answer", "text": "Yes — the oversized silhouette (dropped shoulders, wider body, longer length) is built into the pattern. If you wear a Medium in a regular-fit tee, stay in Medium at Intru; the extra room is already there. Size up for an extreme drop, size down for a fitted look." }
+        },
+        {
+          "@type": "Question",
+          "name": "Does Intru have discount codes or promo offers?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes — Intru runs rotating public promo codes (visible via the yellow Offers tag on the bottom-left of every page). Current drops typically include bundle combo discounts (Any 2 for ₹X), new-customer welcome codes, and seasonal campaigns. All active codes are listed in the Offers tray; one code per order and auto-applied combos stack with public coupons at checkout." }
         }
       ]
     }
@@ -394,7 +399,7 @@ function subscribeEmail(form){
 
   return shell(
     'Intru | Minimalist Streetwear India — Oversized Heavyweight Tees, Made in India',
-    'Tired of everyone wearing the same thing? Intru is minimalist streetwear for individuals — clean, intentional, oversized 220–260 GSM heavyweight tees, crop tops and shirts. Limited drops, never restocked. Free shipping across India (Hyderabad, Mumbai, Bangalore, Delhi, Pune, Chennai, Kolkata & more). COD available.',
+    'Tired of everyone wearing the same thing? Intru is minimalist streetwear for individuals — clean, intentional, oversized 220–260 GSM heavyweight tees, crop tops and shirts. Limited drops, never restocked. Free shipping on prepaid orders across India (Hyderabad, Mumbai, Bangalore, Delhi, Pune, Chennai, Kolkata & more). COD available. Active promo codes & combo offers at checkout.',
     body,
     { url: 'https://intru.in', schema, razorpayKeyId: opts.razorpayKeyId, googleClientId: opts.googleClientId, products, legalPages, useMagicCheckout: !!opts.useMagicCheckout, maintenanceConfig: opts.maintenanceConfig, storeSettings: opts.storeSettings }
   );

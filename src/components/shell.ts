@@ -627,6 +627,33 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 .combo-banner .combo-name{flex:1;line-height:1.4}
 .combo-banner .combo-name small{display:block;font-size:10px;font-weight:500;opacity:0.7;margin-top:1px}
 .combo-badge{background:linear-gradient(135deg,#eab308,#f59e0b);color:#0a0a0a;font-size:9px;font-weight:900;padding:4px 10px;border-radius:100px;letter-spacing:.5px;white-space:nowrap;flex-shrink:0;box-shadow:0 2px 8px rgba(234,179,8,0.4)}
+/* [v23] Floating "Offers" pill — low-footprint promo visibility.
+   Audit removed the always-on top bar (67:1 shown:click ratio hurt mobile LCP).
+   This replacement is a dismissible, bottom-right FAB-style button that only
+   expands when tapped — doesn't push products below the fold, doesn't
+   impact LCP, but is clearly visible across every page. */
+.offers-pill{position:fixed;left:16px;bottom:16px;z-index:70;background:linear-gradient(135deg,#eab308,#f59e0b);color:#0a0a0a;border:none;border-radius:100px;padding:11px 18px;font-weight:900;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;box-shadow:0 6px 20px rgba(234,179,8,0.45),0 2px 6px rgba(0,0,0,0.15);display:none;align-items:center;gap:8px;transition:transform .18s var(--eo),box-shadow .18s var(--eo);font-family:var(--sans)}
+.offers-pill.show{display:inline-flex;animation:offersPillIn .5s cubic-bezier(0.34,1.56,0.64,1) both}
+.offers-pill:hover{transform:translateY(-2px) scale(1.03);box-shadow:0 10px 28px rgba(234,179,8,0.55),0 4px 10px rgba(0,0,0,0.2)}
+.offers-pill .op-dot{width:7px;height:7px;background:#dc2626;border-radius:50%;box-shadow:0 0 0 0 rgba(220,38,38,.6);animation:cpnPulse 1.8s infinite}
+.offers-pill-x{background:rgba(10,10,10,0.12);border:none;border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;color:#0a0a0a;font-size:10px;cursor:pointer;margin-left:2px;padding:0}
+.offers-pill-x:hover{background:rgba(10,10,10,0.25)}
+@keyframes offersPillIn{0%{opacity:0;transform:translateY(60px) scale(0.6)}100%{opacity:1;transform:translateY(0) scale(1)}}
+/* Offers tray — slides up from pill */
+.offers-tray{position:fixed;left:16px;bottom:68px;z-index:69;background:#fff;border:2px solid #0a0a0a;border-radius:16px;padding:16px;max-width:300px;width:calc(100vw - 32px);box-shadow:0 20px 50px rgba(0,0,0,0.25);display:none;flex-direction:column;gap:10px}
+.offers-tray.open{display:flex;animation:offersPillIn .32s cubic-bezier(0.34,1.56,0.64,1) both}
+.offers-tray-h{display:flex;justify-content:space-between;align-items:center;padding-bottom:10px;border-bottom:1px solid #e5e5e5}
+.offers-tray-h strong{font-family:var(--head);font-size:14px;letter-spacing:0.5px;text-transform:uppercase}
+.offers-tray-h button{background:none;border:none;cursor:pointer;color:#999;font-size:16px;padding:4px}
+.offers-tray-list{display:flex;flex-direction:column;gap:8px;max-height:300px;overflow-y:auto}
+.offers-tray-item{display:flex;flex-direction:column;gap:4px;padding:12px;background:linear-gradient(135deg,#fef3c7,#fde68a);border:1.5px dashed #eab308;border-radius:10px;cursor:pointer;transition:transform .15s}
+.offers-tray-item:hover{transform:translateY(-1px);background:linear-gradient(135deg,#fde68a,#fcd34d)}
+.offers-tray-item .ot-code{font-family:monospace;font-weight:900;font-size:14px;letter-spacing:2px;color:#0a0a0a}
+.offers-tray-item .ot-desc{font-size:11px;color:#78350f;font-weight:600;line-height:1.4}
+.offers-tray-item .ot-copy{font-size:9px;font-weight:800;letter-spacing:1px;color:#eab308;text-transform:uppercase;margin-top:4px}
+.offers-tray-empty{text-align:center;padding:20px;color:#999;font-size:12px}
+@media(max-width:640px){.offers-pill{padding:10px 14px;font-size:10px}.offers-tray{max-width:calc(100vw - 32px)}}
+
 /* Combo promo bar (top of page, below nav) */
 .combo-promo-bar{background:linear-gradient(90deg,#0a0a0a 0%,#1a1a2e 50%,#0a0a0a 100%);color:#fff;padding:10px 24px;display:none;align-items:center;justify-content:center;gap:16px;font-size:11px;font-weight:700;letter-spacing:.5px;position:relative;overflow:hidden;border-bottom:1px solid rgba(234,179,8,0.2)}
 .combo-promo-bar::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(234,179,8,0.08),transparent);animation:shimmerBar 3s infinite}
@@ -1104,7 +1131,25 @@ ${aiAnnounceHtml}
 
 <!-- [AUDIT 2026-10-03] Defect #12: Removed sitewide combo promo bar.
      Shown 738× → clicked 11× (67:1 ratio). On mobile it pushed products below the fold,
-     worsening the 74% landing→product loss. Combo deal messaging moved to cart drawer. -->
+     worsening the 74% landing→product loss. Combo deal messaging moved to cart drawer.
+     [v23] Replaced with floating "Offers" pill — bottom-left FAB that doesn't affect
+     LCP and is dismissible per session. Expands into a tray listing active coupons. -->
+<button class="offers-pill" id="offersPill" onclick="toggleOffersTray()" aria-label="View active offers" style="display:none">
+  <span class="op-dot"></span>
+  <i class="fas fa-tag"></i>
+  <span id="offersPillLabel">OFFERS</span>
+  <span class="offers-pill-x" onclick="event.stopPropagation();dismissOffersPill()" aria-label="Dismiss"><i class="fas fa-times"></i></span>
+</button>
+<div class="offers-tray" id="offersTray" role="dialog" aria-label="Available offers">
+  <div class="offers-tray-h">
+    <strong>🔥 Active Offers</strong>
+    <button onclick="toggleOffersTray()" aria-label="Close"><i class="fas fa-times"></i></button>
+  </div>
+  <div class="offers-tray-list" id="offersTrayList">
+    <div class="offers-tray-empty">Loading offers...</div>
+  </div>
+  <p style="font-size:9px;color:#999;text-align:center;margin:0">Tap any code to copy. Apply at checkout.</p>
+</div>
 <main style="padding-top:0" id="mainContent">${body}</main>
 <footer class="ftr" id="contact" itemscope itemtype="https://schema.org/WholesaleStore"><div class="ftri">
 <div class="ftrb">
@@ -1976,10 +2021,11 @@ function applyCoupon(){
 /* Public coupon chips — click to auto-fill + apply */
 var _publicCoupons = null;
 function loadPublicCoupons(){
-  if(_publicCoupons !== null) return;
+  if(_publicCoupons !== null){ renderPublicCoupons(); renderOffersPill(); return; }
   fetch('/api/coupons/public').then(function(r){return r.json()}).then(function(d){
     _publicCoupons = d.coupons || [];
     renderPublicCoupons();
+    renderOffersPill();
   }).catch(function(){ _publicCoupons = []; });
 }
 function renderPublicCoupons(){
@@ -1999,6 +2045,87 @@ function pickPublicCoupon(code){
   if(inp){ inp.value = code; applyCoupon(); }
 }
 
+/* [v23] FLOATING OFFERS PILL — site-wide promo visibility.
+   Loads lazily (idle callback) after first paint so LCP isn't affected.
+   Dismissible per session; auto-hides when no public coupons exist. */
+function renderOffersPill(){
+  var pill = document.getElementById('offersPill');
+  var tray = document.getElementById('offersTrayList');
+  var label = document.getElementById('offersPillLabel');
+  if(!pill || !_publicCoupons) return;
+  /* Respect per-session dismissal */
+  if(sessionStorage.getItem('intru_offers_pill_dismissed')==='1'){ pill.style.display='none'; return; }
+  if(!_publicCoupons.length){ pill.style.display='none'; return; }
+  /* Show pill with top offer teaser */
+  var top = _publicCoupons[0];
+  var teaser = top.type==='percent' ? (top.value+'% OFF') : ('₹'+top.value+' OFF');
+  if(label) label.textContent = teaser;
+  pill.classList.add('show');
+  /* Build tray content */
+  if(tray){
+    var html = '';
+    _publicCoupons.slice(0,5).forEach(function(c){
+      var safeDesc = String(c.description||'').replace(/'/g,'&#39;').replace(/</g,'&lt;');
+      var discStr = c.type==='percent' ? (c.value+'% OFF') : ('₹'+c.value+' OFF');
+      html += '<div class="offers-tray-item" onclick="pickOfferFromTray(\\x27'+c.code+'\\x27)">'
+        + '<div style="display:flex;justify-content:space-between;align-items:center">'
+        +   '<span class="ot-code">'+c.code+'</span>'
+        +   '<span style="font-size:11px;font-weight:900;color:#dc2626">'+discStr+'</span>'
+        + '</div>'
+        + (safeDesc ? '<div class="ot-desc">'+safeDesc+'</div>' : '')
+        + '<div class="ot-copy"><i class="fas fa-copy"></i> Tap to copy & shop</div>'
+        + '</div>';
+    });
+    if(!html) html = '<div class="offers-tray-empty">No active offers right now.</div>';
+    tray.innerHTML = html;
+  }
+  /* Track that pill was shown for ROI measurement */
+  try{ if(typeof window.track==='function') window.track('promo_shown',{placement:'offers_pill',count:_publicCoupons.length}); }catch(e){}
+}
+function toggleOffersTray(){
+  var tray = document.getElementById('offersTray');
+  if(!tray) return;
+  var wasOpen = tray.classList.contains('open');
+  tray.classList.toggle('open');
+  if(!wasOpen){
+    try{ if(typeof window.track==='function') window.track('promo_pill_opened',{}); }catch(e){}
+  }
+}
+function dismissOffersPill(){
+  sessionStorage.setItem('intru_offers_pill_dismissed','1');
+  var pill = document.getElementById('offersPill');
+  var tray = document.getElementById('offersTray');
+  if(pill) pill.classList.remove('show');
+  if(tray) tray.classList.remove('open');
+}
+function pickOfferFromTray(code){
+  /* Copy to clipboard + show toast + close tray + if cart open, auto-apply */
+  try{
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(code);
+    }
+  }catch(e){}
+  toast('Code '+code+' copied — paste at checkout','ok-green');
+  var tray = document.getElementById('offersTray');
+  if(tray) tray.classList.remove('open');
+  /* If cart drawer already open AND user is on checkout step, auto-apply */
+  var cd = document.getElementById('cd');
+  if(cd && cd.classList.contains('open')){
+    var inp = document.getElementById('couponInput');
+    if(inp){ inp.value = code; try{ applyCoupon(); }catch(e){} }
+  }
+  try{ if(typeof window.track==='function') window.track('promo_copied',{code:code,source:'offers_pill'}); }catch(e){}
+}
+/* Boot offers pill on idle so it doesn't delay LCP */
+(function(){
+  function _boot(){ try{ loadPublicCoupons(); }catch(e){} }
+  if(typeof requestIdleCallback==='function'){
+    requestIdleCallback(_boot, {timeout:3000});
+  } else {
+    setTimeout(_boot, 1800);
+  }
+})();
+
 function renderAppliedCoupon(){
   var el = document.getElementById('appliedCoupon');
   if(!appliedCoupon) { el.classList.add('hidden'); return; }
@@ -2016,7 +2143,16 @@ function removeCoupon(){
 }
 
 function getCartTotals(){
-  var sub=0;cart.forEach(function(i){var p=PM[i.p];if(p)sub+=p.p*i.q});
+  /* [v23 BUGFIX] Track stale cart items (PM miss) separately so caller can
+     warn the user instead of silently billing 0. Previously: stale items were
+     skipped and total silently fell to 0, Razorpay rejected the amount, and
+     the user saw a confusing "Payment gateway error" with no cause. */
+  var sub=0;var missing=[];var validCount=0;
+  cart.forEach(function(i){
+    var p=PM[i.p];
+    if(p){sub+=p.p*i.q;validCount++;}
+    else{missing.push(i);}
+  });
   // coupon discount
   var couponDisc = 0;
   if(appliedCoupon){
@@ -2029,7 +2165,23 @@ function getCartTotals(){
   var discountedSub = Math.max(0, sub - discount);
   var codFee=payMode==='cod'?99:0;
   var sh=0;
-  return{subtotal:sub, couponDiscount:couponDisc, comboDiscount:comboDisc, discount:discount, discountedSub:discountedSub, shipping:sh, codFee:codFee, total:discountedSub+sh+codFee};
+  return{subtotal:sub, couponDiscount:couponDisc, comboDiscount:comboDisc, discount:discount, discountedSub:discountedSub, shipping:sh, codFee:codFee, total:discountedSub+sh+codFee, missingItems:missing, validItemCount:validCount};
+}
+
+/* [v23] Auto-prune cart items that reference products no longer in PM
+   (deleted/renamed in admin). Fires on cart render. Returns true if the cart
+   was modified so callers can re-render. */
+function pruneStaleCart(){
+  if(!cart.length) return false;
+  var before=cart.length;
+  cart=cart.filter(function(i){return !!PM[i.p];});
+  if(cart.length!==before){
+    saveCart();
+    var removed=before-cart.length;
+    try{toast(removed+' item'+(removed>1?'s':'')+' removed (no longer available)','err');}catch(e){}
+    return true;
+  }
+  return false;
 }
 
 function renderCartTotals(){
@@ -2130,6 +2282,9 @@ function renderCart(){
   var content=document.getElementById('cartContent');
   var footer=document.getElementById('cf');
   var itemsWrap=document.getElementById('cartItems');
+  /* [v23] Prune stale items BEFORE rendering so the badge count never
+     exceeds the actual bill-able items. Prevents "₹0 cart with items" bug. */
+  pruneStaleCart();
   var count=cart.reduce(function(a,i){return a+i.q},0);
   badge.textContent=count;badge.classList.toggle('vis',count>0);
   
@@ -2351,6 +2506,22 @@ function ensureRazorpay(){
 
 function checkout(){
   if(!cart.length){toast('Your bag is empty','err');return}
+  /* [v23 BUGFIX] Rs 0 guard — Razorpay rejects any amount below 1 INR (100 paise).
+     Previously: a stale cart (PM miss) silently produced total=0, the server
+     tried to create a Razorpay order with amount=0, Razorpay returned a cryptic
+     "amount must be at least 100" error, and the user saw a confusing
+     "Payment gateway error". Now: catch it client-side with a clear message. */
+  var _preT=getCartTotals();
+  if(_preT.missingItems && _preT.missingItems.length){
+    toast('Some items were removed (no longer available). Review your bag.','err');
+    pruneStaleCart();
+    renderCart();
+    return;
+  }
+  if(!_preT.total || _preT.total < 1){
+    toast('Cart total cannot be zero. Please check your bag or remove discount codes.','err');
+    return;
+  }
   /* Silent Identity: if not identified, show overlay */
   if(!identifiedEmail){pendingCheckout=true;openIdentify();return}
   /* Warm the payment SDK as soon as checkout begins (prepaid/magic paths need it). */
