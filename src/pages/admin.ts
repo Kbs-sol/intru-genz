@@ -53,18 +53,19 @@ export function adminPage(opts: {
      data-label attrs were on 7 cells but the CSS to read them was MISSING — this is it. */
   .adm{padding:20px 16px 80px}
   .ahdr{flex-direction:column;gap:12px;align-items:flex-start}
-  .otbl-wrap{-webkit-overflow-scrolling:touch;overflow-x:visible}
+  .otbl-wrap{-webkit-overflow-scrolling:touch;overflow-x:visible;border:none !important;border-radius:0 !important;background:transparent !important}
   .otbl, .otbl tbody, .otbl tr, .otbl td { display:block !important; width:100% !important; }
-  .otbl { min-width:0 !important; border:none !important; }
+  .otbl { min-width:0 !important; border:none !important; background:transparent !important }
   .otbl thead { display:none !important; }
   .otbl tr {
-    margin-bottom:12px; border:1.5px solid var(--g100);
-    border-radius:8px; padding:8px; background:var(--wh);
+    margin-bottom:14px; border:1.5px solid var(--g100);
+    border-radius:10px; padding:4px 10px; background:var(--wh);
     box-shadow:0 1px 3px rgba(0,0,0,.04);
+    overflow:hidden;
   }
   .otbl td {
     display:flex !important; justify-content:space-between; align-items:flex-start;
-    gap:12px; min-width:0 !important; padding:8px 6px;
+    gap:12px; min-width:0 !important; padding:10px 4px;
     border-bottom:1px solid var(--g50) !important;
   }
   .otbl td::before {
@@ -74,6 +75,44 @@ export function adminPage(opts: {
     flex-shrink:0; text-align:left; min-width:80px;
   }
   .otbl td:last-child { border-bottom:none !important; }
+  /* Hide empty data-label cells (e.g. heading rows from the analytics table that
+     have no header text) so they don't leave an empty line */
+  .otbl td:not([data-label])::before { content:'' !important; min-width:0 !important }
+
+  /* [v23 BUGFIX] Orders table specifically — the generic row layout buckled with
+     the complex nested content (customer-info has 4 stacked divs, actions has
+     4 stacked buttons). Switch to a vertical label-on-top layout that lets each
+     complex cell use the full card width. This is the layout the screenshot
+     showed as broken for COD orders. */
+  #otbody td {
+    flex-direction:column; align-items:stretch; gap:4px; padding:12px 4px;
+  }
+  #otbody td::before {
+    min-width:0; padding-bottom:2px;
+    border-bottom:1px solid var(--g50);
+    margin-bottom:6px;
+  }
+  /* The Actions column has stacked buttons — keep them tight and full-width. */
+  #otbody td[data-label="Actions"] .shiprocket-btn,
+  #otbody td[data-label="Actions"] .oselect {
+    width:100% !important; margin-bottom:6px !important;
+  }
+  /* Order ID + payment badge inline, not stacked, for the mobile card header */
+  #otbody td[data-label="Order ID"] {
+    flex-direction:row; align-items:center; justify-content:space-between;
+    padding:14px 6px 10px; border-bottom:2px solid var(--g100) !important;
+    background:var(--g50);
+    margin:-4px -10px 8px; border-radius:8px 8px 0 0;
+  }
+  #otbody td[data-label="Order ID"]::before { display:none !important; }
+  /* Status chip aligns right on mobile */
+  #otbody td[data-label="Status"] { align-items:center; flex-direction:row; }
+  #otbody td[data-label="Status"]::before { border:none; margin:0; padding:0; min-width:80px; }
+  /* Pricing: emphasise the total */
+  #otbody td[data-label="Pricing"] > div:first-of-type {
+    font-size:18px !important; font-weight:900 !important;
+  }
+
   .stat-grid { grid-template-columns:repeat(2, 1fr) !important; }
   .apcards { grid-template-columns:1fr !important; }
   .ig-grid { grid-template-columns:repeat(2,1fr) !important; }

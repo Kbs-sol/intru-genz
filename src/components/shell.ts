@@ -84,139 +84,14 @@ try{
 </script>
 <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=${fbId}&ev=PageView&noscript=1"/></noscript>
 <!-- End Meta Pixel -->` : '';
-  // Unified tracking helper — always defined so funnel hooks never throw.
-  // Maps a single window.track() call into GA4 + Clarity + Meta Pixel + server beacon (which
-  // in turn hits Meta CAPI). Every event carries an event_id for browser↔server dedup.
-  const helper = `
-<!-- Intru unified analytics helper -->
-<script>
-var CLARITY_EVENT_ALIAS={
-  'purchase':'Purchase',
-  'login':'Login',
-  'contact':'Contact us',
-  'contact_us':'Contact us'
-};
-// GA4 event → Meta Pixel Standard Event mapping (docs.facebook.com/marketing-api/conversions-api)
-var META_EVENT_ALIAS={
-  'page_view':'PageView',
-  'view_item':'ViewContent',
-  'view_content':'ViewContent',
-  'add_to_cart':'AddToCart',
-  'begin_checkout':'InitiateCheckout',
-  'initiate_checkout':'InitiateCheckout',
-  'purchase':'Purchase',
-  'add_payment_info':'AddPaymentInfo',
-  'add_to_wishlist':'AddToWishlist',
-  'search':'Search',
-  'lead':'Lead',
-  'identify':'Lead',
-  'contact':'Contact',
-  'contact_us':'Contact',
-  'complete_registration':'CompleteRegistration',
-  'sign_up':'CompleteRegistration',
-  'login':'Contact',
-  'subscribe':'Subscribe',
-  'view_category':'ViewContent'
-};
-function _genEventId(){
-  try{
-    if(window.crypto && crypto.randomUUID) return crypto.randomUUID();
-  }catch(_){}
-  return 'evt_'+Date.now()+'_'+Math.random().toString(36).slice(2,10);
-}
-/* [v22] UTM first-touch capture — audit found 3,908 sessions in "(direct)/(none)"
-   because Instagram in-app browser strips referrers (36% of all traffic!). If a
-   visitor lands with ?utm_source=instagram we persist it to localStorage for 30
-   days so every subsequent window.track() call carries attribution. Also sent
-   with the server beacon so funnel_events / Meta CAPI can attribute. */
-(function(){
-  try{
-    var q = new URLSearchParams(location.search || '');
-    var src = q.get('utm_source'); var med = q.get('utm_medium');
-    var camp = q.get('utm_campaign'); var ct = q.get('utm_content'); var tm = q.get('utm_term');
-    if (src || med || camp) {
-      var payload = {
-        source: src || '', medium: med || '', campaign: camp || '',
-        content: ct || '', term: tm || '',
-        at: Date.now(), landing: location.pathname
-      };
-      localStorage.setItem('intru_utm', JSON.stringify(payload));
-      // Dispatch an attribution event on landing so GA4/Pixel/CAPI know which post sold.
-      if (typeof window.track === 'function') {
-        setTimeout(function(){ window.track('utm_landing', payload); }, 50);
-      }
-    }
-  }catch(_e){}
-})();
-function _getStoredUtm(){
-  try{
-    var raw = localStorage.getItem('intru_utm');
-    if (!raw) return null;
-    var p = JSON.parse(raw);
-    // Expire after 30 days (standard last-touch attribution window)
-    if (Date.now() - (p.at||0) > 30*24*60*60*1000) { localStorage.removeItem('intru_utm'); return null; }
-    return p;
-  }catch(_e){ return null; }
-}
-window.track=function(name,params){
-  try{params=params||{};
-    var eventId=params.event_id||_genEventId();
-    params.event_id=eventId;
-    // GA4
-    if(typeof window.gtag==='function'){window.gtag('event',name,params);}
-    // Clarity (custom event + tag)
-    if(typeof window.clarity==='function'){
-      var cName=CLARITY_EVENT_ALIAS[name]||name;
-      window.clarity('event',cName);
-      // [AUDIT 2026-10-03] M-1: Removed duplicate fire of original name — was causing double-counting
-      try{
-        if(params.value!=null)window.clarity('set',cName+'_value',String(params.value));
-        if(params.item_id)window.clarity('set','item_id',String(params.item_id));
-      }catch(_e){}
-    }
-    // Meta Pixel (client-side) with event_id for CAPI dedup
-    if(typeof window.fbq==='function'){
-      var metaName=META_EVENT_ALIAS[name]||'CustomEvent';
-      var metaParams={};
-      if(params.value!=null){metaParams.value=Number(params.value)||0;metaParams.currency=params.currency||'INR';}
-      if(params.item_id)metaParams.content_ids=[String(params.item_id)];
-      if(params.items && Array.isArray(params.items)){
-        metaParams.content_ids=params.items.map(function(i){return String(i.item_id||i.id||'')}).filter(Boolean);
-        metaParams.contents=params.items.map(function(i){return{id:String(i.item_id||i.id||''),quantity:Number(i.quantity)||1,item_price:Number(i.price||i.item_price)||0}});
-        metaParams.num_items=params.items.reduce(function(s,i){return s+(Number(i.quantity)||1)},0);
-      }
-      if(name==='view_item'||name==='view_content')metaParams.content_type='product';
-      if(name==='search'&&params.search_term)metaParams.search_string=params.search_term;
-      if(metaName==='CustomEvent'){
-        try{window.fbq('trackCustom',name,metaParams,{eventID:eventId});}catch(_e){}
-      } else {
-        try{window.fbq('track',metaName,metaParams,{eventID:eventId});}catch(_e){}
-      }
-    }
-    // Internal beacon → server writes funnel_events + drives Meta CAPI.
-    // [v20] Skip low-value events on the server side to slash Supabase Disk IO.
-    // These events still fire on GA4 / Clarity / Meta Pixel client-side (dedup
-    // via event_id) — we just don't need one Postgres row per scroll tick.
-    // Purchase / add_to_cart / begin_checkout etc. are the ONLY events that
-    // need durable server-side capture (for CAPI + AI-loop reporting).
-    var _SKIP_SERVER = {
-      scroll_depth: 1, anchor_scroll: 1, engaged_session: 1,
-      promo_shown: 1, combo_nudge_shown: 1,
-      exit_intent_shown: 1, share: 1
-    };
-    if(navigator&&navigator.sendBeacon && !_SKIP_SERVER[name]){
-      /* [v22] Attach stored UTM so server-side funnel_events + Meta CAPI get attribution */
-      var _utm = _getStoredUtm();
-      if (_utm) { params._utm = _utm; }
-      var payload={event:name,meta:params,event_id:eventId,event_time:Math.floor(Date.now()/1000),url:location.href,user_agent:navigator.userAgent};
-      // If user declined consent, mark payload so server skips Meta CAPI (funnel_events log still happens)
-      if(window._intruConsentDeclined){payload.no_capi=1;}
-      var b=new Blob([JSON.stringify(payload)],{type:'application/json'});
-      navigator.sendBeacon('/api/analytics/event',b);
-    }
-  }catch(e){}
-};
-</script>`;
+  /* [v23 PERF] Unified tracking helper + UTM capture + lightbox + a11y
+     normaliser extracted to /static/intru-core.js. Cuts ~14 KB from every
+     HTML response and shifts the parse cost off the HTML critical path.
+     Served from Cloudflare's edge with long cache (headers set by the
+     /static/* route in src/index.tsx). The file is referenced here with
+     `defer` so it does not block HTML parsing but runs before DOMContentLoaded,
+     which window.track callers rely on. */
+  const helper = `<script src="/static/intru-core.js?v=23" defer></script>`;
   return gaSnippet + claritySnippet + fbSnippet + helper;
 }
 
@@ -704,7 +579,7 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 .toast-ok-green{background:#065f46;color:#fff}
 .sz-error{animation:shake .3s ease;border-color:var(--red) !important}
 /* [AUDIT 2026-10-03] UI: Sold-out size strikethrough — users shouldn't have to tap to find out
-   [v23 BUGFIX P1] Was `.sz-btn.sz-sold` — the actual class on the button is `szbtn` (no hyphen),
+   [v23 BUGFIX P1] Was .sz-btn.sz-sold -- the actual class on the button is szbtn (no hyphen),
    so this selector NEVER matched. The strikethrough only showed because of inline styles.
    Fixed selector + added low-stock variant for consistency. */
 .szbtn.sz-sold{opacity:.35;text-decoration:line-through;cursor:not-allowed;pointer-events:none;border-color:var(--g200) !important;background:var(--g50) !important;color:var(--g400) !important}
@@ -1092,47 +967,7 @@ ${aiAnnounceHtml}
   <img id="lbImg" src="" alt="Product image" loading="eager">
   <button class="img-lightbox-next" id="lbNext" onclick="lbNav(1)" aria-label="Next"><i class="fas fa-chevron-right"></i></button>
 </div>
-<script>
-(function(){
-  var _lbImages=[], _lbIdx=0;
-  window.openLightbox=function(images,idx){
-    try{
-      _lbImages=images||[]; _lbIdx=idx||0;
-      var lb=document.getElementById('imgLightbox');
-      var img=document.getElementById('lbImg');
-      if(!lb||!img)return;
-      img.src=_lbImages[_lbIdx]||'';
-      lb.classList.add('open');
-      document.body.style.overflow='hidden';
-      // Show/hide prev-next based on image count
-      var prev=document.getElementById('lbPrev'), next=document.getElementById('lbNext');
-      if(prev) prev.style.display=_lbImages.length>1?'flex':'none';
-      if(next) next.style.display=_lbImages.length>1?'flex':'none';
-    }catch(e){}
-  };
-  window.closeLightbox=function(){
-    try{
-      var lb=document.getElementById('imgLightbox');
-      if(lb)lb.classList.remove('open');
-      document.body.style.overflow='';
-    }catch(e){}
-  };
-  window.lbNav=function(dir){
-    try{
-      if(!_lbImages.length)return;
-      _lbIdx=(_lbIdx+dir+_lbImages.length)%_lbImages.length;
-      var img=document.getElementById('lbImg');
-      if(img)img.src=_lbImages[_lbIdx];
-    }catch(e){}
-  };
-  // ESC key closes lightbox
-  document.addEventListener('keydown',function(e){
-    if(e.key==='Escape') window.closeLightbox();
-    if(e.key==='ArrowLeft') window.lbNav(-1);
-    if(e.key==='ArrowRight') window.lbNav(1);
-  });
-})();
-</script>
+<!-- [v23 PERF] Lightbox JS moved to /static/intru-core.js (loaded via <head>). -->
 
 <!-- [AUDIT 2026-10-03] Defect #12: Removed sitewide combo promo bar.
      Shown 738× → clicked 11× (67:1 ratio). On mobile it pushed products below the fold,
@@ -1962,66 +1797,7 @@ function applyCoupon(){
   }).catch(function(){toast('Failed to validate coupon', 'err')});
 }
 
-/* ---------- Clarity / A11y hygiene fix [AG] ----------
-   Clarity flags dead clicks (11.75% of sessions) mostly because we have
-   div/span elements with onclick but without role="button" / tabindex.
-   This normaliser runs on DOMContentLoaded and marks all clickable
-   non-buttons as accessible, killing the dead-click false positives and
-   also fixing keyboard nav. Also swallows the InstagramApp WebView
-   "java object is gone" postMessage error so it doesn't spam funnel. */
-(function initA11yNormalizer(){
-  if (typeof document === 'undefined') return;
-  function normalize(){
-    try {
-      var nodes = document.querySelectorAll('[onclick]');
-      for (var i=0; i<nodes.length; i++){
-        var el = nodes[i];
-        var tag = (el.tagName||'').toLowerCase();
-        if (tag === 'button' || tag === 'a' || tag === 'input') continue;
-        if (!el.getAttribute('role')) el.setAttribute('role', 'button');
-        if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '0');
-        if (!el.dataset._kbdBound){
-          el.dataset._kbdBound = '1';
-          el.addEventListener('keydown', function(e){
-            if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); e.target.click(); }
-          });
-        }
-      }
-    } catch(e) {}
-  }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', normalize);
-  else normalize();
-  /* Re-run after dynamic content mutations (cart open, modals) */
-  try {
-    var mo = new MutationObserver(function(muts){
-      for (var i=0;i<muts.length;i++){
-        if (muts[i].addedNodes && muts[i].addedNodes.length){ normalize(); break; }
-      }
-    });
-    mo.observe(document.documentElement, { childList: true, subtree: true });
-  } catch(e){}
-
-  /* Silence InstagramApp/GoogleApp WebView-bridge errors that were spamming
-     Clarity's JS-error stat (3.1% of sessions). These come from the host
-     WebView, not our code, and can't be fixed by us — just swallow them. */
-  try {
-    var _origErr = window.onerror;
-    window.onerror = function(msg, src, line, col, err){
-      var m = String(msg||'').toLowerCase();
-      if (m.indexOf('java object is gone') !== -1
-          || m.indexOf('java exception was raised') !== -1
-          || m.indexOf('script error') !== -1 && !src) {
-        return true; /* swallow — WebView bridge, not our bug */
-      }
-      if (typeof _origErr === 'function') return _origErr.apply(this, arguments);
-      return false;
-    };
-    window.addEventListener('unhandledrejection', function(e){
-      var m = String(e.reason && e.reason.message || e.reason || '').toLowerCase();
-      if (m.indexOf('java object is gone') !== -1) { e.preventDefault && e.preventDefault(); }
-    });
-  } catch(e){}
-})();
+/* [v23 PERF] A11y normaliser + WebView error swallow moved to /static/intru-core.js */
 
 /* Public coupon chips — click to auto-fill + apply */
 var _publicCoupons = null;
