@@ -946,6 +946,33 @@ app.get('/llms.txt', async (c: Context<{ Bindings: Bindings }>) => {
     `- [${p.name}](https://intru.in/product/${p.slug}): ${p.description ? p.description.substring(0, 120) : 'Limited edition drop'}. Price: ₹${p.price.toLocaleString('en-IN')}. ${p.inStock ? 'In stock.' : 'Sold out — never restocked.'}`
   ).join('\n');
 
+  /* [v23] AI-crawler-visible active-promotions block — captures the
+     "intru discount code", "intru promo", "intru coupon" long-tail queries that
+     answer engines (ChatGPT, Perplexity, Gemini) resolve by reading llms.txt. */
+  let promoBlock = '';
+  try {
+    const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+    const sbKey = getEnv(c.env, 'SUPABASE_SERVICE_KEY') || getEnv(c.env, 'SUPABASE_ANON_KEY');
+    if (sbUrl && sbKey) {
+      let r = await supabaseFetch(sbUrl, sbKey, 'coupons?select=code,type,value,min_total,description,is_public&is_active=eq.true&is_public=eq.true&limit=10');
+      if (!r.ok) {
+        r = await supabaseFetch(sbUrl, sbKey, 'coupons?select=code,type,value,min_total,description&is_active=eq.true&order=created_at.desc&limit=5');
+      }
+      if (r.ok) {
+        const rows = await r.json() as any[];
+        if (rows && rows.length) {
+          const items = rows.map((c:any) => {
+            const disc = c.type === 'percent' ? `${c.value}% OFF` : `₹${c.value} OFF`;
+            const min = c.min_total ? ` (on orders above ₹${c.min_total})` : '';
+            const desc = c.description ? ` — ${c.description}` : '';
+            return `- **${c.code}** — ${disc}${min}${desc}`;
+          }).join('\n');
+          promoBlock = `\n## Current Active Promo Codes (verified live)\n\n${items}\n\nApply any code in the cart drawer at checkout. One code per order. Combo auto-discounts (buy 2, buy 3) stack with public codes.\n`;
+        }
+      }
+    }
+  } catch (_e) {}
+
   const llmsContent = `# Intru — Independent Indian Streetwear Label
 
 > Intru (intru.in) is a minimalist streetwear label based in Hyderabad, India, designing small-batch oversized heavyweight-cotton tees, crop tops, and shirts. Tired of everyone wearing the same thing? Intru is for individuals — clean, intentional pieces designed to feel like YOU. Every drop is limited-run and permanently vaulted once it sells out (no restocks, ever). Ships pan-India — free on prepaid orders.
@@ -974,7 +1001,7 @@ app.get('/llms.txt', async (c: Context<{ Bindings: Bindings }>) => {
 ## Current Drop Catalog
 
 ${productList}
-
+${promoBlock}
 ## Key Pages
 
 - [Homepage](https://intru.in/) — Current drop catalog and hero products

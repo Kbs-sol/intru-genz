@@ -81,6 +81,20 @@ export function productPage(product: Product, opts: {
         "priceCurrency": "INR",
         "price": product.price,
         "priceValidUntil": new Date(Date.now() + 30 * 24 * 3600000).toISOString().split('T')[0],
+        /* [v23] Reference (strikethrough) price when a comparePrice exists —
+           Google uses this to render the "Save ₹X" chip in rich results. */
+        ...(product.comparePrice && product.comparePrice > product.price ? {
+          "priceSpecification": {
+            "@type": "UnitPriceSpecification",
+            "price": product.price,
+            "priceCurrency": "INR",
+            "referencePrice": {
+              "@type": "UnitPriceSpecification",
+              "price": product.comparePrice,
+              "priceCurrency": "INR"
+            }
+          }
+        } : {}),
         "availability": product.inStock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
         "itemCondition": "https://schema.org/NewCondition",
         "seller": { "@type": "Organization", "name": "Intru", "url": "https://intru.in" },
