@@ -228,6 +228,24 @@ html, body { overflow-x: hidden !important; width: 100% !important; max-width: 1
 .tbar-i i{font-size:12px;color:#fafafa}
 @media(max-width:640px){.tbar-i{gap:16px;font-size:9px;letter-spacing:.8px}.tbar-i i{font-size:10px}}
 
+/* [v23] Homepage promo strip — single-line, high-contrast, dismissible.
+   Below trust bar, above the marquee. Hidden by default; shown by JS only
+   when /api/coupons/public returns ≥1 active code. No layout reserved when hidden. */
+.hpromo{background:linear-gradient(90deg,#fef3c7 0%,#fde68a 50%,#fef3c7 100%);border-bottom:1.5px solid #eab308;position:relative;overflow:hidden;animation:hpromoIn .6s cubic-bezier(0.4,0,0.2,1) both}
+.hpromo::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent 40%,rgba(255,255,255,0.4) 50%,transparent 60%);animation:hpromoShimmer 4s infinite;pointer-events:none}
+.hpromo-i{max-width:1200px;margin:0 auto;padding:11px 48px 11px 20px;display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;font-size:12px;font-weight:800;color:#78350f;letter-spacing:0.3px;position:relative;z-index:1}
+.hpromo-i i{color:#dc2626;font-size:14px}
+.hpromo-i #homePromoText{font-family:'Space Grotesk',sans-serif;font-weight:700;letter-spacing:0.5px}
+.hpromo-i #homePromoText strong{font-family:monospace;font-weight:900;background:#0a0a0a;color:#eab308;padding:3px 9px;border-radius:4px;letter-spacing:2px;font-size:11px;margin:0 4px;border:1px dashed #eab308}
+.hpromo-cta{background:#0a0a0a;color:#fafafa;border:none;padding:6px 14px;border-radius:4px;font-size:10px;font-weight:900;letter-spacing:1.2px;text-transform:uppercase;cursor:pointer;transition:background .15s,transform .15s;font-family:'Space Grotesk',sans-serif}
+.hpromo-cta:hover{background:#dc2626;transform:translateY(-1px)}
+.hpromo-cta.copied{background:#16a34a;pointer-events:none}
+.hpromo-x{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;color:#78350f;font-size:20px;cursor:pointer;padding:4px 8px;line-height:1;opacity:0.6;transition:opacity .15s}
+.hpromo-x:hover{opacity:1}
+@keyframes hpromoIn{0%{opacity:0;transform:translateY(-100%)}100%{opacity:1;transform:translateY(0)}}
+@keyframes hpromoShimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+@media(max-width:640px){.hpromo-i{font-size:10px;padding:9px 36px 9px 14px;gap:8px}.hpromo-i i{font-size:12px}.hpromo-i #homePromoText strong{font-size:10px;padding:2px 6px;letter-spacing:1.5px}.hpromo-cta{padding:5px 10px;font-size:9px;letter-spacing:1px}.hpromo-x{right:8px;font-size:18px}}
+
 /* [v21] Instagram feed strip — public rendering of admin-managed IG feed.
    Was orphaned in v19-v20 (admin CRUD existed but no public UI). */
 .igsec{background:#fafafa;padding:80px 24px;border-top:1px solid #e5e5e5}
@@ -295,6 +313,21 @@ ${featuredOne && featuredOne.images && featuredOne.images[0] ? `<link rel="prelo
     <span><i class="fas fa-bolt"></i> 36h Dispatch</span>
     <span><i class="fas fa-map-marker-alt"></i> Made in India</span>
     <span><i class="fas fa-lock"></i> Secure Razorpay + COD</span>
+  </div>
+</div>
+
+<!-- [v23] Homepage promo strip — single line below trust bar, hidden by default.
+     Populated by renderHomePromoStrip() (lives in shell.ts) ONLY if public coupons
+     exist. Does not reserve layout space when empty, so no LCP impact.
+     Audit learned: the fat sitewide combo bar (12 defect) hurt 86% bounce by pushing
+     products below the fold on mobile. This single line is 36px tall, dismissible,
+     and only renders when there's a real offer. -->
+<div class="hpromo" id="homePromoStrip" style="display:none" role="region" aria-label="Current promotion">
+  <div class="hpromo-i">
+    <i class="fas fa-tag"></i>
+    <span id="homePromoText"></span>
+    <button class="hpromo-cta" id="homePromoCopy" onclick="_copyHomePromo()">COPY CODE</button>
+    <button class="hpromo-x" onclick="_dismissHomePromo()" aria-label="Dismiss">&times;</button>
   </div>
 </div>
 

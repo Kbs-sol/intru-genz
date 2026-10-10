@@ -338,6 +338,9 @@ ${storeSettings.SIZE_GUIDE_ENABLED !== 'false' ? `<div id="sgModal" style="posit
 <p style="font-size:11px;color:var(--g400);margin-top:16px;line-height:1.6"><i class="fas fa-info-circle" style="margin-right:4px"></i>Measured flat. Chest = pit to pit. Length = top of shoulder to hem. If between sizes, go with your usual.</p>
 </div>
 </div>` : ''}
+<!-- [v23] Promo chip slot — populated by renderPdpPromoChip() in shell.ts
+     only when /api/coupons/public has at least 1 active code. Hidden otherwise. -->
+<div id="pdpPromoSlot" style="display:none"></div>
 <div class="pactions">
 ${!isSoldOut ? `
 <button class="atc-btn" id="atcBtn" onclick="handleATC()"><i class="fas fa-shopping-bag" style="margin-right:8px"></i>Add to Bag</button>

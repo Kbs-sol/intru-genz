@@ -1,0 +1,6 @@
+{
+  "version": 1,
+  "description": "Exclude static assets + favicon from the Worker so Cloudflare's edge serves them directly (zero worker CPU). manifest.json stays on the Worker because it is generated dynamically.",
+  "include": ["/*"],
+  "exclude": ["/favicon.png", "/favicon.ico", "/static/*"]
+}

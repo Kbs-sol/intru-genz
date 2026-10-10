@@ -1802,12 +1802,74 @@ function applyCoupon(){
 /* Public coupon chips — click to auto-fill + apply */
 var _publicCoupons = null;
 function loadPublicCoupons(){
-  if(_publicCoupons !== null){ renderPublicCoupons(); renderOffersPill(); return; }
+  if(_publicCoupons !== null){ renderPublicCoupons(); renderOffersPill(); renderHomePromoStrip(); renderPdpPromoChip(); return; }
   fetch('/api/coupons/public').then(function(r){return r.json()}).then(function(d){
     _publicCoupons = d.coupons || [];
     renderPublicCoupons();
     renderOffersPill();
+    renderHomePromoStrip();
+    renderPdpPromoChip();
   }).catch(function(){ _publicCoupons = []; });
+}
+
+/* [v23] HOMEPAGE PROMO STRIP — single-line between trust bar and marquee.
+   Only renders when (a) there's at least one public coupon AND (b) the user
+   has not dismissed it this session. Reserves ZERO layout space when empty. */
+function renderHomePromoStrip(){
+  var strip = document.getElementById('homePromoStrip');
+  var txt = document.getElementById('homePromoText');
+  if(!strip || !txt || !_publicCoupons || !_publicCoupons.length) return;
+  if(sessionStorage.getItem('intru_home_promo_dismissed')==='1'){ strip.style.display='none'; return; }
+  var top = _publicCoupons[0];
+  var discStr = top.type==='percent' ? (top.value+'% OFF') : ('₹'+top.value+' OFF');
+  var minTxt = top.min_total ? (' on orders above ₹'+top.min_total) : '';
+  txt.innerHTML = 'LIMITED-TIME: Save '+discStr+minTxt+' with code <strong>'+top.code+'</strong>';
+  strip.style.display='block';
+  strip.setAttribute('data-code', top.code);
+  try{ if(typeof window.track==='function') window.track('promo_shown',{placement:'home_strip',code:top.code}); }catch(e){}
+}
+function _copyHomePromo(){
+  var strip = document.getElementById('homePromoStrip');
+  if(!strip) return;
+  var code = strip.getAttribute('data-code') || '';
+  if(!code) return;
+  try{ if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(code); }catch(e){}
+  var btn = document.getElementById('homePromoCopy');
+  if(btn){ btn.textContent='COPIED ✓'; btn.classList.add('copied'); setTimeout(function(){ btn.textContent='COPY CODE'; btn.classList.remove('copied'); }, 2500); }
+  try{ if(typeof window.track==='function') window.track('promo_copied',{code:code,source:'home_strip'}); }catch(e){}
+  try{ toast('Code '+code+' copied — paste at checkout','ok-green'); }catch(e){}
+}
+function _dismissHomePromo(){
+  sessionStorage.setItem('intru_home_promo_dismissed','1');
+  var strip = document.getElementById('homePromoStrip');
+  if(strip) strip.style.display='none';
+}
+
+/* [v23] PRODUCT PAGE PROMO CHIP — a dashed-outline teaser slotted just above
+   the Add to Cart button, so buyers at the moment of decision see the saving.
+   Target element id="pdpPromoSlot" exists only on product pages. */
+function renderPdpPromoChip(){
+  var slot = document.getElementById('pdpPromoSlot');
+  if(!slot || !_publicCoupons || !_publicCoupons.length) return;
+  var top = _publicCoupons[0];
+  var discStr = top.type==='percent' ? (top.value+'% OFF') : ('₹'+top.value+' OFF');
+  var html = '<div style="background:linear-gradient(90deg,#fef3c7,#fde68a);border:1.5px dashed #eab308;border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:10px;margin:14px 0 10px">'
+    + '<i class="fas fa-tag" style="color:#dc2626;font-size:14px"></i>'
+    + '<div style="flex:1;font-size:12px;line-height:1.35;color:#78350f;font-weight:600">'
+    +   'Save <strong style="font-weight:900;color:#0a0a0a">'+discStr+'</strong> on this order with code '
+    +   '<strong style="font-family:monospace;background:#0a0a0a;color:#eab308;padding:2px 7px;border-radius:3px;letter-spacing:1.5px;font-size:11px">'+top.code+'</strong>'
+    + '</div>'
+    + '<button onclick="_pdpCopyPromo(\\x27'+top.code+'\\x27,this)" style="background:#0a0a0a;color:#fafafa;border:none;padding:6px 10px;border-radius:4px;font-size:9px;font-weight:900;letter-spacing:1px;text-transform:uppercase;cursor:pointer;font-family:inherit">COPY</button>'
+    + '</div>';
+  slot.innerHTML = html;
+  slot.style.display = 'block';
+  try{ if(typeof window.track==='function') window.track('promo_shown',{placement:'pdp_chip',code:top.code}); }catch(e){}
+}
+function _pdpCopyPromo(code,btn){
+  try{ if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(code); }catch(e){}
+  if(btn){ var _orig=btn.textContent; btn.textContent='✓'; btn.style.background='#16a34a'; setTimeout(function(){ btn.textContent=_orig; btn.style.background='#0a0a0a'; }, 1800); }
+  try{ toast('Code '+code+' copied — paste at checkout','ok-green'); }catch(e){}
+  try{ if(typeof window.track==='function') window.track('promo_copied',{code:code,source:'pdp_chip'}); }catch(e){}
 }
 function renderPublicCoupons(){
   var el = document.getElementById('publicCoupons');
