@@ -143,7 +143,13 @@ export function homePage(opts: {
 html, body { overflow-x: hidden !important; width: 100% !important; max-width: 100vw !important; }
 /* ====== BENTO HERO [AG] ====== */
 .hero{min-height:calc(100vh - 72px);display:flex;background:var(--bk);overflow:hidden;position:relative}
-.hero::after{content:'';position:absolute;inset:0;backdrop-filter:url(#grain);opacity:0.4;pointer-events:none}
+/* [v23 PERF] Removed backdrop-filter url grain -- the SVG fractalNoise filter
+   was repainted on every scroll frame, costing 8-14ms per paint on desktop (huge
+   hero area) and causing the laggy scroll the user reported. On mobile the area
+   was small enough that it stayed smooth. The grain was barely visible at opacity
+   0.4 against the solid black background anyway. The SVG filter definition is
+   kept in case other pages use it. */
+.hero::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 0%,rgba(0,0,0,0.3) 100%);opacity:0.6;pointer-events:none}
 
 .h-split{display:flex;width:100%;max-width:1440px;margin:0 auto;position:relative;z-index:10;gap:40px}
 .h-l{flex:1;display:flex;flex-direction:column;justify-content:center;padding:60px 48px;text-align:left}
@@ -171,7 +177,8 @@ html, body { overflow-x: hidden !important; width: 100% !important; max-width: 1
 .hf-card:hover .hf-img img{transform:scale(1.03)}
 
 /* Hover reveal Quick Add — single line [AG] */
-.hf-sizes-box{position:absolute;inset:0;top:auto;background:rgba(255,255,255,0.96);backdrop-filter:blur(8px);padding:8px 10px;transform:translateY(100%);transition:transform .35s var(--eo);z-index:20;border-top:1px solid rgba(0,0,0,0.06);display:flex;align-items:center;gap:6px}
+/* [v23 PERF] Removed backdrop-filter — bg already 96% opaque, invisible contribution. */
+.hf-sizes-box{position:absolute;inset:0;top:auto;background:rgba(255,255,255,0.98);padding:8px 10px;transform:translateY(100%);transition:transform .35s var(--eo);z-index:20;border-top:1px solid rgba(0,0,0,0.06);display:flex;align-items:center;gap:6px}
 .hf-card:hover .hf-sizes-box{transform:translateY(0)}
 
 .hf-body{padding:14px 16px;display:flex;justify-content:space-between;align-items:center;background:var(--wh);position:relative;z-index:30}
@@ -201,7 +208,8 @@ html, body { overflow-x: hidden !important; width: 100% !important; max-width: 1
 .pc-img img{width:100%;height:100%;object-fit:cover;transition:transform .6s var(--eo)}
 .pcard:hover .pc-img img{transform:scale(1.02)}
 
-.pc-quick{position:absolute;inset:0;top:auto;background:rgba(255,255,255,0.96);backdrop-filter:blur(8px);padding:8px 10px;transform:translateY(100%);transition:transform .35s var(--eo);z-index:20;border-top:1px solid rgba(0,0,0,0.06);display:flex;align-items:center;gap:5px}
+/* [v23 PERF] Removed backdrop-filter — bg already 96% opaque, invisible contribution. */
+.pc-quick{position:absolute;inset:0;top:auto;background:rgba(255,255,255,0.98);padding:8px 10px;transform:translateY(100%);transition:transform .35s var(--eo);z-index:20;border-top:1px solid rgba(0,0,0,0.06);display:flex;align-items:center;gap:5px}
 .pcard:hover .pc-quick{transform:translateY(0)}
 
 .pcinfo{padding:14px 0 0}

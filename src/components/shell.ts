@@ -344,8 +344,19 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
 .anim{animation:fadeIn .6s var(--ease) forwards;opacity:0}
 .d1{animation-delay:.1s}.d2{animation-delay:.2s}.d3{animation-delay:.3s}.d4{animation-delay:.4s}
-.glass{background:rgba(250,250,250,.72);backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%)}
-.nav{position:fixed;top:0;left:0;right:0;z-index:100;border-bottom:1px solid rgba(0,0,0,.06);transition:all .4s var(--eo);height:72px;display:flex;align-items:center}
+/* [v23 PERF] .glass ships backdrop-filter blur(24px) saturate(180%) which is
+   applied to the fixed nav bar on every page. On desktop with large viewport this
+   repaints the full viewport every scroll frame. Promote to its own composite
+   layer with will-change transform + transform translateZ(0) so the browser
+   caches the blurred result as a texture instead of re-blurring per frame. */
+.glass{background:rgba(250,250,250,.72);backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%);will-change:transform;transform:translateZ(0)}
+/* [v23 PERF] Honour the OS 'reduce motion' setting — kills every infinite animation
+   and heavy backdrop-filter, matching WCAG 2.3.3 + helping low-end devices. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+  .glass, .ai-pop, .cdrw, .id-ovl, .covl { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+}
+.nav{position:fixed;top:0;left:0;right:0;z-index:100;border-bottom:1px solid rgba(0,0,0,.06);transition:all .4s var(--eo);height:72px;display:flex;align-items:center;contain:layout style paint}
 .nav.scrolled{height:64px;box-shadow:0 1px 32px rgba(0,0,0,.04);background:rgba(255,255,255,.94)}
 .navi{max-width:1440px;margin:0 auto;width:100%;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 32px}
 .logo{font-family:var(--head);font-size:22px;letter-spacing:-.04em;text-transform:uppercase;grid-column:2;display:flex;align-items:center}.logo span{font-family:var(--sans);font-weight:400;opacity:.4;text-transform:none;font-size:16px}
@@ -388,8 +399,11 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
   .nactions{grid-column:3;gap:8px}
   .nbtn#navAccountBtn{display:none}
 }
-/* Quick Action System */
-.pcard-actions{position:absolute;bottom:0;left:0;right:0;background:rgba(255,255,255,.94);backdrop-filter:blur(12px);padding:16px;transform:translateY(100%);transition:transform .4s var(--eo);display:flex;flex-direction:column;gap:12px;z-index:10}
+/* Quick Action System
+   [v23 PERF] Removed backdrop-filter — bg is already 94% opaque so the blur was
+   invisible. Repeating backdrop-filter across every product card forced the GPU to
+   reserve a blur buffer per card and contributed to desktop scroll jank. */
+.pcard-actions{position:absolute;bottom:0;left:0;right:0;background:rgba(255,255,255,.98);padding:16px;transform:translateY(100%);transition:transform .4s var(--eo);display:flex;flex-direction:column;gap:12px;z-index:10}
 .pcard:hover .pcard-actions{transform:translateY(0)}
 .pcsizes{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
 .pcsz{width:32px;height:32px;border:1px solid var(--g200);border-radius:2px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s}.pcsz:hover{border-color:var(--bk);background:var(--g50)}
@@ -2078,10 +2092,19 @@ function renderCartTotals(){
     }
   }
   
+  /* [v23 HOTFIX] #cshp was removed when #cartShippingInfo replaced it (P0-3 audit),
+     but this line kept querying it. getElementById returned null, calling
+     .textContent= on null THREW a TypeError, and the very next line that updates
+     #ctot never ran -- so Total stayed at its initial "Rs.0" even though the subtotal
+     rendered correctly. Null-guard both, and keep the shText assignment in case
+     #cshp is ever re-added. This is the actual root cause of the user's "Total Rs.0"
+     screenshot bug -- not stale PM, not promo codes. */
   var shText=payMode==='prepaid'?'FREE':'';
   if(payMode==='cod'){shText='Rs.99 Shipping/COD Fee'}
-  document.getElementById('cshp').textContent=shText||'Free';
-  document.getElementById('ctot').textContent=fmt(t.total);
+  var _cshp = document.getElementById('cshp');
+  if (_cshp) _cshp.textContent = shText || 'Free';
+  var _ctot = document.getElementById('ctot');
+  if (_ctot) _ctot.textContent = fmt(t.total);
 
   /* [AUDIT P0-3] Shipping progress bar in bag.
      Audit called out: "Show shipping cost in the bag, before checkout. If it is

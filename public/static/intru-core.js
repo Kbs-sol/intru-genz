@@ -192,10 +192,37 @@ window.track=function(name,params){
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', normalize);
   else normalize();
+  /* [v23 PERF] Previously this MutationObserver fired `normalize()` (a full-DOM
+     `querySelectorAll('[onclick]')` walk) on EVERY DOM mutation. On desktop with
+     big DOMs, scrolling triggers lazy-image load mutations + animation state
+     changes = thousands of DOM walks/second = the laggy desktop scroll the user
+     reported. Now: coalesce bursts via requestIdleCallback with 500ms timeout,
+     and ignore mutations in known high-churn containers (toasts, cart drawer). */
   try {
+    var _pending = false;
+    function _scheduleNormalize(){
+      if (_pending) return;
+      _pending = true;
+      var run = function(){ _pending = false; normalize(); };
+      if (typeof requestIdleCallback === 'function') {
+        requestIdleCallback(run, { timeout: 500 });
+      } else {
+        setTimeout(run, 150);
+      }
+    }
+    var _IGNORE_IDS = { tc:1, cartItems:1, otbody:1, anaTbody:1, imgLightbox:1, offersTray:1 };
     var mo = new MutationObserver(function(muts){
       for (var i=0;i<muts.length;i++){
-        if (muts[i].addedNodes && muts[i].addedNodes.length){ normalize(); break; }
+        var t = muts[i].target;
+        /* Skip churn in known high-mutation containers (toasts, cart items,
+           admin table bodies, lightbox) — normalize() has already seen them. */
+        var skip = false, cur = t;
+        while (cur && cur !== document.documentElement) {
+          if (cur.id && _IGNORE_IDS[cur.id]) { skip = true; break; }
+          cur = cur.parentNode;
+        }
+        if (skip) continue;
+        if (muts[i].addedNodes && muts[i].addedNodes.length){ _scheduleNormalize(); break; }
       }
     });
     mo.observe(document.documentElement, { childList: true, subtree: true });
