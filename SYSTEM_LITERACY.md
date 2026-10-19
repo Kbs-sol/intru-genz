@@ -1022,3 +1022,10 @@ When asked to fix/modify this project:
 - Sold-out preservation pages (200 status, "VAULTED: SOLD OUT")
 - Dynamic size chart with category-based column rendering
 
+
+
+---
+
+## v25 — Clearance bundle (any 3 for Rs. 1499) — supersedes all earlier "combo" notes
+
+The flat combo discount (`combos` table, `/api/combos/validate`, `checkCombos()`, `activeCombo*`, combo banner/nudge/promo bar) is **removed**. Pricing is now `calculateBundleTotals()` in `src/data.ts` (units sorted by price desc, groups of 3 = Rs.1499, leftovers at regular price). Server (`/api/checkout`, `/api/checkout/cod`) is the source of truth; the client gets the same function via `.toString()` injection in `shell.ts`. Coupons do not stack with a bundle. COD fee Rs.99 unchanged. Orders store regular `subtotal`, payable `total`, bundle discount in `combo_discount`, and per-line `bundleDiscountShare` / `payableLineTotal`. Cart footer = bundle line + Total + You saved only; full breakdown is in `#coBreakdown` inside the payment step. See README v25 for details.

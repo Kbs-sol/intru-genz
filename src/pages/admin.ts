@@ -365,7 +365,7 @@ export function adminPage(opts: {
 <div class="apan" id="tcombo">
 <div class="sett-card" style="margin-bottom:20px;background:var(--g50)">
 <h4>🔥 Combo-Buy Deals</h4>
-<p>Create smart multi-product discount deals. When customers add qualifying products, a discount fires automatically — no coupon code needed. The best eligible combo wins (highest discount value).</p>
+<p style="background:#fef3c7;border:1px solid #eab308;padding:10px;border-radius:6px;font-size:12px"><b>LEGACY — not applied to orders.</b> Since v25 the storefront uses a fixed Clearance bundle (any 3 for Rs. 1499, computed in code). Rows below are ignored at checkout.</p>
 </div>
 
 <!-- Create / Edit Combo form -->

@@ -1,4 +1,4 @@
-import { STORE_CONFIG, type Product, type LegalPage, SEED_LEGAL_PAGES } from '../data'
+import { STORE_CONFIG, type Product, type LegalPage, SEED_LEGAL_PAGES, calculateBundleTotals } from '../data'
 
 /**
  * Shell v7.0: Full Organic Traffic Engine [AG]
@@ -452,7 +452,20 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 .cqty{display:flex;align-items:center;gap:10px;margin-top:6px}
 .qb{width:26px;height:26px;border:1px solid var(--g200);background:none;border-radius:3px;font-size:13px;display:flex;align-items:center;justify-content:center;transition:all .2s}.qb:hover{background:var(--bk);color:var(--wh);border-color:var(--bk)}
 .crm{background:none;border:none;color:var(--g300);font-size:11px;margin-top:4px;padding:0;transition:color .2s;text-transform:uppercase;letter-spacing:.5px}.crm:hover{color:var(--red)}
-.cftr{padding:20px 24px;border-top:1px solid var(--g100);background:var(--g50)}
+.cftr{flex-shrink:0;padding:12px 24px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--g100);background:var(--g50)}
+.cbundle-line{display:none;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#166534;margin-bottom:6px}
+.cbundle-line i{font-size:11px}
+.csaved{display:none;justify-content:flex-end;font-size:12px;font-weight:700;color:#16a34a;margin-top:2px}
+.cftr .ctl{font-size:17px;padding-top:8px}
+.cftr .ccbtn{margin-top:10px}
+.cbd{margin-top:14px;padding:12px 14px;border:1px solid var(--g200);border-radius:8px;background:var(--wh);font-size:12px}
+.cbd-r{display:flex;justify-content:space-between;gap:10px;padding:3px 0}
+.cbd-r small{display:block;font-size:10px;color:var(--g400);font-weight:500}
+.cbd-g{color:#16a34a;font-weight:700}
+.cbd-t{display:flex;justify-content:space-between;font-size:15px;font-weight:800;border-top:1px solid var(--g200);margin-top:6px;padding-top:8px}
+.cbd-n{font-size:10px;color:var(--g500);margin-top:6px;line-height:1.4}
+.cbd-p{font-size:9px;color:var(--g400);text-align:center;margin-top:8px;line-height:1.4}.cbd-p a{text-decoration:underline}
+@media(max-width:480px){.cbdy{padding:12px 16px}.cftr{padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px))}#addressSection{margin-top:12px!important;padding-top:12px!important}#paymentSection{margin-top:14px!important;padding-top:14px!important}.citm{padding:10px 0;gap:12px}.cimg{width:60px;height:76px}}
 .cst{display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px}
 .csh{display:flex;justify-content:space-between;font-size:11px;color:var(--g400);margin-bottom:12px}
 .ctl{display:flex;justify-content:space-between;font-size:18px;font-weight:700;padding-top:12px;border-top:1px solid var(--g200)}
@@ -508,69 +521,9 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 .cpn-copied{color:#16a34a;font-size:10px;font-weight:700;margin-left:6px}
 .cpn-tag{display:inline-flex;align-items:center;gap:6px;background:var(--g100);padding:4px 10px;border-radius:100px;font-size:10px;font-weight:700;margin-top:8px}
 .cpn-rem{cursor:pointer;opacity:0.6}.cpn-rem:hover{opacity:1}
-/* Combo-buy banner (cart drawer) */
-.combo-banner{margin:8px 0 4px;border-radius:10px;padding:14px 16px;display:none;align-items:center;gap:10px;font-size:12px;font-weight:700;background:linear-gradient(135deg,#0a0a0a 0%,#1a1a2e 100%);color:#fff;border:1px solid rgba(234,179,8,0.3);animation:comboPop .5s var(--eo);box-shadow:0 4px 20px rgba(234,179,8,0.15)}
-@keyframes comboPop{0%{opacity:0;transform:scale(0.95) translateY(6px)}60%{transform:scale(1.02)}100%{opacity:1;transform:scale(1) translateY(0)}}
-.combo-banner.visible{display:flex}
-.combo-banner i{font-size:18px;color:#eab308;flex-shrink:0;animation:firePulse 1.5s infinite alternate}
+/* [v25] Old combo banner/promo-bar/card CSS removed (clearance bundle replaces combos). */
 @keyframes firePulse{from{transform:scale(1)}to{transform:scale(1.2)}}
-.combo-banner .combo-name{flex:1;line-height:1.4}
-.combo-banner .combo-name small{display:block;font-size:10px;font-weight:500;opacity:0.7;margin-top:1px}
-.combo-badge{background:linear-gradient(135deg,#eab308,#f59e0b);color:#0a0a0a;font-size:9px;font-weight:900;padding:4px 10px;border-radius:100px;letter-spacing:.5px;white-space:nowrap;flex-shrink:0;box-shadow:0 2px 8px rgba(234,179,8,0.4)}
-/* [v23] Floating "Offers" pill — low-footprint promo visibility.
-   Audit removed the always-on top bar (67:1 shown:click ratio hurt mobile LCP).
-   This replacement is a dismissible, bottom-right FAB-style button that only
-   expands when tapped — doesn't push products below the fold, doesn't
-   impact LCP, but is clearly visible across every page. */
-.offers-pill{position:fixed;left:16px;bottom:16px;z-index:70;background:linear-gradient(135deg,#eab308,#f59e0b);color:#0a0a0a;border:none;border-radius:100px;padding:11px 18px;font-weight:900;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;box-shadow:0 6px 20px rgba(234,179,8,0.45),0 2px 6px rgba(0,0,0,0.15);display:none;align-items:center;gap:8px;transition:transform .18s var(--eo),box-shadow .18s var(--eo);font-family:var(--sans)}
-.offers-pill.show{display:inline-flex;animation:offersPillIn .5s cubic-bezier(0.34,1.56,0.64,1) both}
-.offers-pill:hover{transform:translateY(-2px) scale(1.03);box-shadow:0 10px 28px rgba(234,179,8,0.55),0 4px 10px rgba(0,0,0,0.2)}
-.offers-pill .op-dot{width:7px;height:7px;background:#dc2626;border-radius:50%;box-shadow:0 0 0 0 rgba(220,38,38,.6);animation:cpnPulse 1.8s infinite}
-.offers-pill-x{background:rgba(10,10,10,0.12);border:none;border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;color:#0a0a0a;font-size:10px;cursor:pointer;margin-left:2px;padding:0}
-.offers-pill-x:hover{background:rgba(10,10,10,0.25)}
-@keyframes offersPillIn{0%{opacity:0;transform:translateY(60px) scale(0.6)}100%{opacity:1;transform:translateY(0) scale(1)}}
-/* Offers tray — slides up from pill */
-.offers-tray{position:fixed;left:16px;bottom:68px;z-index:69;background:#fff;border:2px solid #0a0a0a;border-radius:16px;padding:16px;max-width:300px;width:calc(100vw - 32px);box-shadow:0 20px 50px rgba(0,0,0,0.25);display:none;flex-direction:column;gap:10px}
-.offers-tray.open{display:flex;animation:offersPillIn .32s cubic-bezier(0.34,1.56,0.64,1) both}
-.offers-tray-h{display:flex;justify-content:space-between;align-items:center;padding-bottom:10px;border-bottom:1px solid #e5e5e5}
-.offers-tray-h strong{font-family:var(--head);font-size:14px;letter-spacing:0.5px;text-transform:uppercase}
-.offers-tray-h button{background:none;border:none;cursor:pointer;color:#999;font-size:16px;padding:4px}
-.offers-tray-list{display:flex;flex-direction:column;gap:8px;max-height:300px;overflow-y:auto}
-.offers-tray-item{display:flex;flex-direction:column;gap:4px;padding:12px;background:linear-gradient(135deg,#fef3c7,#fde68a);border:1.5px dashed #eab308;border-radius:10px;cursor:pointer;transition:transform .15s}
-.offers-tray-item:hover{transform:translateY(-1px);background:linear-gradient(135deg,#fde68a,#fcd34d)}
-.offers-tray-item .ot-code{font-family:monospace;font-weight:900;font-size:14px;letter-spacing:2px;color:#0a0a0a}
-.offers-tray-item .ot-desc{font-size:11px;color:#78350f;font-weight:600;line-height:1.4}
-.offers-tray-item .ot-copy{font-size:9px;font-weight:800;letter-spacing:1px;color:#eab308;text-transform:uppercase;margin-top:4px}
-.offers-tray-empty{text-align:center;padding:20px;color:#999;font-size:12px}
-@media(max-width:640px){.offers-pill{padding:10px 14px;font-size:10px}.offers-tray{max-width:calc(100vw - 32px)}}
 
-/* Combo promo bar (top of page, below nav) */
-.combo-promo-bar{background:linear-gradient(90deg,#0a0a0a 0%,#1a1a2e 50%,#0a0a0a 100%);color:#fff;padding:10px 24px;display:none;align-items:center;justify-content:center;gap:16px;font-size:11px;font-weight:700;letter-spacing:.5px;position:relative;overflow:hidden;border-bottom:1px solid rgba(234,179,8,0.2)}
-.combo-promo-bar::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(234,179,8,0.08),transparent);animation:shimmerBar 3s infinite}
-@keyframes shimmerBar{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
-.combo-promo-bar.show{display:flex}
-.combo-promo-bar .cpb-item{display:flex;align-items:center;gap:8px;padding:0 16px;border-right:1px solid rgba(255,255,255,0.15)}
-.combo-promo-bar .cpb-item:last-child{border-right:none}
-.combo-promo-bar .cpb-badge{background:linear-gradient(135deg,#eab308,#f59e0b);color:#0a0a0a;font-size:12px;font-weight:900;padding:3px 10px;border-radius:100px;letter-spacing:.5px;box-shadow:0 0 0 0 rgba(234,179,8,.6);animation:cpnPulse 1.8s infinite}
-@keyframes cpnPulse{0%{box-shadow:0 0 0 0 rgba(234,179,8,.55)}70%{box-shadow:0 0 0 8px rgba(234,179,8,0)}100%{box-shadow:0 0 0 0 rgba(234,179,8,0)}}
-.combo-promo-bar .cpb-close{position:absolute;right:12px;background:none;border:none;color:rgba(255,255,255,0.4);font-size:18px;cursor:pointer;padding:4px;display:flex;align-items:center;transition:color .2s}.combo-promo-bar .cpb-close:hover{color:#fff}
-@media(max-width:768px){.combo-promo-bar{padding:10px 40px 10px 16px;flex-wrap:wrap;justify-content:flex-start;gap:8px}.combo-promo-bar .cpb-item{padding:0 8px;border-right:none;border-bottom:1px solid rgba(255,255,255,0.1)}}
-/* Combo card on product/home pages */
-.combo-promo-card{background:linear-gradient(135deg,#0a0a0a,#1a1a2e);color:#fff;border-radius:12px;padding:20px 24px;margin:24px 0;display:none;align-items:flex-start;gap:16px;border:1px solid rgba(234,179,8,0.25);box-shadow:0 8px 32px rgba(0,0,0,0.12);animation:fadeIn .5s var(--eo)}
-.combo-promo-card.show{display:flex}
-.combo-promo-card .cpc-icon{width:44px;height:44px;background:linear-gradient(135deg,#eab308,#f59e0b);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;box-shadow:0 4px 12px rgba(234,179,8,0.35)}
-.combo-promo-card .cpc-body{flex:1}
-.combo-promo-card .cpc-title{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;color:#eab308}
-.combo-promo-card .cpc-desc{font-size:12px;font-weight:500;opacity:.8;line-height:1.5}
-.combo-promo-card .cpc-trust{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
-.combo-promo-card .cpc-trust span{font-size:10px;font-weight:700;color:rgba(255,255,255,0.6);display:flex;align-items:center;gap:4px}
-.combo-promo-card .cpc-trust i{color:#eab308;font-size:9px}
-/* Cart ATC combo nudge animation */
-@keyframes comboNudge{0%{opacity:0;transform:translateY(-8px)}20%{opacity:1;transform:translateY(0)}80%{opacity:1}100%{opacity:0;transform:translateY(-4px)}}
-.combo-atc-nudge{font-size:11px;font-weight:700;color:#eab308;background:rgba(234,179,8,0.1);border:1px solid rgba(234,179,8,0.25);border-radius:6px;padding:6px 10px;margin-top:8px;display:flex;align-items:center;gap:6px;animation:comboNudge 3s ease forwards}
-/* Combo highlight pulse on cart icon */
-@keyframes cartComboPulse{0%{box-shadow:0 0 0 0 rgba(234,179,8,0.6)}70%{box-shadow:0 0 0 10px rgba(234,179,8,0)}100%{box-shadow:0 0 0 0 rgba(234,179,8,0)}}
-.ncart.combo-active{animation:cartComboPulse 2s 3}
 .ftr{background:var(--bk);color:var(--wh);padding:80px 24px 40px}
 .ftri{max-width:1440px;margin:0 auto;display:grid;grid-template-columns:1.5fr .8fr .8fr .8fr;gap:64px}
 .ftrb h3{font-family:var(--head);font-size:24px;margin-bottom:16px;letter-spacing:-.04em;text-transform:uppercase}.ftrb p{color:#d4d4d4;font-size:14px;line-height:1.7;max-width:320px}
@@ -616,10 +569,11 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 .addr-edit{position:absolute;top:12px;right:12px;font-size:10px;font-weight:700;text-decoration:underline;cursor:pointer;color:var(--g400);text-transform:uppercase;letter-spacing:1px}
 .cod-form{display:none;flex-direction:column;gap:12px;margin:16px 0;animation:fadeIn 0.3s ease}
 .cod-form.show{display:flex}
-.cod-inp{width:100%;padding:16px 20px;border:1.5px solid var(--g100);background:var(--g50);font-size:14px;font-family:inherit;outline:none;transition:all .2s}.cod-inp:focus{border-color:var(--bk);background:var(--wh)}
+.cod-inp{width:100%;padding:12px 14px;margin-bottom:0;border:1.5px solid var(--g100);background:var(--g50);font-size:14px;font-family:inherit;outline:none;transition:all .2s}.cod-inp:focus{border-color:var(--bk);background:var(--wh)}
 .cod-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .c-step-hdr{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:var(--g400);margin-bottom:12px;display:flex;align-items:center;gap:8px}
 .c-step-hdr i{font-size:14px;color:var(--bk)}
+@media(max-width:480px){.cod-inp{padding:11px 12px;font-size:16px}.cod-row{gap:8px}.c-step-hdr{margin-bottom:8px}.cod-form{gap:8px;margin:8px 0}}
 /* Maintenance modal & banner */
 .mnt-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9998;display:flex;align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
 .mnt-modal{background:var(--wh);max-width:440px;width:100%;padding:48px 40px;text-align:center;box-shadow:0 32px 64px rgba(0,0,0,.4);animation:scaleIn .3s var(--eo);border-radius:2px}
@@ -817,14 +771,6 @@ ${aiAnnounceHtml}
   
   <!-- Content State -->
   <div id="cartContent" class="hidden">
-    <!-- Auto-applied promo reminder — populated by JS when a combo/coupon is active [AG: coupon visibility] -->
-    <div id="cartPromoBanner" style="display:none;margin:0 0 16px;padding:12px 14px;border-radius:10px;background:linear-gradient(135deg,#111,#1a1a2e);border:1px solid rgba(234,179,8,.35);align-items:center;gap:10px">
-      <span style="font-size:20px">🎁</span>
-      <div style="flex:1;line-height:1.35">
-        <div id="cartPromoTitle" style="font-size:12px;font-weight:900;color:#eab308;text-transform:uppercase;letter-spacing:.4px"></div>
-        <div id="cartPromoSub" style="font-size:11px;color:#4ade80;font-weight:700"><i class="fas fa-check-circle"></i> Auto-applied — no code needed</div>
-      </div>
-    </div>
     <div id="cartItems"></div>
     <!-- Step 1: Address Collection -->
     <div id="addressSection" class="hidden" style="margin-top:24px;border-top:1px solid var(--g100);padding-top:24px">
@@ -834,8 +780,10 @@ ${aiAnnounceHtml}
           <input class="cod-inp" id="cod_fname" type="text" placeholder="First Name *" required autocomplete="given-name">
           <input class="cod-inp" id="cod_lname" type="text" placeholder="Last Name *" required autocomplete="family-name">
         </div>
-        <input class="cod-inp" id="cod_phone" type="tel" placeholder="Phone Number *" required pattern="[0-9]{10}" autocomplete="tel">
-        <input class="cod-inp" id="cod_pincode" type="text" placeholder="Pincode *" required pattern="[0-9]{6}" autocomplete="postal-code">
+        <div class="cod-row">
+          <input class="cod-inp" id="cod_phone" type="tel" inputmode="numeric" placeholder="Phone (10 digits) *" required pattern="[0-9]{10}" autocomplete="tel">
+          <input class="cod-inp" id="cod_pincode" type="text" inputmode="numeric" placeholder="Pincode *" required pattern="[0-9]{6}" autocomplete="postal-code">
+        </div>
         <input class="cod-inp" id="cod_addr" type="text" placeholder="Address (House No, Building, Street) *" required autocomplete="address-line1">
         <input class="cod-inp" id="cod_addr2" type="text" placeholder="Apartment, suite, etc. (optional)" autocomplete="address-line2">
         <div class="cod-row">
@@ -862,6 +810,7 @@ ${aiAnnounceHtml}
       </div>
       <div id="publicCoupons" class="cpn-hint" style="display:none"></div>
       <div id="appliedCoupon" class="hidden" style="margin:0 24px"></div>
+      <div id="cpnBundleNote" class="cbd-n" style="display:none;margin:6px 0 0">Coupon codes can't be combined with the Clearance bundle.</div>
 
       <div class="cmode" id="cmode" style="display:flex;margin-top:12px">
         <div class="cmode-opt prepaid act" onclick="setPayMode('prepaid')" id="cm_prepaid">
@@ -873,77 +822,29 @@ ${aiAnnounceHtml}
         <div class="cmode-opt cod" onclick="setPayMode('cod')" id="cm_cod">
           <span class="cmode-badge">Standard</span>
           <span class="cmode-label"><i class="fas fa-truck" style="margin-right:4px;opacity:0.6"></i> COD</span>
-          <span class="cmode-price">+ ₹99 Shipping</span>
+          <span class="cmode-price">+ ₹99 COD fee</span>
           <div class="risk-calc" id="riskCalc" style="font-size:10px;margin-top:8px;color:var(--g400);font-weight:500;line-height:1.4">Standard delivery. Verification required(EMAIL).</div>
         </div>
+      </div>
+      <!-- [v25] Detailed price breakdown lives HERE (after address), not in the cart footer -->
+      <div class="cbd" id="coBreakdown">
+        <div class="cbd-r"><span>Items subtotal</span><span id="bdSub"></span></div>
+        <div class="cbd-r" id="bdBundleRow" style="display:none"><span>Clearance bundle<small id="bdBundleNote"></small></span><span class="cbd-g" id="bdBundleAmt"></span></div>
+        <div class="cbd-r" id="bdCpnRow" style="display:none"><span id="bdCpnLbl">Coupon</span><span class="cbd-g" id="bdCpnAmt"></span></div>
+        <div class="cbd-r"><span>Shipping</span><span id="bdShip">FREE</span></div>
+        <div class="cbd-r" id="bdCodRow" style="display:none"><span>COD fee</span><span id="bdCodAmt"></span></div>
+        <div class="cbd-t"><span>Payable total</span><span id="bdTotal"></span></div>
+        <div class="cbd-p"><i class="fas fa-shield-halved"></i> Secure checkout &middot; Razorpay encrypted<br>By placing an order, you agree to the intru.in <a href="/p/terms">Terms</a> and <a href="/p/returns">Store-Credit-only Refund Policy</a>.</div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Combo-buy banner (cart drawer, shown when combo is active) -->
-<div class="combo-banner" id="comboBanner">
-  <i class="fas fa-fire"></i>
-  <div class="combo-name" id="comboBannerText">
-    <span>Combo Deal Applied!</span>
-    <small style="display:block;font-size:10px;font-weight:500;opacity:0.75;margin-top:2px">Auto-applied — no code needed</small>
-  </div>
-  <span class="combo-badge" id="comboBadge"></span>
-</div>
-<!-- Combo unlock nudge (shown when close to unlocking a combo) -->
-<div id="comboNudge" style="display:none;margin:6px 0 0;padding:10px 14px;background:rgba(234,179,8,0.08);border:1px dashed rgba(234,179,8,0.4);border-radius:8px;font-size:11px;font-weight:700;color:#92400e;display:none;align-items:center;gap:8px">
-  <i class="fas fa-fire" style="color:#eab308"></i>
-  <span id="comboNudgeText">Add 1 more item to unlock a combo deal!</span>
-</div>
-
 <div class="cftr" id="cf" style="display:none">
-<div id="fsProgress" style="display:none;font-size:11px;font-weight:600;padding:10px 16px;border-radius:6px;margin-bottom:12px;text-align:center;border:1px solid var(--g200);background:var(--g50)"></div>
-<div class="cst"><span>Subtotal</span><span id="csub">${STORE_CONFIG.currencySymbol}0</span></div>
-<!-- Combo discount row (prominent gold) -->
-<div id="comboDiscRow" style="display:none;background:rgba(234,179,8,0.06);border-radius:6px;padding:6px 8px;margin:2px 0" class="cst">
-  <span style="color:#92400e;display:flex;align-items:center;gap:5px;font-weight:800">
-    <i class="fas fa-fire" style="color:#eab308;font-size:11px;animation:firePulse 1.5s infinite alternate"></i>
-    <span id="comboDiscLabel">Combo Discount</span>
-  </span>
-  <span id="comboDiscAmt" style="color:#16a34a;font-weight:800"></span>
-</div>
-<!-- Coupon discount row (discrete) -->
-<div id="couponDiscRow" style="display:none" class="cst">
-  <span style="color:var(--g500);display:flex;align-items:center;gap:5px;font-size:12px">
-    <i class="fas fa-tag" style="font-size:10px;color:var(--g400)"></i>
-    <span id="couponDiscLabel">Coupon</span>
-  </span>
-  <span id="couponDiscAmt" style="color:#16a34a;font-weight:700;font-size:12px"></span>
-</div>
-<!-- [AUDIT 2026-10-03] P0-3: Shipping transparency — show cost BEFORE checkout.
-     Indian shoppers abandon hard on surprise charges. This is the #1 documented abandonment cause. -->
-<div id="cartShippingInfo" style="margin:8px 0;padding:10px 14px;border-radius:8px;background:var(--g50);border:1px solid var(--g100);font-size:12px">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-    <span style="display:flex;align-items:center;gap:6px;font-weight:700">
-      <i class="fas fa-bolt" style="color:#eab308;font-size:11px"></i> Prepaid
-    </span>
-    <span style="color:var(--green);font-weight:800">FREE Shipping</span>
-  </div>
-  <div style="display:flex;justify-content:space-between;align-items:center">
-    <span style="display:flex;align-items:center;gap:6px;color:var(--g500)">
-      <i class="fas fa-hand-holding-usd" style="font-size:11px"></i> Cash on Delivery
-    </span>
-    <span style="color:var(--g500);font-weight:700">+ ₹99</span>
-  </div>
-</div>
-<!-- [AUDIT 2026-10-03] P0-3: COD badge — 85% of users don't know COD is available.
-     Announce it at the decision point (bag), not hidden inside the payment step. -->
-<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;margin:4px 0;font-size:11px;font-weight:700;color:#15803d">
-  <i class="fas fa-truck" style="font-size:12px"></i>
-  <span>Cash on Delivery available — no card needed</span>
-</div>
-<div id="totalSavingsRow" style="display:none;background:linear-gradient(135deg,#064e3b,#065f46);border-radius:6px;padding:8px 12px;margin:4px 0" class="cst">
-  <span id="totalSavingsAmt" style="color:#4ade80;font-weight:800;font-size:12px;display:flex;align-items:center;gap:6px;width:100%;justify-content:center"><i class="fas fa-check-circle"></i></span>
-</div>
+<div class="cbundle-line" id="cBundleLine"><i class="fas fa-check-circle"></i><span id="cBundleTxt"></span></div>
 <div class="ctl"><span>Total</span><span id="ctot">${STORE_CONFIG.currencySymbol}0</span></div>
-<div style="text-align:center"><span class="trust-badge"><i class="fas fa-shield-halved"></i> 100% Secure Checkout · Razorpay Encrypted</span></div>
+<div class="csaved" id="cSaved"></div>
 <button class="ccbtn" id="checkoutBtn" onclick="checkout()" style="display:none">Place Your Order <i class="fas fa-arrow-right" style="margin-left:8px;font-size:10px"></i></button>
-<p class="cpolicy">By placing an order, you agree to the intru.in <a href="/p/terms">Terms of Service</a> and our <a href="/p/returns">Store-Credit-only Refund Policy</a>.</p>
 </div></div>
 
 <!-- Silent Identity Overlay -->
@@ -1402,7 +1303,6 @@ function _resyncFromStorage(forceRender) {
   if (cartChanged || forceRender) {
     cart = freshCart;
     renderCart();
-    checkCombos();
   }
   /* Re-sync applied coupon so discount doesn't vanish after navigation */
   var storedCoupon = localStorage.getItem('intru_applied_coupon');
@@ -1436,7 +1336,7 @@ document.addEventListener('visibilitychange', function() {
   if (document.visibilityState === 'visible') _resyncFromStorage(false);
 });
 
-function saveCart(){localStorage.setItem('ic',JSON.stringify(cart));renderCart();checkCombos();}
+function saveCart(){localStorage.setItem('ic',JSON.stringify(cart));renderCart();}
 
 function addToCart(productId,size,qty){
   if(!productId||!size){toast('Please select a size','err');return false}
@@ -1457,8 +1357,6 @@ function addToCart(productId,size,qty){
   if(existing){if(existing.q+qty>10){toast('Max 10 per item','err');return false}existing.q+=qty}
   else{cart.push({p:productId,s:size,q:qty})}
   saveCart();
-  /* Show combo nudge if cart now has 2+ distinct products */
-  _checkComboNudgeAfterAtc(productId);
   toast(p.n+' ('+size+') added to bag','ok');
   openCartDrawer();
   
@@ -1468,25 +1366,6 @@ function addToCart(productId,size,qty){
     window.track('add_to_cart',{currency:'INR',value:(p.p||0)*qty,items:[{item_id:productId,item_name:p.n,item_variant:size,price:p.p,quantity:qty}]});
   }
   return true;
-}
-
-/* Show a combo nudge toast/indicator when cart reaches a combo threshold */
-function _checkComboNudgeAfterAtc(latestPid) {
-  var distinctCount = new Set(cart.map(function(i){ return i.p; })).size;
-  var totalQty = cart.reduce(function(s,i){ return s + i.q; }, 0);
-  var effectiveCount = Math.max(distinctCount, totalQty);
-  if (!_siteActiveCombos.length) return;
-  /* Find any combo whose threshold we just hit exactly */
-  _siteActiveCombos.forEach(function(combo) {
-    if (combo.min_products === effectiveCount) {
-      var discStr = combo.discount_type === 'percent'
-        ? combo.discount_value + '% OFF'
-        : 'Rs.' + Math.round(combo.discount_value) + ' OFF';
-      setTimeout(function() {
-        toast('\uD83D\uDD25 ' + combo.name + ': ' + discStr + ' — checking now!', 'ok-green');
-      }, 400);
-    }
-  });
 }
 
 function buyNow(productId,size){
@@ -1530,258 +1409,22 @@ function updateQty(productId,size,delta){
   if(item.q>10){item.q=10;toast('Max 10 per item','err')}saveCart();
 }
 
-/* ====== COMBO SYSTEM ====== */
-var activeCombo = null;      // { id, name, discount_type, discount_value, ... }
-var activeComboDiscount = 0; // computed discount in INR
-var _comboCheckTimer = null;
-
-function checkCombos() {
-  // Debounce: only fire 600ms after last cart change
-  if (_comboCheckTimer) clearTimeout(_comboCheckTimer);
-  _comboCheckTimer = setTimeout(_doComboCheck, 600);
+/* ====== CLEARANCE BUNDLE (any 3 for Rs.1499) [v25] ======
+   Display-only. Uses the SAME function as the server (injected from data.ts via toString()).
+   The server recomputes everything at checkout and always wins. */
+var calculateBundleTotals = ${calculateBundleTotals.toString()};
+var BUNDLE_LABEL = 'Clearance: any 3 for Rs. 1499.';
+function bundleLines(){
+  var out=[];
+  cart.forEach(function(i){var p=PM[i.p];if(p)out.push({productId:i.p,size:i.s,quantity:i.q,unitPrice:p.p});});
+  return out;
 }
-
-function _doComboCheck() {
-  if (!cart.length) { _clearCombo(); _hideComboNudge(); return; }
-  // Build items array with unitPrice from PM
-  var items = cart.map(function(i){
-    var p = PM[i.p];
-    return { productId: i.p, quantity: i.q, unitPrice: p ? p.p : 0, category: p ? (p.cat || '') : '' };
-  });
-  fetch('/api/combos/validate', {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ items: items })
-  })
-  .then(function(r){ return r.json(); })
-  .then(function(d){
-    /* Update site promo data whenever we get active combos back */
-    if (d.active_combos && d.active_combos.length && !_siteActiveCombos.length) {
-      _siteActiveCombos = d.active_combos;
-      if (!sessionStorage.getItem('intru_combo_bar_dismissed')) renderComboPromoBar();
-      renderComboPromoCards();
-    }
-    if (d.combo && d.discount > 0) {
-      activeCombo = d.combo;
-      activeComboDiscount = d.discount;
-      _showComboBanner();
-      _hideComboNudge();
-    } else {
-      _clearCombo();
-      /* Show nudge if user is 1 item away from a combo */
-      _showComboNudgeIfClose();
-    }
-    renderCartTotals();
-  })
-  .catch(function(){ _clearCombo(); renderCartTotals(); });
+function getBundle(){ return calculateBundleTotals(bundleLines()); }
+/* Server says the cart total changed (409 PRICE_CHANGED): server wins -> refresh totals, toast, stop. */
+function handlePriceChanged(d){
+  try{ renderCart(); }catch(e){}
+  toast((d&&d.error)||'Prices were updated. Please review your total.','err');
 }
-
-function _showComboNudgeIfClose() {
-  var nudge = document.getElementById('comboNudge');
-  if (!nudge || !_siteActiveCombos.length) return;
-  var distinctCount = new Set(cart.map(function(i){ return i.p; })).size;
-  /* Also count total quantity — 2x same product satisfies a buy-2 combo */
-  var totalQty = cart.reduce(function(s, i){ return s + i.q; }, 0);
-  var effectiveCount = Math.max(distinctCount, totalQty);
-  /* Find the combo with the smallest min_products threshold we haven't hit yet */
-  var closest = null;
-  _siteActiveCombos.forEach(function(c) {
-    if (c.min_products > effectiveCount) {
-      if (!closest || c.min_products < closest.min_products) closest = c;
-    }
-  });
-  if (closest) {
-    var need = closest.min_products - effectiveCount;
-    var discStr = closest.discount_type === 'percent'
-      ? closest.discount_value + '% OFF'
-      : 'Rs.' + Math.round(closest.discount_value) + ' OFF';
-    var progress = Math.min(100, Math.round((effectiveCount / closest.min_products) * 100));
-    var txt = document.getElementById('comboNudgeText');
-    if (txt) {
-      txt.innerHTML = '<div style="font-weight:800;font-size:11px;color:#92400e;margin-bottom:6px">'
-        + '🔥 ' + closest.name + ' — <span style="color:#16a34a">' + discStr + '</span></div>'
-        + '<div style="font-size:10px;color:#666;margin-bottom:5px">'+(need>0? ('Add <strong>'+need+' more</strong> to unlock this deal') : 'You unlocked it!')+' ('+effectiveCount+'/'+closest.min_products+')</div>'
-        + '<div style="height:5px;background:rgba(0,0,0,0.08);border-radius:3px;overflow:hidden"><div style="height:5px;background:linear-gradient(90deg,#eab308,#f59e0b);width:'+progress+'%;transition:width .4s"></div></div>'
-        + (need > 0 ? '<a href="/collections" style="display:inline-block;margin-top:8px;font-size:10px;font-weight:800;color:#0a0a0a;text-decoration:underline">→ Browse more drops</a>' : '');
-    }
-    nudge.style.display = 'flex';
-    nudge.style.flexDirection = 'column';
-    nudge.style.alignItems = 'stretch';
-    /* Track visibility of combo nudge */
-    try{ if(typeof window.track==='function' && !nudge._trackedShow){ nudge._trackedShow=true; window.track('combo_nudge_shown',{combo:closest.name,need:need,progress:progress}); }}catch(e){}
-  } else {
-    nudge.style.display = 'none';
-  }
-}
-
-function _hideComboNudge() {
-  var nudge = document.getElementById('comboNudge');
-  if (nudge) nudge.style.display = 'none';
-}
-
-var _comboPrevId = null; // track when a NEW combo fires (for toast)
-
-function _showComboBanner() {
-  var banner = document.getElementById('comboBanner');
-  var text   = document.getElementById('comboBannerText');
-  var badge  = document.getElementById('comboBadge');
-  if (!banner) return;
-  var discStr = activeCombo.discount_type === 'percent'
-    ? activeCombo.discount_value + '% OFF'
-    : fmt(activeCombo.discount_value) + ' OFF';
-  var savedStr = fmt(activeComboDiscount);
-  if (text) {
-    text.innerHTML = '<span style="font-weight:900;letter-spacing:.3px">' + activeCombo.name + '</span>'
-      + '<small>You save ' + savedStr + ' on this order \u2022 Applied automatically</small>';
-  }
-  if (badge) badge.textContent = discStr;
-  /* Pulse + toast only when the combo changes (new combo or first apply) */
-  if (_comboPrevId !== activeCombo.id) {
-    _comboPrevId = activeCombo.id;
-    toast('\uD83D\uDD25 Combo deal: save ' + savedStr + '!', 'ok-green');
-    banner.style.animation = 'none';
-    void banner.offsetWidth; /* reflow to re-trigger */
-    banner.style.animation = 'comboPop .5s var(--eo)';
-    /* Pulse the cart icon */
-    var cartBtn = document.querySelector('.ncart');
-    if (cartBtn) { cartBtn.classList.add('combo-active'); setTimeout(function(){ cartBtn.classList.remove('combo-active'); }, 6000); }
-  }
-  banner.classList.add('visible');
-}
-
-function _clearCombo() {
-  if (activeCombo) _comboPrevId = null; /* reset so next apply toasts again */
-  activeCombo = null;
-  activeComboDiscount = 0;
-  var banner = document.getElementById('comboBanner');
-  if (banner) banner.classList.remove('visible');
-}
-
-/* ====== ACTIVE COMBO PROMO BAR (site-wide) ====== */
-var _siteActiveCombos = [];
-var _comboBarDismissed = false;
-
-function loadSiteComboPromo() {
-  /* Skip if already dismissed this session */
-  if (sessionStorage.getItem('intru_combo_bar_dismissed')) return;
-  fetch('/api/combos/validate', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({ items: [] }) /* empty → server returns active combos list */
-  })
-  .then(function(r){ return r.json(); })
-  .then(function(d){
-    /* Server returns active_combos list for promo bar purposes */
-    if (d.active_combos && d.active_combos.length) {
-      _siteActiveCombos = d.active_combos;
-      renderComboPromoBar();
-    }
-  }).catch(function(){});
-}
-
-/* Build a clear, non-ambiguous offer label from a combo record.
-   - percent  -> "20% OFF"
-   - fixed + min_products>=2 -> uses description ("Any 3 products for Rs.1499")
-     or a sensible fallback so customers understand it's a bundle price, not a discount.
-   - fixed + single item -> "Rs.X OFF" */
-function comboOfferLabel(c){
-  if(c.discount_type==='percent') return c.discount_value + '% OFF';
-  if(c.description) {
-    /* Normalise the rupee glyph so it renders everywhere */
-    return String(c.description).replace(/\u20b9/g,'Rs.');
-  }
-  if(c.min_products && c.min_products>=2) return 'Any '+c.min_products+' for Rs.'+Math.round(c.discount_value);
-  return 'Rs.'+Math.round(c.discount_value)+' OFF';
-}
-
-function renderComboPromoBar() {
-  var bar = document.getElementById('comboPromoBar');
-  var items = document.getElementById('comboPromoBarItems');
-  if (!bar || !items || !_siteActiveCombos.length) return;
-  var html = '';
-  _siteActiveCombos.slice(0, 2).forEach(function(c) {
-    /* Prefer the human description (e.g. "Any 3 products for Rs.1499") — a bare
-       "Rs.1499 OFF" badge is ambiguous for fixed-bundle combos and tanked CTR. */
-    var offer = comboOfferLabel(c);
-    html += '<a href="/collections" class="cpb-item" onclick="try{window.track(\\x27promo_bar_click\\x27,{combo:\\x27'+String(c.name).replace(/\\x27/g,'')+'\\x27})}catch(e){}" style="cursor:pointer;text-decoration:none;color:inherit">'
-      + '<i class="fas fa-fire" style="color:#eab308;font-size:14px"></i>'
-      + '<span style="text-transform:uppercase">' + c.name + '</span>'
-      + '<span class="cpb-badge">' + offer + '</span>'
-      + '</a>';
-  });
-  if (!html) return;
-  html += '<a href="/collections" class="cpb-item" style="border-right:none;font-size:11px;cursor:pointer;text-decoration:none;color:inherit"'
-    + ' onclick="try{window.track(\\x27promo_bar_shop_click\\x27,{})}catch(e){}">'
-    + '<i class="fas fa-arrow-right" style="color:#4ade80"></i>'
-    + '<span style="font-weight:900;color:#4ade80;text-decoration:underline">SHOP NOW &mdash; AUTO-APPLIED</span></a>';
-  items.innerHTML = html;
-  bar.classList.add('show');
-  /* Smart event: promo bar shown (helps measure coupon-visibility impact) */
-  try{ if(typeof window.track==='function') window.track('promo_shown',{placement:'top_bar',promos:_siteActiveCombos.length}); }catch(e){}
-  renderCartPromoBanner();
-}
-
-/* In-cart promo reminder — shows the active auto-applied discount right where
-   it converts (the bag). Independent of the dismissible top bar. */
-function renderCartPromoBanner(){
-  var el=document.getElementById('cartPromoBanner');
-  if(!el)return;
-  if(!_siteActiveCombos||!_siteActiveCombos.length){el.style.display='none';return;}
-  var c=_siteActiveCombos[0];
-  var offer=comboOfferLabel(c);
-  var t=document.getElementById('cartPromoTitle');
-  if(t)t.innerHTML=c.name+' &mdash; '+offer;
-  /* If it's a bundle (min_products>=2), tell them how many more to add */
-  var sub=document.getElementById('cartPromoSub');
-  if(sub){
-    if(c.min_products&&c.min_products>=2){
-      var count=(typeof cart!=='undefined')?cart.reduce(function(s,i){return s+(i.q||1);},0):0;
-      if(count>0&&count<c.min_products){
-        sub.innerHTML='<i class="fas fa-plus-circle"></i> Add '+(c.min_products-count)+' more to unlock this deal';
-      } else {
-        sub.innerHTML='<i class="fas fa-check-circle"></i> Auto-applied at checkout — no code needed';
-      }
-    } else {
-      sub.innerHTML='<i class="fas fa-check-circle"></i> Auto-applied — no code needed';
-    }
-  }
-  el.style.display='flex';
-}
-
-function dismissComboBar() {
-  sessionStorage.setItem('intru_combo_bar_dismissed', '1');
-  var bar = document.getElementById('comboPromoBar');
-  if (bar) { bar.style.opacity = '0'; bar.style.transition = 'opacity .3s'; setTimeout(function(){ bar.style.display = 'none'; }, 300); }
-}
-
-/* ====== COMBO PROMO CARDS (inline site sections) ====== */
-function renderComboPromoCards() {
-  /* Render combo cards in designated slots on any page */
-  var slots = document.querySelectorAll('.combo-promo-slot');
-  if (!slots.length || !_siteActiveCombos.length) return;
-  slots.forEach(function(slot) {
-    var html = '';
-    _siteActiveCombos.slice(0, 2).forEach(function(c) {
-      var discStr = c.discount_type === 'percent' ? c.discount_value + '% OFF' : 'Rs.' + Math.round(c.discount_value) + ' OFF';
-      var minStr = c.min_products >= 2 ? 'Buy any ' + c.min_products + '+ items' : 'Mix & match products';
-      html += '<div class="combo-promo-card show">'
-        + '<div class="cpc-icon"><i class="fas fa-fire"></i></div>'
-        + '<div class="cpc-body">'
-        + '<div class="cpc-title">\uD83D\uDD25 ' + c.name + ' &mdash; ' + discStr + '</div>'
-        + '<div class="cpc-desc">' + (c.description || minStr + ' and save automatically.') + '</div>'
-        + '<div class="cpc-trust">'
-        + '<span><i class="fas fa-check-circle"></i> Auto-applied at checkout</span>'
-        + '<span><i class="fas fa-lock"></i> No code needed</span>'
-        + '<span><i class="fas fa-star"></i> Limited time</span>'
-        + '</div>'
-        + '</div></div>';
-    });
-    if (html) { slot.innerHTML = html; slot.style.display = 'block'; }
-  });
-}
-
-/* Run promo bar on page load */
-setTimeout(loadSiteComboPromo, 800);
 
 /* ====== COUPON SYSTEM [AG v15.2] ====== */
 var appliedCoupon = null;
@@ -1790,6 +1433,7 @@ function applyCoupon(){
   var code = document.getElementById('couponInput').value.trim().toUpperCase();
   if(!code) return;
   var totals = getCartTotals();
+  if(totals.bundleCount>0){ toast("Coupons can't be combined with the Clearance bundle",'err'); return; }
   
   fetch('/api/coupons/validate', {
     method: 'POST', 
@@ -2001,29 +1645,26 @@ function removeCoupon(){
 }
 
 function getCartTotals(){
-  /* [v23 BUGFIX] Track stale cart items (PM miss) separately so caller can
-     warn the user instead of silently billing 0. Previously: stale items were
-     skipped and total silently fell to 0, Razorpay rejected the amount, and
-     the user saw a confusing "Payment gateway error" with no cause. */
-  var sub=0;var missing=[];var validCount=0;
-  cart.forEach(function(i){
-    var p=PM[i.p];
-    if(p){sub+=p.p*i.q;validCount++;}
-    else{missing.push(i);}
-  });
-  // coupon discount
-  var couponDisc = 0;
-  if(appliedCoupon){
-    if(appliedCoupon.type === 'percent') couponDisc = sub * (appliedCoupon.value / 100);
-    else couponDisc = appliedCoupon.value;
+  /* [v23 BUGFIX] Track stale cart items (PM miss) separately so caller can warn instead of billing 0. */
+  var missing=[];var validCount=0;
+  cart.forEach(function(i){ if(PM[i.p]) validCount++; else missing.push(i); });
+  var bd=getBundle();                 // [v25] clearance bundle — same function as server
+  var sub=bd.subtotal;                // regular-price subtotal
+  var payable=bd.payableSubtotal;     // after bundle
+  /* Coupons do not stack with an active bundle (server enforces the same rule). */
+  var couponDisc=0;
+  if(appliedCoupon && bd.bundleCount===0){
+    if(appliedCoupon.type==='percent') couponDisc=sub*(appliedCoupon.value/100);
+    else couponDisc=appliedCoupon.value;
+    couponDisc=Math.min(Math.round(couponDisc*100)/100,sub);
   }
-  // combo discount (real-time from API)
-  var comboDisc = activeComboDiscount || 0;
-  var discount = couponDisc + comboDisc;
-  var discountedSub = Math.max(0, sub - discount);
+  var discountedSub=Math.max(0,payable-couponDisc);
+  /* Shipping: prepaid always free. COD: Rs.99 fee (server charges the same). */
   var codFee=payMode==='cod'?99:0;
   var sh=0;
-  return{subtotal:sub, couponDiscount:couponDisc, comboDiscount:comboDisc, discount:discount, discountedSub:discountedSub, shipping:sh, codFee:codFee, total:discountedSub+sh+codFee, missingItems:missing, validItemCount:validCount};
+  return{subtotal:sub, bundleDiscount:bd.bundleDiscount, bundleCount:bd.bundleCount, payableSubtotal:payable,
+    couponDiscount:couponDisc, discountedSub:discountedSub, shipping:sh, codFee:codFee,
+    total:discountedSub+sh+codFee, missingItems:missing, validItemCount:validCount};
 }
 
 /* [v23] Auto-prune cart items that reference products no longer in PM
@@ -2044,103 +1685,41 @@ function pruneStaleCart(){
 
 function renderCartTotals(){
   var t=getCartTotals();
-  /* Subtotal line — show strikethrough only if there's a discount */
-  var subEl = document.getElementById('csub');
-  if (subEl) {
-    if (t.couponDiscount > 0 || t.comboDiscount > 0) {
-      subEl.innerHTML = '<span style="text-decoration:line-through;opacity:0.45;margin-right:8px;font-size:12px">'
-        + fmt(t.subtotal) + '</span><span style="color:#16a34a;font-weight:800">' + fmt(t.subtotal - t.couponDiscount - t.comboDiscount) + '</span>';
-    } else {
-      subEl.textContent = fmt(t.subtotal);
-    }
+  /* ---- Cart footer: compact. Bundle line + Total + You saved. ---- */
+  var bl=document.getElementById('cBundleLine');
+  if(bl){
+    if(t.bundleCount>0){
+      var bt=document.getElementById('cBundleTxt');
+      if(bt) bt.textContent='Clearance bundle: 3 for Rs. 1499 applied'+(t.bundleCount>1?' \u00d7 '+t.bundleCount:'');
+      bl.style.display='flex';
+    } else bl.style.display='none';
   }
-  // Coupon discount row (discrete — existing tag UI handles the label)
-  var cpnRow = document.getElementById('couponDiscRow');
-  if (cpnRow) {
-    if (t.couponDiscount > 0 && appliedCoupon) {
-      cpnRow.style.display = 'flex';
-      var cpnAmt = document.getElementById('couponDiscAmt');
-      var cpnLbl = document.getElementById('couponDiscLabel');
-      if (cpnAmt) cpnAmt.textContent = '−' + fmt(t.couponDiscount);
-      if (cpnLbl) cpnLbl.textContent = appliedCoupon.code;
-    } else {
-      cpnRow.style.display = 'none';
-    }
+  var saved=t.bundleDiscount+t.couponDiscount;
+  var sv=document.getElementById('cSaved');
+  if(sv){
+    if(saved>0){sv.textContent='You saved '+fmt(saved);sv.style.display='flex';}
+    else sv.style.display='none';
   }
-  // Combo discount row (prominent gold)
-  var comboRow = document.getElementById('comboDiscRow');
-  var comboAmt = document.getElementById('comboDiscAmt');
-  var comboLbl = document.getElementById('comboDiscLabel');
-  if(comboRow) {
-    if(t.comboDiscount > 0) {
-      comboRow.style.display = 'flex';
-      if(comboAmt) comboAmt.textContent = '−' + fmt(t.comboDiscount);
-      if(comboLbl) comboLbl.textContent = activeCombo ? activeCombo.name : 'Combo Discount';
-    } else {
-      comboRow.style.display = 'none';
-    }
-  }
-  /* Total savings callout row — show when any discount is active */
-  var totalDiscount = t.couponDiscount + t.comboDiscount;
-  var savingsRow = document.getElementById('totalSavingsRow');
-  if (savingsRow) {
-    if (totalDiscount > 0) {
-      savingsRow.style.display = 'flex';
-      var savingsAmt = document.getElementById('totalSavingsAmt');
-      if (savingsAmt) savingsAmt.textContent = 'You save ' + fmt(totalDiscount) + ' on this order!';
-    } else {
-      savingsRow.style.display = 'none';
-    }
-  }
-  
-  /* [v23 HOTFIX] #cshp was removed when #cartShippingInfo replaced it (P0-3 audit),
-     but this line kept querying it. getElementById returned null, calling
-     .textContent= on null THREW a TypeError, and the very next line that updates
-     #ctot never ran -- so Total stayed at its initial "Rs.0" even though the subtotal
-     rendered correctly. Null-guard both, and keep the shText assignment in case
-     #cshp is ever re-added. This is the actual root cause of the user's "Total Rs.0"
-     screenshot bug -- not stale PM, not promo codes. */
-  var shText=payMode==='prepaid'?'FREE':'';
-  if(payMode==='cod'){shText='Rs.99 Shipping/COD Fee'}
-  var _cshp = document.getElementById('cshp');
-  if (_cshp) _cshp.textContent = shText || 'Free';
-  var _ctot = document.getElementById('ctot');
-  if (_ctot) _ctot.textContent = fmt(t.total);
+  var _ctot=document.getElementById('ctot');
+  if(_ctot) _ctot.textContent=fmt(t.total);
 
-  /* [AUDIT P0-3] Shipping progress bar in bag.
-     Audit called out: "Show shipping cost in the bag, before checkout. If it is
-     free over a threshold, show a progress bar: '₹301 away from free shipping'".
-     Prepaid is ALWAYS free (per Shipping policy) — show the win banner.
-     COD progress bar incentivises adding more to clear the free-COD threshold. */
-  var fsp = document.getElementById('fsProgress');
-  if(fsp) {
-    if(t.subtotal === 0) {
-      fsp.style.display = 'none';
-    } else if (payMode === 'prepaid') {
-      fsp.style.display = 'block';
-      fsp.innerHTML = '<i class="fas fa-check-circle" style="color:#166534;margin-right:6px"></i><b>FREE Shipping Unlocked</b> <span style="font-weight:500;color:#166534;opacity:0.75">\u00b7 All prepaid orders ship free</span>';
-      fsp.style.background = '#dcfce7';
-      fsp.style.color = '#166534';
-      fsp.style.border = '1px solid #bbf7d0';
-    } else {
-      var threshold = S.ft || 1999;
-      var rem = threshold - t.subtotal;
-      var pct = Math.min(100, Math.round((t.subtotal / threshold) * 100));
-      fsp.style.display = 'block';
-      if(rem > 0) {
-        fsp.innerHTML = '<div style="margin-bottom:8px">Add <span style="color:#dc2626;font-weight:800">' + fmt(rem) + '</span> more to unlock <b>FREE COD Delivery</b></div>'
-          + '<div style="height:6px;background:rgba(0,0,0,0.08);border-radius:4px;overflow:hidden"><div style="height:100%;width:' + pct + '%;background:linear-gradient(90deg,#f59e0b,#16a34a);transition:width .4s"></div></div>';
-        fsp.style.background = 'var(--g50)';
-        fsp.style.color = 'var(--bk)';
-        fsp.style.border = '1px solid var(--g200)';
-      } else {
-        fsp.innerHTML = '<i class="fas fa-check-circle" style="color:#166534;margin-right:6px"></i><b>FREE COD Delivery Unlocked!</b>';
-        fsp.style.background = '#dcfce7';
-        fsp.style.color = '#166534';
-        fsp.style.border = '1px solid #bbf7d0';
-      }
-    }
+  /* ---- Checkout step (after address): detailed breakdown ---- */
+  var set=function(id,txt){var e=document.getElementById(id);if(e)e.textContent=txt;};
+  var show=function(id,on){var e=document.getElementById(id);if(e)e.style.display=on?'flex':'none';};
+  set('bdSub',fmt(t.subtotal));
+  show('bdBundleRow',t.bundleCount>0);
+  if(t.bundleCount>0){
+    set('bdBundleAmt','\u2212'+fmt(t.bundleDiscount));
+    set('bdBundleNote','3 for Rs. 1499 \u00d7 '+t.bundleCount);
   }
+  show('bdCpnRow',t.couponDiscount>0&&!!appliedCoupon);
+  if(t.couponDiscount>0&&appliedCoupon){set('bdCpnLbl','Coupon '+appliedCoupon.code);set('bdCpnAmt','\u2212'+fmt(t.couponDiscount));}
+  set('bdShip',t.shipping>0?fmt(t.shipping):'FREE');
+  show('bdCodRow',payMode==='cod');
+  if(payMode==='cod') set('bdCodAmt',fmt(t.codFee));
+  set('bdTotal',fmt(t.total));
+  var cn=document.getElementById('cpnBundleNote');
+  if(cn) cn.style.display=(t.bundleCount>0)?'block':'none';
 }
 
 function renderCart(){
@@ -2179,14 +1758,6 @@ function renderCart(){
   }
   document.getElementById('cmode').style.display=S.magic?'none':'flex';
   var html='';
-  /* Build per-item discount label when a combo is active */
-  var itemComboTag = '';
-  if (activeCombo && activeComboDiscount > 0) {
-    var cDiscStr = activeCombo.discount_type === 'percent'
-      ? activeCombo.discount_value + '% OFF'
-      : '\u20B9' + Math.round(activeComboDiscount) + ' saved';
-    itemComboTag = '<span style="display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:800;color:#92400e;background:rgba(234,179,8,0.12);border:1px solid rgba(234,179,8,0.3);border-radius:4px;padding:2px 6px;margin-top:4px;letter-spacing:.3px"><i class="fas fa-fire" style="color:#eab308;font-size:8px"></i>' + cDiscStr + '</span>';
-  }
   cart.forEach(function(item){
     var p=PM[item.p];if(!p)return;
     /* Event delegation: use data-* attributes instead of inline onclick */
@@ -2196,7 +1767,6 @@ function renderCart(){
         +'<div class="cnm">'+p.n+'</div>'
         +'<div class="cmt">Size: '+item.s+'</div>'
         +'<div class="cpr">'+fmt(p.p*item.q)+'</div>'
-        + (itemComboTag ? itemComboTag : '')
         +'<div class="cqty">'
           +'<button class="qb cart-qty-btn" data-pid="'+item.p+'" data-sz="'+item.s+'" data-delta="-1">&minus;</button>'
           +'<span>'+item.q+'</span>'
@@ -2437,6 +2007,7 @@ function checkout(){
   var btn=document.getElementById('checkoutBtn');
   if(btn){btn.disabled=true;btn.textContent='CREATING ORDER...';}
   orderToastFired=false;
+  try{ var _bs=getCartTotals(); _lastBundleSaved=_bs.bundleDiscount||0; }catch(e){}
 
   /* Funnel: snapshot cart for purchase attribution + begin_checkout (GA4 ecommerce) */
   try{
@@ -2480,10 +2051,12 @@ function doPrepaidCheckout(){
     userEmail:identifiedEmail,userName:shipName,userPhone:shipPhone,
     address:shipAddress,
     paymentMethod:'prepaid',
-    couponCode: appliedCoupon ? appliedCoupon.code : ''
+    couponCode: appliedCoupon ? appliedCoupon.code : '',
+    expectedPayableSubtotal: getBundle().payableSubtotal
   })})
   .then(function(r){return r.json()})
   .then(function(data){
+    if(data.code==='PRICE_CHANGED'){handlePriceChanged(data);resetBtn();return}
     if(data.error){throw new Error(data.error)}
     if(!data.razorpayOrderId){toast('Order: '+fmt(data.total)+'. Configure Razorpay.','err');resetBtn();return}
     if(typeof Razorpay==='undefined'){toast('Payment SDK failed. Refresh.','err');resetBtn();return}
@@ -2538,10 +2111,12 @@ function doCodCheckout(){
     items:cart.map(function(i){return{productId:i.p,size:i.s,quantity:i.q}}),
     userEmail:identifiedEmail,userName:name,userPhone:phone,
     address:{name:name,phone:phone,pincode:pincode,line1:addr,line2:addr2,city:city,state:state,country:'India'},
-    couponCode: appliedCoupon ? appliedCoupon.code : ''
+    couponCode: appliedCoupon ? appliedCoupon.code : '',
+    expectedPayableSubtotal: getBundle().payableSubtotal
   })})
   .then(function(r){return r.json()})
   .then(function(d){
+    if(d.code==='PRICE_CHANGED'){handlePriceChanged(d);return}
     if(d.success){trackPurchase(d.orderId,d.total,_purchaseSnapshot,'cod');gcrOptIn(d.orderId,identifiedEmail);cart=[];saveCart();toggleCart();renderCart();showSuccessUI(d.orderId,'cod')}
     else{toast(d.error||'COD failed','err')}
   }).catch(function(e){toast('Error: '+e.message,'err')})
@@ -2567,10 +2142,12 @@ function doMagicCheckout(){
     userEmail:identifiedEmail,userName:shipName,userPhone:shipPhone,
     address:shipAddress,
     paymentMethod:'magic',
-    couponCode: appliedCoupon ? appliedCoupon.code : ''
+    couponCode: appliedCoupon ? appliedCoupon.code : '',
+    expectedPayableSubtotal: getBundle().payableSubtotal
   })})
   .then(function(r){return r.json()})
   .then(function(data){
+    if(data.code==='PRICE_CHANGED'){handlePriceChanged(data);resetBtn();return}
     if(data.error){throw new Error(data.error)}
     if(!data.razorpayOrderId){toast('Configure Razorpay keys','err');resetBtn();return}
     if(typeof Razorpay==='undefined'){toast('Payment SDK failed. Refresh.','err');resetBtn();return}
@@ -2599,6 +2176,7 @@ function doMagicCheckout(){
 function resetBtn(){var btn=document.getElementById('checkoutBtn');if(btn){btn.disabled=false;btn.textContent='CHECKOUT'}}
 
 /* ====== TIERED SUCCESS UI [AG] ====== */
+var _lastBundleSaved=0;
 function showSuccessUI(orderId, type){
   var ovl=document.createElement('div');
   ovl.style='position:fixed;inset:0;z-index:999;background:rgba(10,10,10,0.95);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:24px;color:#fff;animation:fadeIn 0.5s ease both';
@@ -2621,13 +2199,10 @@ function showSuccessUI(orderId, type){
   html += '<div style="background:rgba(255,255,255,0.05);padding:20px;border-radius:12px;margin-bottom:32px;border:1px solid rgba(255,255,255,0.1)">';
   html += '<div style="font-size:10px;text-transform:uppercase;letter-spacing:2px;opacity:0.5;margin-bottom:4px">Order ID</div>';
   html += '<div style="font-family:monospace;font-size:20px;letter-spacing:1px;font-weight:700">'+shortId+'</div>';
-  /* Show combo savings if a combo was applied */
-  if (activeCombo && activeComboDiscount > 0) {
-    var discSaved = activeCombo.discount_type === 'percent'
-      ? activeCombo.discount_value + '% (' + fmt(activeComboDiscount) + ')'
-      : fmt(activeComboDiscount);
+  /* Show clearance-bundle savings (captured before the cart was cleared) */
+  if (_lastBundleSaved > 0) {
     html += '<div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.1);font-size:11px;color:#fcd34d;font-weight:700;letter-spacing:.5px">';
-    html += '<i class="fas fa-fire" style="margin-right:6px"></i>COMBO SAVINGS: ' + discSaved + ' — ' + activeCombo.name;
+    html += '<i class="fas fa-fire" style="margin-right:6px"></i>CLEARANCE BUNDLE SAVINGS: ' + fmt(_lastBundleSaved);
     html += '</div>';
   }
   /* Show coupon savings if a coupon was applied */

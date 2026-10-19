@@ -4,7 +4,7 @@ import {
   STORE_CONFIG, SEED_PRODUCTS, SEED_LEGAL_PAGES, SEED_FAQS, SEED_BLOG_POSTS,
   type Env, type Product, type FAQ, type BlogPost,
   createRazorpayOrder, createMagicCheckoutOrder, fetchRazorpayOrder,
-  buildMagicLineItems, hmacSHA256, supabaseFetch,
+  buildMagicLineItems, calculateBundleTotals, BUNDLE_SIZE, BUNDLE_PRICE, allocateBundleToLines, hmacSHA256, supabaseFetch,
   fetchProducts, fetchProductBySlug, fetchProductById, fetchLegalPages,
   fetchFAQs, fetchBlogPosts,
   sendResendEmail, emailDropSecured, emailCodReceived, emailCodManagerAlert,
@@ -25,7 +25,7 @@ import { maintenancePage } from './pages/maintenance'
 import { faqPage } from './pages/faq'
 import { blogIndexPage, blogPostPage } from './pages/blog'
 import { shell } from './components/shell'
-import { buildProductFeed, buildPromotionsFeed, combosToPromos, type FeedCombo, type FeedPromo } from './merchant-feed'
+import { buildProductFeed, buildPromotionsFeed, bundlePromo, type FeedPromo } from './merchant-feed'
 import { runDailySalesAgent, computeSalesMetrics } from './ai-sales-agent'
 import { runGrowthLoop } from './ai-loop'
 
@@ -865,17 +865,10 @@ app.get('/sitemap-images.xml', async (c: Context<{ Bindings: Bindings }>) => {
 // One <item> per size variant, grouped by g:item_group_id. Paid (Shopping ads)
 // and local destinations are excluded on every item — organic/free listings only.
 
-// Active combos → Google promotions. Wording is derived from the SAME discount
-// the checkout applies, so the promotion always matches what customers pay.
-async function fetchFeedPromos(c: Context<{ Bindings: Bindings }>): Promise<FeedPromo[]> {
-  try {
-    const sbUrl = getEnv(c.env, 'SUPABASE_URL');
-    const sbKey = getEnv(c.env, 'SUPABASE_ANON_KEY') || getEnv(c.env, 'SUPABASE_SERVICE_KEY');
-    if (!sbUrl || !sbKey) return [];
-    const res = await supabaseFetch(sbUrl, sbKey, 'combos?is_active=eq.true&order=discount_value.desc&limit=10');
-    if (!res.ok) return [];
-    return combosToPromos(await res.json() as FeedCombo[]);
-  } catch (_e) { return []; }
+// Clearance bundle → Google promotion. Constant (BUNDLE_SIZE / BUNDLE_PRICE from data.ts),
+// so the feed always matches what checkout charges. No DB read needed.
+async function fetchFeedPromos(_c: Context<{ Bindings: Bindings }>): Promise<FeedPromo[]> {
+  return bundlePromo(BUNDLE_SIZE, BUNDLE_PRICE);
 }
 
 app.get('/merchant-feed.xml', async (c: Context<{ Bindings: Bindings }>) => {
@@ -923,7 +916,7 @@ app.get('/llms.txt', async (c: Context<{ Bindings: Bindings }>) => {
             const desc = c.description ? ` — ${c.description}` : '';
             return `- **${c.code}** — ${disc}${min}${desc}`;
           }).join('\n');
-          promoBlock = `\n## Current Active Promo Codes (verified live)\n\n${items}\n\nApply any code in the cart drawer at checkout. One code per order. Combo auto-discounts (buy 2, buy 3) stack with public codes.\n`;
+          promoBlock = `\n## Current Active Promo Codes (verified live)\n\n${items}\n\nApply any code in the cart drawer at checkout. One code per order. Clearance bundle: any 3 for Rs. 1499 (automatic, no code). Coupon codes do not combine with the bundle.\n`;
         }
       }
     }
@@ -1706,41 +1699,22 @@ app.post('/api/checkout', async (c: Context<{ Bindings: Bindings }>) => {
       });
     }
 
-    // ── Combo discount (server-side) ─────────────────────────
-    let comboDiscount = 0;
-    let appliedComboId: string | null = null;
-    try {
-      const comboRes = await supabaseFetch(sbUrl, sbKey, 'combos?is_active=eq.true&order=discount_value.desc');
-      if (comboRes.ok) {
-        const combos = await comboRes.json() as any[];
-        const distinctProducts = new Set(validatedItems.map((i: any) => i.productId)).size;
-        const totalItems = validatedItems.reduce((s: number, i: any) => s + (i.quantity || 1), 0);
-        const effectiveCount = Math.max(distinctProducts, totalItems);
-        const cartCategories = new Set(validatedItems.map((i: any) => (i.category || '').toLowerCase()));
-        const cartProductIds = new Set(validatedItems.map((i: any) => i.productId));
-        for (const combo of combos) {
-          if (effectiveCount < combo.min_products) continue;
-          if (combo.min_subtotal && subtotal < combo.min_subtotal) continue;
-          if (combo.required_product_ids?.length) {
-            if (!combo.required_product_ids.every((pid: string) => cartProductIds.has(pid))) continue;
-          }
-          if (combo.required_categories?.length) {
-            if (!combo.required_categories.some((cat: string) => cartCategories.has(cat.toLowerCase()))) continue;
-          }
-          let disc = combo.discount_type === 'percent'
-            ? subtotal * (combo.discount_value / 100)
-            : combo.discount_value;
-          disc = Math.min(disc, subtotal);
-          if (disc > comboDiscount) { comboDiscount = disc; appliedComboId = combo.id; }
-        }
-      }
-    } catch (e) { console.error('Combo check error:', e); }
-    comboDiscount = Math.round(comboDiscount * 100) / 100;
+    // ── Clearance bundle (server-side, source of truth): any 3 units = Rs.1499 ──
+    const bundle = calculateBundleTotals(validatedItems);
+    const bundleDiscount = bundle.bundleDiscount;
+    // Allocate the bundle discount across lines (admin order record shows unitPrice/lineTotal after bundle)
+    allocateBundleToLines(validatedItems, bundleDiscount);
+    // Cart changed between cart view and payment? Server wins: tell the client to refresh (no order created).
+    if (body.expectedPayableSubtotal !== undefined && Math.round(Number(body.expectedPayableSubtotal)) !== Math.round(bundle.payableSubtotal)) {
+      return c.json({ error: 'Prices were updated. Please review your total.', code: 'PRICE_CHANGED',
+        bundleDiscount, bundleCount: bundle.bundleCount, regularSubtotal: bundle.subtotal, payableSubtotal: bundle.payableSubtotal }, 409);
+    }
 
-    // ── Coupon discount (server-side, applied after combo) ──────────────
+    // ── Coupon discount (server-side). Coupons do NOT stack with an active clearance bundle. ──
     let couponDiscount = 0;
     let appliedCouponCode: string | null = null;
-    if (couponCode) {
+    const couponBlockedByBundle = !!couponCode && bundle.bundleCount > 0;
+    if (couponCode && !couponBlockedByBundle) {
       try {
         const couponRes = await supabaseFetch(sbUrl, sbKey, `coupons?code=eq.${encodeURIComponent(couponCode)}&is_active=eq.true`);
         if (couponRes.ok) {
@@ -1763,7 +1737,7 @@ app.post('/api/checkout', async (c: Context<{ Bindings: Bindings }>) => {
 
     // Prepaid = free shipping always
     const shipping = 0;
-    const total = Math.max(0, subtotal - comboDiscount - couponDiscount) + shipping;
+    const total = Math.max(0, bundle.payableSubtotal - couponDiscount) + shipping;
 
     /* [v23 BUGFIX] Razorpay rejects amounts under 100 paise (= 1 INR).
        Guard here so we never ship a known-bad amount to Razorpay and burn
@@ -1786,7 +1760,7 @@ app.post('/api/checkout', async (c: Context<{ Bindings: Bindings }>) => {
 
         if (isMagic) {
           // Pass total discount so offer_price reflects discounted amount — Razorpay amount and line_items_total must match
-          const totalDiscountForLineItems = comboDiscount + couponDiscount;
+          const totalDiscountForLineItems = bundleDiscount + couponDiscount;
           const { line_items, line_items_total } = buildMagicLineItems(validatedItems, totalDiscountForLineItems);
           const rzpOrder = await createMagicCheckoutOrder(rzpKeyId, rzpKeySecret, total, receipt, line_items, line_items_total);
           razorpayOrderId = rzpOrder.id;
@@ -1803,31 +1777,17 @@ app.post('/api/checkout', async (c: Context<{ Bindings: Bindings }>) => {
               method: 'POST',
               body: JSON.stringify({
                 razorpay_order_id: razorpayOrderId,
-                items: validatedItems, subtotal, shipping, total,
+                items: validatedItems, subtotal: bundle.subtotal, shipping, total,
                 customer_email: userEmail, customer_name: userName,
                 customer_phone: userPhone,
                 shipping_address: shippingAddress,
                 status: 'pending', payment_method: 'prepaid',
-                combo_discount: comboDiscount,
-                applied_combo_id: appliedComboId,
+                combo_discount: bundleDiscount,   // legacy column reused: holds the clearance-bundle discount
                 coupon_discount: couponDiscount,
                 coupon_code: appliedCouponCode,
                 created_at: new Date().toISOString(),
               }),
             });
-            // Increment apply_count for the applied combo (read-then-write to avoid overwrite)
-            if (appliedComboId) {
-              supabaseFetch(sbUrl, writeKey, `combos?id=eq.${appliedComboId}&select=apply_count`)
-                .then(async r => {
-                  if (!r.ok) return;
-                  const rows = await r.json() as any[];
-                  const current = rows?.[0]?.apply_count ?? 0;
-                  return supabaseFetch(sbUrl, writeKey, `combos?id=eq.${appliedComboId}`, {
-                    method: 'PATCH',
-                    body: JSON.stringify({ apply_count: current + 1 }),
-                  });
-                }).catch(() => {});
-            }
             if (!orderRes.ok) console.error('Prepaid order insert failed:', orderRes.status, await orderRes.text());
           } catch (e) { console.error('Failed to store order:', e); }
         }
@@ -1837,9 +1797,9 @@ app.post('/api/checkout', async (c: Context<{ Bindings: Bindings }>) => {
     }
 
     return c.json({
-      success: true, items: validatedItems, subtotal, shipping, total,
-      comboDiscount, appliedComboId,
-      couponDiscount, appliedCouponCode,
+      success: true, items: validatedItems, subtotal: bundle.subtotal, shipping, total,
+      bundleDiscount, bundleCount: bundle.bundleCount, regularSubtotal: bundle.subtotal, payableSubtotal: bundle.payableSubtotal,
+      couponDiscount, appliedCouponCode, couponBlockedByBundle,
       currency: 'INR', razorpayOrderId,
       prefill: { email: userEmail, contact: '' },
     });
@@ -1901,41 +1861,20 @@ app.post('/api/checkout/cod', async (c: Context<{ Bindings: Bindings }>) => {
       });
     }
 
-    // ── Combo discount (server-side) ─────────────────────────
-    let comboDiscountCod = 0;
-    let appliedComboIdCod: string | null = null;
-    try {
-      const comboRes = await supabaseFetch(sbUrl, sbKey, 'combos?is_active=eq.true&order=discount_value.desc');
-      if (comboRes.ok) {
-        const combos = await comboRes.json() as any[];
-        const distinctProducts = new Set(validatedItems.map((i: any) => i.productId)).size;
-        const totalItems = validatedItems.reduce((s: number, i: any) => s + (i.quantity || 1), 0);
-        const effectiveCount = Math.max(distinctProducts, totalItems);
-        const cartCategories = new Set(validatedItems.map((i: any) => (i.category || '').toLowerCase()));
-        const cartProductIds = new Set(validatedItems.map((i: any) => i.productId));
-        for (const combo of combos) {
-          if (effectiveCount < combo.min_products) continue;
-          if (combo.min_subtotal && subtotal < combo.min_subtotal) continue;
-          if (combo.required_product_ids?.length) {
-            if (!combo.required_product_ids.every((pid: string) => cartProductIds.has(pid))) continue;
-          }
-          if (combo.required_categories?.length) {
-            if (!combo.required_categories.some((cat: string) => cartCategories.has(cat.toLowerCase()))) continue;
-          }
-          let disc = combo.discount_type === 'percent'
-            ? subtotal * (combo.discount_value / 100)
-            : combo.discount_value;
-          disc = Math.min(disc, subtotal);
-          if (disc > comboDiscountCod) { comboDiscountCod = disc; appliedComboIdCod = combo.id; }
-        }
-      }
-    } catch (e) { console.error('COD combo check error:', e); }
-    comboDiscountCod = Math.round(comboDiscountCod * 100) / 100;
+    // ── Clearance bundle (server-side, same function as prepaid) ──
+    const bundleCod = calculateBundleTotals(validatedItems);
+    const bundleDiscountCod = bundleCod.bundleDiscount;
+    allocateBundleToLines(validatedItems, bundleDiscountCod);
+    if (body.expectedPayableSubtotal !== undefined && Math.round(Number(body.expectedPayableSubtotal)) !== Math.round(bundleCod.payableSubtotal)) {
+      return c.json({ error: 'Prices were updated. Please review your total.', code: 'PRICE_CHANGED',
+        bundleDiscount: bundleDiscountCod, bundleCount: bundleCod.bundleCount, regularSubtotal: bundleCod.subtotal, payableSubtotal: bundleCod.payableSubtotal }, 409);
+    }
 
     // ── Coupon discount for COD ──────────────────────────────
     let couponDiscountCod = 0;
     let appliedCouponCodeCod: string | null = null;
-    if (couponCodeCod) {
+    const couponBlockedByBundleCod = !!couponCodeCod && bundleCod.bundleCount > 0;
+    if (couponCodeCod && !couponBlockedByBundleCod) {
       try {
         const couponRes = await supabaseFetch(sbUrl, sbKey, `coupons?code=eq.${encodeURIComponent(couponCodeCod)}&is_active=eq.true`);
         if (couponRes.ok) {
@@ -1958,7 +1897,7 @@ app.post('/api/checkout/cod', async (c: Context<{ Bindings: Bindings }>) => {
 
     const codFee = 99;
     const shipping = 0;
-    const total = Math.max(0, subtotal - comboDiscountCod - couponDiscountCod) + shipping + codFee;
+    const total = Math.max(0, bundleCod.payableSubtotal - couponDiscountCod) + shipping + codFee;
 
     /* [v23 BUGFIX] Parity with prepaid: reject tiny/zero orders. COD always
        has a ₹99 fee so this is defence-in-depth, but still catches ridiculous
@@ -1975,13 +1914,12 @@ app.post('/api/checkout/cod', async (c: Context<{ Bindings: Bindings }>) => {
     if (sbUrl && writeKey) {
       try {
         const orderPayload: any = {
-          items: validatedItems, subtotal, shipping, total,
+          items: validatedItems, subtotal: bundleCod.subtotal, shipping, total,
           customer_name: userName, customer_email: userEmail,
           customer_phone: userPhone,
           status: 'pending', payment_method: 'cod', cod_fee: codFee,
           shipping_address: address,
-          combo_discount: comboDiscountCod,
-          applied_combo_id: appliedComboIdCod,
+          combo_discount: bundleDiscountCod,   // legacy column reused: holds the clearance-bundle discount
           coupon_discount: couponDiscountCod,
           coupon_code: appliedCouponCodeCod,
           created_at: new Date().toISOString(),
@@ -1993,19 +1931,6 @@ app.post('/api/checkout/cod', async (c: Context<{ Bindings: Bindings }>) => {
         if (res.ok) {
           const rows = await res.json() as any[];
           orderId = rows?.[0]?.id || '';
-          // Increment apply_count for the applied combo
-          if (appliedComboIdCod) {
-            supabaseFetch(sbUrl, writeKey, `combos?id=eq.${appliedComboIdCod}&select=apply_count`)
-              .then(async r => {
-                if (!r.ok) return;
-                const crows = await r.json() as any[];
-                const current = crows?.[0]?.apply_count ?? 0;
-                return supabaseFetch(sbUrl, writeKey, `combos?id=eq.${appliedComboIdCod}`, {
-                  method: 'PATCH',
-                  body: JSON.stringify({ apply_count: current + 1 }),
-                });
-              }).catch(() => {});
-          }
         } else {
           dbError = await res.text();
           console.error('Supabase order insert failed:', res.status, dbError);
@@ -2051,7 +1976,7 @@ app.post('/api/checkout/cod', async (c: Context<{ Bindings: Bindings }>) => {
       }
     }
 
-    return c.json({ success: true, orderId, total, codFee, comboDiscount: comboDiscountCod, appliedComboId: appliedComboIdCod, ...(dbError ? { dbWarning: dbError } : {}) });
+    return c.json({ success: true, orderId, total, codFee, bundleDiscount: bundleDiscountCod, bundleCount: bundleCod.bundleCount, regularSubtotal: bundleCod.subtotal, payableSubtotal: bundleCod.payableSubtotal, couponBlockedByBundle: couponBlockedByBundleCod, ...(dbError ? { dbWarning: dbError } : {}) });
   } catch (e: any) {
     return c.json({ error: e.message || 'COD checkout failed' }, 500);
   }
@@ -2747,70 +2672,11 @@ app.post('/api/coupons/validate', async (c: Context<{ Bindings: Bindings }>) => 
   } catch (e: any) { return c.json({ error: e.message }, 500); }
 });
 
-// ============ COMBOS: Public Validation ============
-
-app.post('/api/combos/validate', async (c: Context<{ Bindings: Bindings }>) => {
-  try {
-    const { items } = await c.req.json();
-
-    const sbUrl = getEnv(c.env, 'SUPABASE_URL');
-    const sbKey = getEnv(c.env, 'SUPABASE_ANON_KEY') || getEnv(c.env, 'SUPABASE_SERVICE_KEY');
-    if (!sbUrl || !sbKey) return c.json({ combo: null, discount: 0, active_combos: [] });
-
-    // fetch all active combos (used for promo bar too)
-    const res = await supabaseFetch(sbUrl, sbKey, 'combos?is_active=eq.true&order=discount_value.desc');
-    if (!res.ok) return c.json({ combo: null, discount: 0, active_combos: [] });
-    const combos = await res.json() as any[];
-
-    // If items is empty, just return the active combos list for promo bar purposes
-    const activeCombosSummary = combos.slice(0, 5).map((c: any) => ({ id: c.id, name: c.name, description: c.description, discount_type: c.discount_type, discount_value: c.discount_value, min_products: c.min_products }));
-    if (!items || !Array.isArray(items) || items.length === 0)
-      return c.json({ combo: null, discount: 0, active_combos: activeCombosSummary });
-
-    // Compute cart subtotal from items passed (client-side prices already validated server-side at checkout)
-    const subtotal: number = items.reduce((sum: number, i: any) => sum + (Number(i.unitPrice || 0) * Number(i.quantity || 1)), 0);
-    const distinctProducts = new Set(items.map((i: any) => i.productId)).size;
-    // totalItems counts total quantity across all line-items (supports "buy 2 of same product" combos)
-    const totalItems: number = items.reduce((sum: number, i: any) => sum + Number(i.quantity || 1), 0);
-    const cartCategories = new Set(items.map((i: any) => (i.category || '').toLowerCase()));
-    const cartProductIds = new Set(items.map((i: any) => i.productId));
-
-    let bestCombo: any = null;
-    let bestDiscount = 0;
-
-    for (const combo of combos) {
-      // min_products check: satisfied by EITHER distinct product count OR total item quantity
-      // This allows "buy 2 of the same item" to satisfy a buy-2 combo
-      const effectiveCount = Math.max(distinctProducts, totalItems);
-      if (effectiveCount < combo.min_products) continue;
-      // min_subtotal check
-      if (combo.min_subtotal && subtotal < combo.min_subtotal) continue;
-      // required_product_ids check
-      if (combo.required_product_ids && Array.isArray(combo.required_product_ids) && combo.required_product_ids.length > 0) {
-        const allPresent = combo.required_product_ids.every((pid: string) => cartProductIds.has(pid));
-        if (!allPresent) continue;
-      }
-      // required_categories check
-      if (combo.required_categories && Array.isArray(combo.required_categories) && combo.required_categories.length > 0) {
-        const anyMatch = combo.required_categories.some((cat: string) => cartCategories.has(cat.toLowerCase()));
-        if (!anyMatch) continue;
-      }
-      // calculate discount
-      let disc = combo.discount_type === 'percent'
-        ? subtotal * (combo.discount_value / 100)
-        : combo.discount_value;
-      disc = Math.min(disc, subtotal); // never exceed subtotal
-      if (disc > bestDiscount) {
-        bestDiscount = disc;
-        bestCombo = combo;
-      }
-    }
-
-    return c.json({ combo: bestCombo, discount: Math.round(bestDiscount * 100) / 100, active_combos: activeCombosSummary });
-  } catch (e: any) {
-    return c.json({ combo: null, discount: 0, error: e.message });
-  }
-});
+// ============ COMBOS: Public Validation — RETIRED in v25 ============
+// The flat combo discount was replaced by the Clearance bundle (any 3 for Rs.1499),
+// computed by calculateBundleTotals() in data.ts. Kept as a 410 so stale cached clients fail safe.
+app.post('/api/combos/validate', (c: Context<{ Bindings: Bindings }>) =>
+  c.json({ combo: null, discount: 0, active_combos: [], retired: true }, 410));
 
 // ============ ADMIN: Combo CRUD ============
 
@@ -4069,7 +3935,7 @@ app.all('*', async (c: Context<{ Bindings: Bindings }>) => {
     <a class="btn alt" href="/stylist">Ask the AI Stylist</a>
     <a class="btn ig" href="https://instagram.com/intru.in" target="_blank" rel="noopener">📩 DM us @intru.in</a>
   </div>
-  <div class="combo">🔥 Any 3 tees for ₹1499 — auto-applied at checkout, no code needed</div>
+  <div class="combo">🔥 Clearance: any 3 for Rs. 1499. Applied automatically, no code needed</div>
 </div></body></html>`, 404);
 })
 

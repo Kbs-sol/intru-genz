@@ -15,22 +15,12 @@ export interface FeedProduct {
   sizeStock?: Record<string, number>; stockCount?: Record<string, number>;
 }
 
-/** Active combo row from the Supabase `combos` table (subset of columns). */
-export interface FeedCombo {
-  id: string; name: string; description?: string | null;
-  discount_type: 'percent' | 'fixed' | string; discount_value: number;
-  min_products: number; min_subtotal?: number | null;
-  required_product_ids?: string[] | null; required_categories?: string[] | null;
-}
-
 export interface FeedPromo {
   promotionId: string;
   longTitle: string;           // <= 60 chars (Google limit)
-  couponValueType: 'buy_m_get_money_off' | 'buy_m_get_percent_off';
-  buyQuantity: number;
-  moneyOff?: number;           // INR, for buy_m_get_money_off
-  percentOff?: number;         // integer, for buy_m_get_percent_off
-  minPurchase?: number;
+  couponValueType: 'no_structured_data';
+  buyQuantity: number;         // buy_this_quantity
+  promotionPrice: number;      // promotion_price (fixed price for the bundle), INR
   finePrint: string;
 }
 
@@ -149,33 +139,21 @@ const inr = (n: number) => `${Number(n).toFixed(2)} INR`;
 const rupees = (n: number) => `\u20B9${Math.round(n).toLocaleString('en-IN')}`;
 
 /**
- * Convert active combos → Google promotions. The wording is derived from the
- * discount the checkout REALLY applies (see /api/checkout: `disc = discount_value`
- * for fixed combos = money OFF the cart, not a bundle price), so the promotion
- * always matches what customers are charged. Combos restricted to specific
- * products / categories are skipped: they can't be expressed with
- * product_applicability=all_products.
+ * Clearance bundle = ANY 3 units for a fixed Rs.1499 (see calculateBundleTotals in data.ts).
+ * Google has no dedicated "bundle price" coupon_value_type; the documented way is
+ * coupon_value_type=no_structured_data + buy_this_quantity + promotion_price.
+ * The numbers are passed in (from BUNDLE_SIZE / BUNDLE_PRICE) so feed and checkout cannot drift.
  */
-export function combosToPromos(combos: FeedCombo[]): FeedPromo[] {
-  const out: FeedPromo[] = [];
-  for (const c of combos || []) {
-    if (!c || !c.id || !(c.min_products >= 2) || !(c.discount_value > 0)) continue;
-    if (c.required_product_ids && c.required_product_ids.length) continue;
-    if (c.required_categories && c.required_categories.length) continue;
-    const promotionId = 'INTRUCOMBO' + String(c.id).replace(/[^A-Za-z0-9]/g, '').slice(0, 12);
-    const minPurchase = c.min_subtotal && c.min_subtotal >= 1 ? Math.round(c.min_subtotal) : undefined;
-    const finePrint = `Applied automatically at checkout, no code needed, when your order has ${c.min_products} or more items. One offer per order. Valid on prepaid and COD orders. Limited drops, never restocked.`;
-    if (c.discount_type === 'percent') {
-      const pct = Math.round(c.discount_value);
-      if (pct < 1 || pct > 99) continue;
-      out.push({ promotionId, longTitle: `${pct}% off when you buy any ${c.min_products} products`.slice(0, 60),
-        couponValueType: 'buy_m_get_percent_off', buyQuantity: c.min_products, percentOff: pct, minPurchase, finePrint });
-    } else {
-      out.push({ promotionId, longTitle: `${rupees(c.discount_value)} off when you buy any ${c.min_products} products`.slice(0, 60),
-        couponValueType: 'buy_m_get_money_off', buyQuantity: c.min_products, moneyOff: Math.round(c.discount_value), minPurchase, finePrint });
-    }
-  }
-  return out;
+export function bundlePromo(size: number, price: number): FeedPromo[] {
+  if (!(size >= 2) || !(price > 0)) return [];
+  return [{
+    promotionId: 'INTRUCLEARANCE' + size + 'FOR' + Math.round(price),
+    longTitle: `Clearance: any ${size} for ${rupees(price)}`.slice(0, 60),
+    couponValueType: 'no_structured_data',
+    buyQuantity: size,
+    promotionPrice: price,
+    finePrint: `Any ${size} items (any products, sizes or quantities) for a total of ${rupees(price)}. Applied automatically at checkout, no code needed. Extra items beyond each group of ${size} are charged at regular price. Cannot be combined with coupon codes. Prepaid and COD orders. Limited drops, never restocked.`,
+  }];
 }
 
 /** Stable window in IST: 1st of this month → last day of NEXT month (<= 92 days, Google max 183). */
@@ -202,7 +180,8 @@ export function buildPromotionsFeed(promos: FeedPromo[], now: Date = new Date())
       <g:promotion_destination>Free_listings</g:promotion_destination>
       <g:promotion_url>https://intru.in/collections</g:promotion_url>
       <g:coupon_value_type>${p.couponValueType}</g:coupon_value_type>
-      <g:buy_this_quantity>${p.buyQuantity}</g:buy_this_quantity>${p.moneyOff != null ? `\n      <g:money_off_amount>${inr(p.moneyOff)}</g:money_off_amount>` : ''}${p.percentOff != null ? `\n      <g:percent_off>${p.percentOff}</g:percent_off>` : ''}${p.minPurchase ? `\n      <g:minimum_purchase_amount>${inr(p.minPurchase)}</g:minimum_purchase_amount>` : ''}
+      <g:buy_this_quantity>${p.buyQuantity}</g:buy_this_quantity>
+      <g:promotion_price>${inr(p.promotionPrice)}</g:promotion_price>
       <g:fine_print>${xmlEscape(p.finePrint)}</g:fine_print>
     </item>`).join('\n');
   return `<?xml version="1.0" encoding="UTF-8"?>

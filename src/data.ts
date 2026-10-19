@@ -564,7 +564,7 @@ export const SEED_FAQS: FAQ[] = [
   { question: 'Do you accept Cash on Delivery (COD)?', answer: 'Yes, COD is available across most Indian pincodes. A ₹99 shipping fee applies to COD orders. To keep our small-batch model sustainable, we may email you a short verification link before dispatch for high-value COD orders — replying/confirming keeps it moving.', category: 'Payments', sort_order: 10, is_active: true },
   { question: 'What payment methods do you accept?', answer: 'UPI, credit/debit cards, net banking, popular wallets (Paytm, PhonePe, Amazon Pay), and Cash on Delivery. Payments are processed through Razorpay — one of India\'s most secure payment gateways.', category: 'Payments', sort_order: 20, is_active: true },
   { question: 'Is my payment information secure?', answer: 'Yes. All payments are processed through Razorpay with bank-grade SSL encryption. Intru never sees or stores your card or UPI credentials.', category: 'Payments', sort_order: 30, is_active: true },
-  { question: 'Can I use a coupon or discount code?', answer: 'Yes — enter your code at checkout inside the cart drawer. Coupons stack with free shipping on prepaid orders but not with other coupons. Some auto-applied combo deals will show up in your bag automatically when you add qualifying pieces.', category: 'Payments', sort_order: 40, is_active: true },
+  { question: 'Can I use a coupon or discount code?', answer: 'Yes — enter your code at checkout inside the cart drawer. Coupons stack with free shipping on prepaid orders but not with other coupons. Our Clearance bundle (any 3 for Rs. 1499) is applied automatically in your bag when you have 3 or more pieces.', category: 'Payments', sort_order: 40, is_active: true },
 
   // Returns & Exchanges
   { question: 'What is your return policy?', answer: 'Intru operates on a limited-drop model, so all sales are final. We do not offer cash refunds. Approved claims are issued as <strong>Store Credit at 1:1 value with INR</strong>, which never expires and can be used on any future drop. Full policy: <a href="/p/returns">Returns &amp; Exchanges Policy</a>.', category: 'Returns & Exchanges', sort_order: 10, is_active: true },
@@ -1270,6 +1270,84 @@ export interface MagicLineItem {
   product_url: string;
 }
 
+// ============ CLEARANCE BUNDLE: any 3 units for a fixed price ============
+// Single source of truth. Used by POST /api/checkout, POST /api/checkout/cod
+// and (via .toString() injection) by the cart UI in components/shell.ts.
+// MUST stay self-contained (no outer references except the literals below),
+// because it is serialised into client JS.
+export const BUNDLE_SIZE = 3;
+export const BUNDLE_PRICE = 1499;
+
+export interface BundleLine { productId: string; size?: string; quantity: number; unitPrice: number }
+export interface BundleTotals {
+  subtotal: number;        // regular-price total of all units
+  bundleDiscount: number;  // subtotal - payableSubtotal
+  bundleCount: number;     // number of complete 3-unit bundles priced
+  payableSubtotal: number; // what the customer pays for items (before coupon/shipping/COD fee)
+  savedAmount: number;     // same as bundleDiscount (kept for UI naming)
+}
+
+export function calculateBundleTotals(items: BundleLine[]): BundleTotals {
+  var SIZE = 3, PRICE = 1499;
+  var units: number[] = [];
+  var subtotal = 0;
+  var list = items || [];
+  for (var i = 0; i < list.length; i++) {
+    var q = Math.max(0, Math.floor(Number(list[i].quantity) || 0));
+    var p = Math.max(0, Number(list[i].unitPrice) || 0);
+    for (var k = 0; k < q; k++) units.push(p);
+    subtotal += p * q;
+  }
+  // Most expensive units fill the bundles first; cheapest leftovers pay regular price.
+  units.sort(function (a, b) { return b - a; });
+  var groups = Math.floor(units.length / SIZE);
+  var bundleCount = 0, bundleDiscount = 0;
+  for (var g = 0; g < groups; g++) {
+    var regular = units[g * SIZE] + units[g * SIZE + 1] + units[g * SIZE + 2];
+    var charge = Math.min(regular, PRICE);          // guard: never charge more than regular
+    if (regular > charge) { bundleDiscount += regular - charge; }
+    bundleCount++;
+  }
+  subtotal = Math.round(subtotal * 100) / 100;
+  bundleDiscount = Math.round(bundleDiscount * 100) / 100;
+  return {
+    subtotal: subtotal,
+    bundleDiscount: bundleDiscount,
+    bundleCount: bundleCount,
+    payableSubtotal: Math.round((subtotal - bundleDiscount) * 100) / 100,
+    savedAmount: bundleDiscount,
+  };
+}
+
+/** Allocate the bundle discount to the cart lines that actually hold bundled units.
+ *  Re-runs the same grouping as calculateBundleTotals (units sorted by price desc, groups of 3);
+ *  each group's discount (regular - 1499) is split across its 3 units proportionally to price
+ *  (paise, last unit absorbs rounding). Leftover units get 0.
+ *  unitPrice/lineTotal stay REGULAR; adds `bundleDiscountShare` + `payableLineTotal` per line
+ *  so the admin order record is self-explanatory. Mutates and returns the lines. */
+export function allocateBundleToLines<T extends { productId: string; size?: string; quantity: number; unitPrice: number; lineTotal: number }>(lines: T[], bundleDiscount?: number): T[] {
+  const units: { li: number; paise: number }[] = [];
+  lines.forEach((l, li) => { for (let k = 0; k < l.quantity; k++) units.push({ li, paise: Math.round(l.unitPrice * 100) }); });
+  units.sort((a, b) => b.paise - a.paise);
+  const sharePaise = lines.map(() => 0);
+  const groups = Math.floor(units.length / BUNDLE_SIZE);
+  for (let g = 0; g < groups; g++) {
+    const grp = units.slice(g * BUNDLE_SIZE, g * BUNDLE_SIZE + BUNDLE_SIZE);
+    const regular = grp.reduce((a, u) => a + u.paise, 0);
+    const disc = Math.max(0, regular - BUNDLE_PRICE * 100);
+    let left = disc;
+    grp.forEach((u, i) => {
+      const sh = i === grp.length - 1 ? left : Math.min(left, Math.round((u.paise / regular) * disc));
+      left -= sh; sharePaise[u.li] += sh;
+    });
+  }
+  lines.forEach((l: any, i) => {
+    l.bundleDiscountShare = sharePaise[i] / 100;
+    l.payableLineTotal = (Math.round(l.lineTotal * 100) - sharePaise[i]) / 100;
+  });
+  return lines;
+}
+
 export function buildMagicLineItems(
   validatedItems: { productId: string; name: string; size: string; quantity: number; unitPrice: number; lineTotal: number; image?: string; slug?: string; description?: string }[],
   totalDiscount: number = 0   // INR discount to distribute proportionally across line items
@@ -1277,6 +1355,9 @@ export function buildMagicLineItems(
   // Calculate full subtotal to compute each item's discount share proportionally
   const fullSubtotal = validatedItems.reduce((s, i) => s + i.lineTotal, 0);
   const discountPaise = Math.round(totalDiscount * 100);
+  // If lines carry exact bundle shares that add up to the whole discount, use them (leftover units stay at regular price).
+  const shares = validatedItems.map((i: any) => typeof i.bundleDiscountShare === 'number' ? Math.round(i.bundleDiscountShare * 100) : null);
+  const useShares = discountPaise > 0 && shares.every(x => x !== null) && (shares as number[]).reduce((a, b) => a + b, 0) === discountPaise;
 
   let lineItemsTotal = 0;
   let distributedPaise = 0;
@@ -1287,7 +1368,10 @@ export function buildMagicLineItems(
 
     // Distribute discount proportionally; give rounding remainder to last item
     let itemDiscountPaise = 0;
-    if (discountPaise > 0 && fullSubtotal > 0) {
+    if (useShares) {
+      itemDiscountPaise = shares[idx] as number;
+      distributedPaise += itemDiscountPaise;
+    } else if (discountPaise > 0 && fullSubtotal > 0) {
       if (idx === validatedItems.length - 1) {
         itemDiscountPaise = discountPaise - distributedPaise; // last item absorbs rounding
       } else {
