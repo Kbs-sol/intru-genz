@@ -315,7 +315,8 @@ export function shell(
     : '';
 
   const pm = JSON.stringify(Object.fromEntries(products.map(p => [p.id, { id: p.id, n: p.name, s: p.slug, p: p.price, i: p.images, sz: p.sizes, cat: (p as any).category || '' }])));
-  const sj = JSON.stringify({ cs: STORE_CONFIG.currencySymbol, ft: STORE_CONFIG.freeShippingThreshold, sc: STORE_CONFIG.shippingCost, rk: rpKey, magic: useMagic });
+  const gcrMerchantId = String(ss.GCR_MERCHANT_ID || '').replace(/[^0-9]/g, '');
+  const sj = JSON.stringify({ cs: STORE_CONFIG.currencySymbol, ft: STORE_CONFIG.freeShippingThreshold, sc: STORE_CONFIG.shippingCost, rk: rpKey, magic: useMagic, gcr: gcrMerchantId });
 
   return `<!DOCTYPE html><html lang="en"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -2330,6 +2331,39 @@ function quickAddToCart(productId,size){
 /* ====== BUY NOW (unified) ====== */
 
 /* ====== CHECKOUT ====== */
+/* ====== GOOGLE CUSTOMER REVIEWS — survey opt-in module ======
+   Spec: https://support.google.com/merchants/answer/7106244
+   Shown after every successful order (prepaid + COD + Magic). Needs the Merchant
+   Center ID (store setting GCR_MERCHANT_ID); silently does nothing until it is set.
+   Estimated delivery = today + 9 days (36h dispatch + 3-7 business days, see Shipping policy). */
+var _gcrDone={};
+function gcrOptIn(orderId,email){
+  try{
+    if(!S.gcr||!orderId||!email||_gcrDone[orderId])return;
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email))return;
+    _gcrDone[orderId]=1;
+    var d=new Date(Date.now()+9*86400000);
+    var eta=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
+    window.___gcfg={lang:'en-GB'};
+    window.renderOptIn=function(){
+      window.gapi.load('surveyoptin',function(){
+        window.gapi.surveyoptin.render({
+          merchant_id:Number(S.gcr),
+          order_id:String(orderId),
+          email:String(email),
+          delivery_country:'IN',
+          estimated_delivery_date:eta,
+          opt_in_style:'CENTER_DIALOG'
+        });
+      });
+    };
+    var sc=document.createElement('script');
+    sc.src='https://apis.google.com/js/platform.js?onload=renderOptIn';
+    sc.async=true;sc.defer=true;
+    document.body.appendChild(sc);
+  }catch(e){}
+}
+
 /* Snapshot of cart taken at begin_checkout — used for accurate purchase attribution
    because the cart is cleared on success before the purchase event fires. */
 var _purchaseSnapshot=null;
@@ -2462,7 +2496,7 @@ function doPrepaidCheckout(){
         fetch('/api/payment/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
           razorpay_order_id:response.razorpay_order_id,razorpay_payment_id:response.razorpay_payment_id,razorpay_signature:response.razorpay_signature
         })}).then(function(r){return r.json()}).then(function(vd){
-          if(vd.success){trackPurchase(vd.orderId,vd.total,_purchaseSnapshot,'prepaid');cart=[];saveCart();toggleCart();if(!orderToastFired){orderToastFired=true;toast('Drop secured! Order: '+(vd.orderId||'').slice(-8).toUpperCase()+'. Check email.','ok-green')}}
+          if(vd.success){trackPurchase(vd.orderId,vd.total,_purchaseSnapshot,'prepaid');gcrOptIn(vd.orderId,vd.email||identifiedEmail);cart=[];saveCart();toggleCart();if(!orderToastFired){orderToastFired=true;toast('Drop secured! Order: '+(vd.orderId||'').slice(-8).toUpperCase()+'. Check email.','ok-green')}}
           else{toast('Verification failed: '+(vd.error||''),'err')}
         }).catch(function(e){toast('Error: '+e.message,'err')}).finally(function(){resetBtn()});
       }
@@ -2508,7 +2542,7 @@ function doCodCheckout(){
   })})
   .then(function(r){return r.json()})
   .then(function(d){
-    if(d.success){trackPurchase(d.orderId,d.total,_purchaseSnapshot,'cod');cart=[];saveCart();toggleCart();renderCart();showSuccessUI(d.orderId,'cod')}
+    if(d.success){trackPurchase(d.orderId,d.total,_purchaseSnapshot,'cod');gcrOptIn(d.orderId,identifiedEmail);cart=[];saveCart();toggleCart();renderCart();showSuccessUI(d.orderId,'cod')}
     else{toast(d.error||'COD failed','err')}
   }).catch(function(e){toast('Error: '+e.message,'err')})
   .finally(function(){resetBtn()});
@@ -2549,7 +2583,7 @@ function doMagicCheckout(){
         fetch('/api/payment/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
           razorpay_order_id:response.razorpay_order_id,razorpay_payment_id:response.razorpay_payment_id,razorpay_signature:response.razorpay_signature
         })}).then(function(r){return r.json()}).then(function(vd){
-          if(vd.success){trackPurchase(vd.orderId,vd.total,_purchaseSnapshot,'prepaid');cart=[];saveCart();toggleCart();renderCart();showSuccessUI(vd.orderId,'prepaid')}
+          if(vd.success){trackPurchase(vd.orderId,vd.total,_purchaseSnapshot,'prepaid');gcrOptIn(vd.orderId,vd.email||identifiedEmail);cart=[];saveCart();toggleCart();renderCart();showSuccessUI(vd.orderId,'prepaid')}
           else{toast('Verification failed','err')}
         }).catch(function(e){toast('Error: '+e.message,'err')}).finally(function(){resetBtn()});
       }

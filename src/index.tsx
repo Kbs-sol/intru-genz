@@ -25,6 +25,7 @@ import { maintenancePage } from './pages/maintenance'
 import { faqPage } from './pages/faq'
 import { blogIndexPage, blogPostPage } from './pages/blog'
 import { shell } from './components/shell'
+import { buildProductFeed, buildPromotionsFeed, combosToPromos, type FeedCombo, type FeedPromo } from './merchant-feed'
 import { runDailySalesAgent, computeSalesMetrics } from './ai-sales-agent'
 import { runGrowthLoop } from './ai-loop'
 
@@ -185,6 +186,8 @@ async function getPageOpts(c: Context<{ Bindings: Bindings }>) {
     const envGtm = _cleanIdSetting(getEnv(c.env, 'GTM_CONTAINER_ID'));
     if (envGtm) storeSettings.GTM_CONTAINER_ID = envGtm;
   }
+  // Google Customer Reviews opt-in — Merchant Center ID (store setting wins, env var fallback).
+  storeSettings.GCR_MERCHANT_ID = _cleanIdSetting(storeSettings.GCR_MERCHANT_ID) || _cleanIdSetting(getEnv(c.env, 'GCR_MERCHANT_ID') || getEnv(c.env, 'GOOGLE_MERCHANT_ID'));
   const mMode = storeSettings.MAINTENANCE_MODE || 'off';
 
   // [AUDIT 2026-10-03] M-2: Suppress analytics on non-production hostnames.
@@ -199,6 +202,7 @@ async function getPageOpts(c: Context<{ Bindings: Bindings }>) {
     storeSettings.CLARITY_PROJECT_ID = '';
     storeSettings.META_PIXEL_ID = '';
     storeSettings.GTM_CONTAINER_ID = 'off';
+    storeSettings.GCR_MERCHANT_ID = '';   // never send test orders to Google Customer Reviews
   }
 
   return {
@@ -757,7 +761,8 @@ Sitemap: https://intru.in/sitemap.xml
 Sitemap: https://intru.in/sitemap-images.xml
 
 # Google Merchant Center product feed (Shopping tab + free listings)
-# Feed URL: https://intru.in/merchant-feed.xml`);
+# Feed URL: https://intru.in/merchant-feed.xml
+# Promotions URL: https://intru.in/merchant-promotions.xml`);
 });
 
 app.get('/sitemap.xml', async (c: Context<{ Bindings: Bindings }>) => {
@@ -853,88 +858,39 @@ app.get('/sitemap-images.xml', async (c: Context<{ Bindings: Bindings }>) => {
   return c.body(xml);
 });
 
-// ============ GOOGLE MERCHANT CENTER PRODUCT FEED ============
-// RSS 2.0 feed with the Google Shopping (g:) namespace. Point Google Merchant
-// Center → Products → Feeds → "Scheduled fetch" at:
-//     https://intru.in/merchant-feed.xml
-// One <item> per size variant, grouped by g:item_group_id so Google shows the
-// product once with selectable sizes. Free listings on the Shopping tab + paid
-// Shopping ads both consume this feed. No Content API key needed for the feed
-// itself — Merchant Center fetches this URL on a schedule.
-function xmlEscape(s: string): string {
-  return String(s == null ? '' : s)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+// ============ GOOGLE MERCHANT CENTER FEEDS ============
+// Builders live in ./merchant-feed.ts (pure functions, unit-testable).
+//   /merchant-feed.xml        → products  (Merchant Center → Data sources → Scheduled fetch)
+//   /merchant-promotions.xml  → promotions (Merchant Center → Data sources → Promotions)
+// One <item> per size variant, grouped by g:item_group_id. Paid (Shopping ads)
+// and local destinations are excluded on every item — organic/free listings only.
+
+// Active combos → Google promotions. Wording is derived from the SAME discount
+// the checkout applies, so the promotion always matches what customers pay.
+async function fetchFeedPromos(c: Context<{ Bindings: Bindings }>): Promise<FeedPromo[]> {
+  try {
+    const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+    const sbKey = getEnv(c.env, 'SUPABASE_ANON_KEY') || getEnv(c.env, 'SUPABASE_SERVICE_KEY');
+    if (!sbUrl || !sbKey) return [];
+    const res = await supabaseFetch(sbUrl, sbKey, 'combos?is_active=eq.true&order=discount_value.desc&limit=10');
+    if (!res.ok) return [];
+    return combosToPromos(await res.json() as FeedCombo[]);
+  } catch (_e) { return []; }
 }
+
 app.get('/merchant-feed.xml', async (c: Context<{ Bindings: Bindings }>) => {
-  const opts = await getPageOpts(c);
-  const now = new Date().toUTCString();
-  const BRAND = 'INTRU';
-  // Google Product Category 212 = Apparel & Accessories > Clothing
-  const GOOGLE_CATEGORY = 'Apparel & Accessories > Clothing';
-
-  const items: string[] = [];
-  for (const p of opts.products) {
-    const link = `https://intru.in/product/${p.slug}`;
-    const img = (p.images && p.images[0]) || '';
-    const extraImgs = (p.images || []).slice(1, 11);
-    const desc = (p.description || p.tagline || `${p.name} — exclusive limited streetwear drop by intru.in`).replace(/\s+/g, ' ').trim();
-    // Google pricing: <g:price> = list/MRP, <g:sale_price> = current selling price.
-    // When a comparePrice (MRP) exists and is higher, show the strike-through deal.
-    const hasSale = !!(p.comparePrice && p.comparePrice > p.price);
-    const listPrice = hasSale ? Math.round(p.comparePrice as number) : Math.round(p.price);
-    const price = `${listPrice}.00 INR`;
-    // availability derived from stock
-    const sizes = (p.sizes && p.sizes.length) ? p.sizes : ['ONE SIZE'];
-    for (const size of sizes) {
-      // per-size stock if available
-      let inStock = p.inStock;
-      const sizeQty = (p.sizeStock && p.sizeStock[size] != null) ? p.sizeStock[size]
-        : (p.stockCount && p.stockCount[size] != null) ? p.stockCount[size] : null;
-      if (sizeQty != null) inStock = sizeQty > 0;
-      const availability = inStock ? 'in_stock' : 'out_of_stock';
-      const variantId = `${p.id}-${String(size).replace(/[^A-Za-z0-9]/g, '')}`;
-      items.push(`    <item>
-      <g:id>${xmlEscape(variantId)}</g:id>
-      <g:item_group_id>${xmlEscape(p.id)}</g:item_group_id>
-      <title>${xmlEscape(p.name + (size !== 'ONE SIZE' ? ' — Size ' + size : ''))}</title>
-      <description>${xmlEscape(desc)}</description>
-      <link>${xmlEscape(link)}</link>
-      <g:image_link>${xmlEscape(img)}</g:image_link>${extraImgs.map(u => `\n      <g:additional_image_link>${xmlEscape(u)}</g:additional_image_link>`).join('')}
-      <g:availability>${availability}</g:availability>
-      <g:price>${price}</g:price>${hasSale ? `\n      <g:sale_price>${Math.round(p.price)}.00 INR</g:sale_price>` : ''}
-      <g:brand>${BRAND}</g:brand>
-      <g:condition>new</g:condition>
-      <g:size>${xmlEscape(size)}</g:size>
-      <g:gender>unisex</g:gender>
-      <g:age_group>adult</g:age_group>
-      <g:color>Multi</g:color>
-      <g:identifier_exists>no</g:identifier_exists>
-      <g:google_product_category>${xmlEscape(GOOGLE_CATEGORY)}</g:google_product_category>
-      <g:product_type>${xmlEscape(p.category || 'Streetwear')}</g:product_type>
-      <g:mpn>${xmlEscape(variantId)}</g:mpn>
-      <g:shipping>
-        <g:country>IN</g:country>
-        <g:service>Standard</g:service>
-        <g:price>${p.price >= STORE_CONFIG.freeShippingThreshold ? '0.00' : STORE_CONFIG.shippingCost + '.00'} INR</g:price>
-      </g:shipping>
-    </item>`);
-    }
-  }
-
-  const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">
-  <channel>
-    <title>INTRU.IN — Exclusive Indian Streetwear</title>
-    <link>https://intru.in</link>
-    <description>${xmlEscape(STORE_CONFIG.description)}</description>
-    <lastBuildDate>${now}</lastBuildDate>
-${items.join('\n')}
-  </channel>
-</rss>`;
+  const [opts, promos] = await Promise.all([getPageOpts(c), fetchFeedPromos(c)]);
+  const xml = buildProductFeed(opts.products as any[], { promos, channelDescription: STORE_CONFIG.description });
   c.header('Content-Type', 'application/xml; charset=UTF-8');
   c.header('Cache-Control', 'public, max-age=1800, s-maxage=1800');
   return c.body(xml);
+});
+
+app.get('/merchant-promotions.xml', async (c: Context<{ Bindings: Bindings }>) => {
+  const promos = await fetchFeedPromos(c);
+  c.header('Content-Type', 'application/xml; charset=UTF-8');
+  c.header('Cache-Control', 'public, max-age=1800, s-maxage=1800');
+  return c.body(buildPromotionsFeed(promos));
 });
 
 // ============ AI / LLM TRAFFIC OPTIMIZATION ============
@@ -2234,6 +2190,7 @@ app.post('/api/payment/verify', async (c: Context<{ Bindings: Bindings }>) => {
       success: true, orderId: razorpay_order_id,
       razorpayPaymentId: razorpay_payment_id,
       total: orderTotal,
+      email: customerEmail || '',   // used by the Google Customer Reviews opt-in on the success screen
       message: 'Payment verified and order confirmed.',
     });
   } catch (e: any) {

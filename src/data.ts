@@ -68,6 +68,7 @@ export interface Env {
   GA4_MEASUREMENT_ID: string;
   GA_MEASUREMENT_ID: string;
   CLARITY_PROJECT_ID: string;
+  GCR_MERCHANT_ID: string;    // Merchant Center ID for the Google Customer Reviews opt-in (digits)
   GTM_CONTAINER_ID: string;   // Google Tag Manager container (e.g. GTM-XXXXXXX); 'off' disables
   // Daily AI sales agent (optional)
   CRON_SECRET: string;        // shared secret that protects /api/ai/sales-report

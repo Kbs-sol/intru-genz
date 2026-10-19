@@ -72,3 +72,7 @@ OPENAI_API_KEY=
 OPENAI_BASE_URL=
 OPENAI_MODEL=
 MANAGER_EMAIL=
+
+# Google Customer Reviews opt-in (order-success screen). Merchant Center ID, digits only.
+# Can also be set from Admin → Settings as store setting GCR_MERCHANT_ID.
+GCR_MERCHANT_ID=
