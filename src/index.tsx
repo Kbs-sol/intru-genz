@@ -37,6 +37,79 @@ const app = new Hono<{ Bindings: Bindings }>()
 
 app.use('/api/*', cors())
 
+// ============ AI CRAWLER TRACKER [AEO] ============
+// Server-side only — JS-based analytics are invisible to crawlers.
+// Detects User-Agent for each known AI crawler, logs a lightweight event
+// to Supabase funnel_events so you can track which AI platforms visit,
+// which pages they crawl, and how often — separately per platform.
+// Zero impact on real users (crawlers never execute JS).
+const AI_CRAWLERS: Record<string, string> = {
+  'GPTBot':             'openai-training',        // OpenAI model training
+  'OAI-SearchBot':      'openai-search',           // ChatGPT Search real-time retrieval
+  'ChatGPT-User':       'openai-user',             // ChatGPT live browse (user-triggered)
+  'ClaudeBot':          'anthropic-training',      // Anthropic / Claude training
+  'Claude-SearchBot':   'anthropic-search',        // Claude search retrieval
+  'Claude-User':        'anthropic-user',          // Claude live browse
+  'PerplexityBot':      'perplexity-search',       // Perplexity real-time indexing
+  'Perplexity-User':    'perplexity-user',         // Perplexity user-triggered
+  'Googlebot':          'google-googlebot',        // Classic Google crawler
+  'Google-InspectionT': 'google-inspection',      // Google Search Console inspection
+  'Meta-ExternalAgent': 'meta-training',           // Meta / Llama training
+  'Bytespider':         'bytedance-training',      // ByteDance / TikTok AI training
+  'Applebot':           'apple-siri',              // Apple Siri / Intelligence
+  'DuckAssistBot':      'duckduckgo-ai',           // DuckDuckGo AI
+  'YouBot':             'you-search',              // You.com search
+  'cohere-ai':          'cohere-training',         // Cohere training
+  'AI2Bot':             'ai2-training',            // Allen AI
+};
+
+function detectAICrawler(ua: string): { platform: string; bot: string } | null {
+  if (!ua) return null;
+  for (const [pattern, platform] of Object.entries(AI_CRAWLERS)) {
+    if (ua.includes(pattern)) {
+      return { platform, bot: pattern };
+    }
+  }
+  return null;
+}
+
+app.use('*', async (c: Context<{ Bindings: Bindings }>, next: Next) => {
+  const ua = c.req.header('user-agent') || '';
+  const crawler = detectAICrawler(ua);
+  if (crawler) {
+    // Fire-and-forget — don't await so it never blocks page delivery
+    const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+    const sbSvc = getEnv(c.env, 'SUPABASE_SERVICE_KEY');
+    if (sbUrl && sbSvc) {
+      const payload = {
+        event: 'ai_crawler_visit',
+        meta: {
+          platform: crawler.platform,
+          bot: crawler.bot,
+          path: new URL(c.req.url).pathname,
+          ua: ua.slice(0, 200),
+          country: c.req.header('cf-ipcountry') || 'unknown',
+        },
+        event_time: Math.floor(Date.now() / 1000),
+        url: c.req.url,
+        user_agent: ua.slice(0, 200),
+      };
+      // Use the existing funnel_events table — same schema, no new DB changes needed
+      fetch(`${sbUrl}/rest/v1/funnel_events`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': sbSvc,
+          'Authorization': `Bearer ${sbSvc}`,
+          'Prefer': 'return=minimal',
+        },
+        body: JSON.stringify(payload),
+      }).catch(() => {}); // silent — never surface errors to crawlers
+    }
+  }
+  return next();
+});
+
 function getEnv(env: Bindings, key: keyof Env, fallback?: string): string {
   return (env as any)[key] || fallback || '';
 }
@@ -680,6 +753,71 @@ app.get('/guide', async (c: Context<{ Bindings: Bindings }>) => {
   }));
 });
 app.get('/buying-guide', (c: Context<{ Bindings: Bindings }>) => c.redirect('/guide', 301));
+
+// ============ AI CRAWLER ANALYTICS API ============
+// Returns per-platform visit counts from funnel_events for admin viewing.
+// Accessible at /api/admin/ai-crawlers (requires x-admin-token or admin session)
+app.get('/api/admin/ai-crawlers', async (c: Context<{ Bindings: Bindings }>) => {
+  const adminToken = getEnv(c.env, 'ADMIN_TOKEN');
+  const reqToken = c.req.header('x-admin-token');
+  if (adminToken && reqToken !== adminToken) {
+    return c.json({ error: 'Unauthorized' }, 401);
+  }
+  const sbUrl = getEnv(c.env, 'SUPABASE_URL');
+  const sbSvc = getEnv(c.env, 'SUPABASE_SERVICE_KEY');
+  if (!sbUrl || !sbSvc) return c.json({ error: 'DB not configured' }, 500);
+
+  try {
+    // Fetch last 30 days of AI crawler events grouped by platform
+    const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    const res = await fetch(
+      `${sbUrl}/rest/v1/funnel_events?event=eq.ai_crawler_visit&created_at=gte.${since}&select=meta,created_at&limit=5000`,
+      {
+        headers: {
+          'apikey': sbSvc,
+          'Authorization': `Bearer ${sbSvc}`,
+        },
+      }
+    );
+    if (!res.ok) throw new Error(await res.text());
+    const rows: any[] = await res.json();
+
+    // Aggregate by platform
+    const byPlatform: Record<string, { visits: number; paths: Record<string, number>; lastSeen: string }> = {};
+    for (const row of rows) {
+      const meta = typeof row.meta === 'string' ? JSON.parse(row.meta) : (row.meta || {});
+      const platform = meta.platform || 'unknown';
+      if (!byPlatform[platform]) byPlatform[platform] = { visits: 0, paths: {}, lastSeen: '' };
+      byPlatform[platform].visits++;
+      const path = meta.path || '/';
+      byPlatform[platform].paths[path] = (byPlatform[platform].paths[path] || 0) + 1;
+      if (!byPlatform[platform].lastSeen || row.created_at > byPlatform[platform].lastSeen) {
+        byPlatform[platform].lastSeen = row.created_at;
+      }
+    }
+
+    // Sort by visits desc
+    const sorted = Object.entries(byPlatform)
+      .sort(([, a], [, b]) => b.visits - a.visits)
+      .map(([platform, data]) => ({
+        platform,
+        visits: data.visits,
+        lastSeen: data.lastSeen,
+        topPaths: Object.entries(data.paths)
+          .sort(([, a], [, b]) => b - a)
+          .slice(0, 5)
+          .map(([path, count]) => ({ path, count })),
+      }));
+
+    return c.json({
+      period: '30d',
+      totalVisits: rows.length,
+      crawlers: sorted,
+    });
+  } catch (e: any) {
+    return c.json({ error: e.message }, 500);
+  }
+});
 
 // ============ SEO INFRASTRUCTURE ============
 
