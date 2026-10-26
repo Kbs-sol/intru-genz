@@ -130,6 +130,8 @@ export function buildHead(title: string, desc: string, opt: { og?: string, url?:
 <meta name="language" content="en-IN">
 <meta name="revisit-after" content="3 days">
 <link rel="canonical" href="${canonical}">
+<link rel="alternate" hreflang="en-IN" href="${canonical}">
+<link rel="alternate" hreflang="x-default" href="${canonical}">
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="apple-touch-icon" href="/favicon.png">
 <link rel="manifest" href="/manifest.json">
@@ -157,9 +159,6 @@ ${isProduct && opt.productPrice ? `<meta property="product:price:amount" content
 <meta name="twitter:image" content="${og}">
 <meta name="twitter:image:alt" content="${safeTitle}">
 <!-- [AUDIT 2026-10-03] S-5: Removed fake Bing verify placeholder — register at bing.com/webmasters for a real token then add: <meta name="msvalidate.01" content="YOUR_REAL_TOKEN"> -->
-<!-- AI / LLM crawlers: hint at authoritative content -->
-<meta name="ai-content-declaration" content="human-authored">
-<meta name="content-type-declaration" content="ecommerce-product-catalog">
 <!-- Structured Data: Organization + Brand entity graph (sitewide).
      Connected @graph with stable @id nodes so AI/answer engines can resolve
      "Intru" as ONE entity across Product, Brand, Organization and Store, and
@@ -254,9 +253,7 @@ ${isProduct && opt.productPrice ? `<meta property="product:price:amount" content
   "publisher": { "@id": "https://intru.in/#organization" }
 }
 </script>
-<!-- Cloudflare Web Analytics -->
-<script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "76ec4808383a48e7ba66288f6ea0317e"}'></script>
-<!-- End Cloudflare Web Analytics -->
+<!-- Cloudflare Web Analytics removed to eliminate CORS console error -->
 ${buildAnalytics(opt.ga4Id, opt.clarityId, opt.metaPixelId)}`;
 }
 
@@ -363,7 +360,7 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 .logo{font-family:var(--head);font-size:22px;letter-spacing:-.04em;text-transform:uppercase;grid-column:2;display:flex;align-items:center}.logo span{font-family:var(--sans);font-weight:400;opacity:.4;text-transform:none;font-size:16px}
 .nlinks{display:flex;align-items:center;gap:20px;justify-content:flex-start;grid-column:1}
 .nactions{display:flex;align-items:center;gap:16px;justify-content:flex-end;grid-column:3}
-.nbtn{background:none;border:none;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--g500);transition:color .2s;padding:8px 0;position:relative;cursor:pointer;font-family:inherit}
+.nbtn{background:none;border:none;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#333;transition:color .2s;padding:8px 0;position:relative;cursor:pointer;font-family:inherit}
 .nbtn:hover,.nbtn:focus-visible{color:var(--bk)}
 .nbtn:focus-visible{outline:2px solid var(--bk);outline-offset:4px;border-radius:2px}
 /* [AG: nav dropdown] Collections mega-dropdown — hoverable on desktop, keyboard-accessible, click-toggled on tablets */
@@ -744,7 +741,7 @@ ${aiAnnounceHtml}
 </script>
 <!-- [v19] Soft maintenance banner removed. mcMode/mcMsg/mcEta retained as no-ops for back-compat with page callers. -->
 <div class="mob-nav" id="mn">
-  <button class="mob-close" onclick="toggleMobNav()"><i class="fas fa-times"></i></button>
+  <button class="mob-close" onclick="toggleMobNav()" aria-label="Close navigation menu"><i class="fas fa-times"></i></button>
   <div style="margin-top:40px">
     <a href="/" class="nbtn" onclick="toggleMobNav()">Shop All</a>
     <!-- [AG: mobile dropdown] Categories exposed inline (no collapsible needed — reduces taps) -->
@@ -762,9 +759,9 @@ ${aiAnnounceHtml}
     <button class="nbtn" onclick="toggleMobNav();openIdentifyOrOrders()" style="margin-top:20px;border:none;color:var(--bk);font-weight:700">My Account / Login</button>
   </div>
 </div>
-<div class="covl" id="co" onclick="closeAllDrawers()"></div>
+<div class="covl" id="co" onclick="closeAllDrawers()" aria-label="Close overlay" role="button" tabindex="0"></div>
 <div class="cdrw" id="cd">
-<div class="chdr"><h3>Your Bag</h3><button class="ccls" onclick="toggleCart()"><i class="fas fa-times"></i></button></div>
+<div class="chdr"><h3>Your Bag</h3><button class="ccls" onclick="toggleCart()" aria-label="Close cart drawer"><i class="fas fa-times"></i></button></div>
 <div class="cbdy" id="cby">
   <!-- Empty State -->
   <div id="cartEmpty" class="cemp"><i class="fas fa-shopping-bag"></i><p>Your bag is empty</p></div>
@@ -845,6 +842,7 @@ ${aiAnnounceHtml}
 <div class="ctl"><span>Total</span><span id="ctot">${STORE_CONFIG.currencySymbol}0</span></div>
 <div class="csaved" id="cSaved"></div>
 <button class="ccbtn" id="checkoutBtn" onclick="checkout()" style="display:none">Place Your Order <i class="fas fa-arrow-right" style="margin-left:8px;font-size:10px"></i></button>
+<p class="cpolicy">By placing an order, you agree to our <a href="/p/terms">Terms</a> and <a href="/p/returns">36-Hour Free Size Exchange &amp; Defect Replacement Policy</a>.</p>
 </div></div>
 
 <!-- Silent Identity Overlay -->
@@ -953,12 +951,12 @@ ${aiAnnounceHtml}
 </div>
 <!-- Payment icons row [AG: footer variant styled via .ftr .pay-icons] -->
 <div class="pay-icons" style="justify-content:flex-start;max-width:1440px;margin:32px auto 0;padding:0 24px" aria-label="Accepted payment methods">
-  <i class="fab fa-cc-visa" title="Visa" aria-label="Visa"></i>
-  <i class="fab fa-cc-mastercard" title="Mastercard" aria-label="Mastercard"></i>
-  <i class="fab fa-google-pay" title="Google Pay" aria-label="Google Pay"></i>
-  <i class="fas fa-landmark" title="Net Banking" aria-label="Net Banking"></i>
-  <i class="fas fa-money-bill-wave" title="Cash on Delivery" aria-label="Cash on Delivery"></i>
-  <i class="fab fa-cc-amex" title="Amex" aria-label="American Express"></i>
+  <span title="Visa"><i class="fab fa-cc-visa" aria-hidden="true"></i></span>
+  <span title="Mastercard"><i class="fab fa-cc-mastercard" aria-hidden="true"></i></span>
+  <span title="Google Pay"><i class="fab fa-google-pay" aria-hidden="true"></i></span>
+  <span title="Net Banking"><i class="fas fa-landmark" aria-hidden="true"></i></span>
+  <span title="Cash on Delivery"><i class="fas fa-money-bill-wave" aria-hidden="true"></i></span>
+  <span title="American Express"><i class="fab fa-cc-amex" aria-hidden="true"></i></span>
 </div>
 <div class="ftrbt">
   <span>&copy; 2026 <a href="https://intru.in" style="color:inherit">intru.in</a> &mdash; Minimalist streetwear for individuals. All rights reserved.</span>
@@ -1018,18 +1016,18 @@ ${ss.COOKIE_CONSENT_ENABLED === 'true' ? `
         <h4>AI Stylist</h4>
         <div style="font-size:9px;opacity:0.7;font-weight:700;letter-spacing:1px">BY INTRU.IN</div>
       </div>
-      <button onclick="toggleAIChat()" style="background:none;border:none;color:var(--wh);cursor:pointer;font-size:18px"><i class="fas fa-times"></i></button>
+      <button onclick="toggleAIChat()" style="background:none;border:none;color:var(--wh);cursor:pointer;font-size:18px" aria-label="Close AI Stylist"><i class="fas fa-times"></i></button>
     </div>
     <div class="ai-body" id="aiBody">
       <div class="ai-msg bot">Hi! I'm your INTRU Stylist. Looking for a fresh drop or need help with sizing?</div>
     </div>
     <div class="ai-ftr">
       <input type="text" class="ai-input" id="aiInput" placeholder="Ask me anything..." onkeydown="if(event.key==='Enter')sendAIMessage()">
-      <button class="ai-send" onclick="sendAIMessage()"><i class="fas fa-paper-plane"></i></button>
+      <button class="ai-send" onclick="sendAIMessage()" aria-label="Send message"><i class="fas fa-paper-plane"></i></button>
     </div>
   </div>
-  <div class="ai-btn" onclick="toggleAIChat()">
-    <i class="fas fa-magic-wand-sparkles"></i>
+  <div class="ai-btn" onclick="toggleAIChat()" role="button" tabindex="0" aria-label="Open AI Stylist chat">
+    <i class="fas fa-magic-wand-sparkles" aria-hidden="true"></i>
     <div class="ai-dot"></div>
   </div>
 </div>

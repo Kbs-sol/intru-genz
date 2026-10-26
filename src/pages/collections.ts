@@ -148,6 +148,25 @@ ${d > 0 ? '<span class="sv">' + d + '% OFF</span>' : ''}
 </div></div></a>`;
   }).join('\n')}
 </div>
+
+<div class="col-seo-block" style="margin-top:64px;padding-top:40px;border-top:1px solid var(--g200);color:var(--g600);font-size:13px;line-height:1.8">
+  <div style="max-width:840px;margin:0 auto">
+    <h2 style="font-family:var(--head);font-size:18px;text-transform:uppercase;letter-spacing:-.02em;color:var(--bk);margin-bottom:12px">
+      ${isFiltered ? `${matchedCat} — Indian Streetwear Engineered for Individuals` : 'Oversized Streetwear Designed in India — The Heavyweight Standard'}
+    </h2>
+    <p style="margin-bottom:14px">
+      Unlike fast-fashion brands that simply upsize regular fits, Intru patterns are custom-tailored with dropped shoulders, elongated body cuts, and ribbed high-density collars that never stretch or bacon. Every garment is crafted from <strong>220–260 GSM garment-dyed combed cotton</strong> to deliver structured drape and breathable comfort in Indian weather.
+    </p>
+    <p style="margin-bottom:14px">
+      All drops are produced in small, numbered batches and are never restocked once claimed. Orders ship free pan-India on prepaid payments, backed by our <strong>36-Hour Free Size Exchange & Defect Replacement Guarantee</strong>.
+    </p>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:20px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px">
+      <a href="/blog/best-oversized-tshirt-brands-india-2026" style="color:var(--bk);text-decoration:underline">📖 2026 Oversized Brand Guide →</a>
+      <a href="/blog/how-to-choose-oversized-tshirt-size" style="color:var(--bk);text-decoration:underline">📏 Sizing & Fit Guide →</a>
+      <a href="/style-guide" style="color:var(--bk);text-decoration:underline">⚡ 6 Ways to Style an Oversized Tee →</a>
+    </div>
+  </div>
+</div>
 </div>
 
 <script>
@@ -177,10 +196,17 @@ function filterCat(cat, btn) {
 })();
 </script>`;
 
+  const pageTitle = isFiltered
+    ? `${matchedCat} Drops | Oversized Streetwear India — Intru`
+    : 'Shop Drops | Oversized Streetwear T-Shirts India — Intru';
+  const pageDesc = isFiltered
+    ? `Explore Intru's limited-run ${matchedCat.toLowerCase()} collection. 240+ GSM heavyweight cotton, dropped shoulder silhouettes, designed in India. Zero restocks.`
+    : 'Shop limited-edition oversized t-shirts, crop tees & streetwear drops by Intru. 240+ GSM heavyweight fabric, intentional boxy silhouettes, free prepaid shipping in India.';
+
   return shell(
-    'Shop All Drops | Intru — Minimalist Oversized Streetwear for Individuals India',
-    'Browse every Intru drop. Minimalist streetwear for individuals — heavyweight oversized t-shirts designed in India, small batches, clean intentional aesthetics, zero restocks. Free shipping on prepaid orders.',
+    pageTitle,
+    pageDesc,
     body,
-    { url: 'https://intru.in/collections', schema, razorpayKeyId: opts.razorpayKeyId, googleClientId: opts.googleClientId, products, legalPages, useMagicCheckout: !!opts.useMagicCheckout, maintenanceConfig: opts.maintenanceConfig, storeSettings: opts.storeSettings }
+    { url: isFiltered ? `https://intru.in/collections?cat=${encodeURIComponent(matchedCat)}` : 'https://intru.in/collections', schema, razorpayKeyId: opts.razorpayKeyId, googleClientId: opts.googleClientId, products, legalPages, useMagicCheckout: !!opts.useMagicCheckout, maintenanceConfig: opts.maintenanceConfig, storeSettings: opts.storeSettings }
   );
 }

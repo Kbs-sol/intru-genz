@@ -887,6 +887,11 @@ app.get('/merchant-promotions.xml', async (c: Context<{ Bindings: Bindings }>) =
 });
 
 // ============ AI / LLM TRAFFIC OPTIMIZATION ============
+// Redirect common misspellings from analytics (/llms.text, /llm.txt) to /llms.txt
+app.get('/llms.text', (c) => c.redirect('/llms.txt', 301));
+app.get('/llm.txt', (c) => c.redirect('/llms.txt', 301));
+app.get('/.well-known/llms.txt', (c) => c.redirect('/llms.txt', 301));
+
 // llms.txt — the emerging standard for AI crawler guidance (ChatGPT, Claude, Gemini, Perplexity)
 // Serves as a machine-readable brand briefing for generative AI models
 app.get('/llms.txt', async (c: Context<{ Bindings: Bindings }>) => {

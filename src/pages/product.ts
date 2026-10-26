@@ -111,8 +111,10 @@ export function productPage(product: Product, opts: {
         "hasMerchantReturnPolicy": {
           "@type": "MerchantReturnPolicy",
           "applicableCountry": "IN",
-          "returnPolicyCategory": "https://schema.org/MerchantReturnNotPermitted",
-          "merchantReturnDays": 0
+          "returnPolicyCategory": "https://schema.org/MerchantReturnExchangesOnly",
+          "merchantReturnDays": 2,
+          "returnMethod": "https://schema.org/ReturnByMail",
+          "returnFees": "https://schema.org/FreeReturn"
         }
       },
       "aggregateRating": {
@@ -360,10 +362,11 @@ ${!isSoldOut ? `
 <button class="atc-btn" id="atcBtn" onclick="handleATC()"><i class="fas fa-shopping-bag" style="margin-right:8px"></i>Add to Bag</button>
 <button class="bn-btn" id="bnBtn" onclick="handleBuyNow()"><i class="fas fa-bolt" style="margin-right:8px"></i>Buy Now</button>
 ` : `
-<div style="text-align:center;padding:40px 20px">
-<h2 style="font-family:var(--head);font-size:32px;text-transform:uppercase;letter-spacing:-.03em;margin-bottom:12px">DROPPED. GONE.</h2>
-<p style="font-size:14px;color:var(--g400);margin-bottom:24px">This drop is closed. We never restock.</p>
-<button class="bn-btn" style="width:100%;padding:20px;border:1px solid #fafafa;background:transparent;color:#fafafa" onclick="openIdentify()">NOTIFY ME FOR THE NEXT DROP</button>
+<div style="text-align:center;padding:32px 16px;background:rgba(0,0,0,0.03);border-radius:8px;border:1.5px solid var(--g100)">
+<h2 style="font-family:var(--head);font-size:24px;text-transform:uppercase;letter-spacing:-.03em;margin-bottom:8px">DROPPED. GONE.</h2>
+<p style="font-size:13px;color:var(--g400);margin-bottom:20px">This batch is completely sold out. We never restock past drops.</p>
+<button class="bn-btn" style="width:100%;padding:16px;border:1.5px solid var(--bk);background:var(--bk);color:var(--wh);margin-bottom:12px" onclick="openIdentify()">NOTIFY ME FOR THE NEXT DROP</button>
+<a href="/collections" style="display:inline-block;font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--bk);text-decoration:underline">Shop Similar Live Drops &rarr;</a>
 </div>
 `}
 <button class="wl-btn" onclick="this.classList.toggle('act');this.querySelector('i').classList.toggle('fas');this.querySelector('i').classList.toggle('far')"><i class="far fa-heart"></i></button>
@@ -371,13 +374,13 @@ ${!isSoldOut ? `
 <div class="trust-row anim" style="display:flex;align-items:center;gap:8px;padding:16px 0;border-top:1.5px solid var(--g50);margin-top:24px;justify-content:center;flex-wrap:wrap">
   <span style="font-size:9px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:rgba(255,255,255,0.3);background:var(--bk);padding:4px 10px;border-radius:3px">⚡ 3–5 Day Dispatch</span>
   <span aria-hidden="true" style="color:var(--g200)">·</span>
-  <span style="font-size:9px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:rgba(255,255,255,0.3);background:var(--bk);padding:4px 10px;border-radius:3px">🔄 36h Exchange</span>
+  <span style="font-size:9px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:rgba(255,255,255,0.3);background:var(--bk);padding:4px 10px;border-radius:3px">🔄 36h Free Exchange</span>
   <span aria-hidden="true" style="color:var(--g200)">·</span>
   <span style="font-size:9px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:rgba(255,255,255,0.3);background:var(--bk);padding:4px 10px;border-radius:3px">🛡 100% Authentic</span>
 </div>
 <div class="sc-info">
 <i class="fas fa-info-circle"></i>
-<span>Exchanges only — report defects within 36h. No returns or refunds.</span>
+<span>36-Hour Free Size Exchange &amp; Defect Replacement / Easy Store Credit.</span>
 </div>
 <div class="pshipping">
 <span><i class="fas fa-truck"></i> Free Shipping · All Prepaid Orders</span>
@@ -386,7 +389,7 @@ ${!isSoldOut ? `
 <div class="pdets">
 <div class="ditm"><button class="dtog opn" onclick="togDet(this)">Product Details <i class="fas fa-chevron-down"></i></button><div class="dcnt opn"><div class="dcnti">&bull; 240 GSM heavyweight cotton<br>&bull; Garment-dyed for soft hand-feel<br>&bull; Pre-shrunk &mdash; true to size<br>&bull; Ribbed neckline<br>&bull; Double-needle stitching</div></div></div>
 <div class="ditm"><button class="dtog" onclick="togDet(this)">Size &amp; Fit <i class="fas fa-chevron-down"></i></button><div class="dcnt"><div class="dcnti">Model is 6'0" / 183cm, wearing size L.<br>Relaxed fit &mdash; if between sizes, go with your usual.</div></div></div>
-<div class="ditm"><button class="dtog" onclick="togDet(this)">Shipping &amp; Returns <i class="fas fa-chevron-down"></i></button><div class="dcnt"><div class="dcnti">Dispatched within 36 hours. Free shipping on all prepaid orders.<br>Exchanges only — report defects within 36h. <a href="/p/returns" style="text-decoration:underline">Full policy</a></div></div></div>
+<div class="ditm"><button class="dtog" onclick="togDet(this)">Shipping &amp; Returns <i class="fas fa-chevron-down"></i></button><div class="dcnt"><div class="dcnti">Dispatched within 36 hours. Free shipping on all prepaid orders.<br>36-Hour Free Size Exchange &amp; Defect Replacement / Easy Store Credit. <a href="/p/returns" style="text-decoration:underline">Full policy</a></div></div></div>
 </div></div></div></div>
 
 <section class="relsec"><div class="shdr"><p class="sover">You May Also Like</p><h2 class="stitle">Complete the Look</h2></div>
@@ -419,7 +422,7 @@ ${related.map(p => { const d = p.comparePrice ? Math.round((1 - p.price / p.comp
         const universal = [
           { q: `Is the ${product.name} true to size?`, a: `Yes. The oversized silhouette (dropped shoulders, wider body, longer length) is built into the pattern. Take your usual regular-fit size in ${(product.sizes || []).join(', ')}. Size up for an extreme drop; size down for a fitted look.` },
           { q: `Does Intru ship the ${product.name} across India (Mumbai, Bangalore, Delhi, Hyderabad)?`, a: `Yes — Intru ships to every serviceable Indian PIN code including all metros. Metro deliveries typically arrive in 3-5 business days. Free shipping on all prepaid orders; COD ₹99. Dispatch within 36 working hours.` },
-          { q: `What if the ${product.name} arrives damaged or doesn't fit?`, a: `Email shop@intru.in within 36 hours of delivery with your order number and photos. Approved claims (defects, transit damage, wrong item, size exchange) are settled as Store Credit at 1:1 with INR — never expires. Full policy: <a href="/p/returns" style="text-decoration:underline">Returns, Exchanges & Refunds</a>.` },
+          { q: `What if the ${product.name} arrives damaged or doesn't fit?`, a: `Email shop@intru.in within 36 hours of delivery with your order number and photos. We offer a 36-Hour Free Size Exchange & Defect Replacement, or Easy Store Credit at 1:1 with INR that never expires. Full policy: <a href="/p/returns" style="text-decoration:underline">Returns, Exchanges & Refunds</a>.` },
         ];
         return [...specific, ...universal].map(({ q, a }) => `
         <details class="pfaq-item" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question" style="border:1.5px solid #e5e5e5;border-radius:8px;overflow:hidden;background:#fff">

@@ -283,7 +283,8 @@ ${featuredOne && featuredOne.images && featuredOne.images[0] ? `<link rel="prelo
         MINIMALISM<br>
         <span class="w-300">EVERY DAY</span>
       </h1>
-      <div style="margin-top:60px" class="anim d2">
+      <p class="anim d2" style="font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.7);margin-top:16px">Oversized Streetwear T-Shirts &amp; Heavyweight Drops &bull; India</p>
+      <div style="margin-top:48px" class="anim d2">
         <a href="#products" style="font-size:12px;font-weight:900;letter-spacing:4px;text-transform:uppercase;color:var(--wh);border-bottom:1.5px solid var(--wh);padding-bottom:10px">Explore Drop ↓</a>
       </div>
     </div>
@@ -380,8 +381,8 @@ ${featuredOne && featuredOne.images && featuredOne.images[0] ? `<link rel="prelo
 <section class="story">
   <h2 class="story-h anim">UNCOMPROMISING<br>STREETWEAR.</h2>
   <div class="story-cnt anim d1">
-    <p>We destroy the screens after every drop. At <strong>Intru</strong>, mass production is the enemy. We build the best oversized collection for the individual who demands exclusivity over conformity.</p>
-    <p style="margin-top:32px">Heavyweight materials. Industrial finishes. Brutalist design. This is not just clothing; it\\'s a collection of artifacts.</p>
+    <p>We craft limited-batch releases. At <strong>Intru</strong>, mass production is the enemy. We engineer the best oversized silhouettes in India for individuals who demand exclusivity over conformity.</p>
+    <p style="margin-top:20px">Heavyweight 240 GSM combed cotton. Garment-dyed textures. Intentional cuts. Learn how our heavyweight streetwear cuts compare in our <a href="/blog/best-oversized-tshirt-brands-india-2026" style="text-decoration:underline;color:var(--bk);font-weight:700">Guide to the Best Oversized T-Shirt Brands in India (2026)</a> or explore our evergreen <a href="/collections?cat=T-Shirts" style="text-decoration:underline;color:var(--bk);font-weight:700">Oversized T-Shirts Collection</a>.</p>
   </div>
 </section>
 
@@ -439,8 +440,8 @@ function subscribeEmail(form){
 `;
 
   return shell(
-    'Intru | Minimalist Streetwear India — Oversized Heavyweight Tees, Made in India',
-    'Tired of everyone wearing the same thing? Intru is minimalist streetwear for individuals — clean, intentional, oversized 220–260 GSM heavyweight tees, crop tops and shirts. Limited drops, never restocked. Free shipping on prepaid orders across India (Hyderabad, Mumbai, Bangalore, Delhi, Pune, Chennai, Kolkata & more). COD available. Clearance: any 3 for Rs. 1499.',
+    'Intru | Oversized Streetwear T-Shirts India',
+    'Tired of everyone wearing the same thing? Intru is minimalist streetwear for individuals — clean, intentional, oversized 220–260 GSM heavyweight tees, crop tops and shirts. 36-hour free size exchange. Free shipping on prepaid orders pan-India.',
     body,
     { url: 'https://intru.in', schema, razorpayKeyId: opts.razorpayKeyId, googleClientId: opts.googleClientId, products, legalPages, useMagicCheckout: !!opts.useMagicCheckout, maintenanceConfig: opts.maintenanceConfig, storeSettings: opts.storeSettings }
   );
