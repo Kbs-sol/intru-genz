@@ -311,6 +311,11 @@ ${product.images.map((_, i) => '<button class="gdot ' + (i === 0 ? 'act' : '') +
 ${product.comparePrice ? '<span class="pcmp">' + STORE_CONFIG.currencySymbol + product.comparePrice.toLocaleString('en-IN') + '</span>' : ''}
 ${disc > 0 ? '<span class="psave">' + disc + '% OFF</span>' : ''}
 </div>
+<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+  <span style="font-size:10px;font-weight:900;letter-spacing:1px;text-transform:uppercase;color:#426D41;background:#f0fdf4;padding:4px 10px;border-radius:4px;border:1px solid #bbf7d0">🧵 240 GSM Combed Cotton</span>
+  <span style="font-size:10px;font-weight:900;letter-spacing:1px;text-transform:uppercase;color:#78350f;background:#fef3c7;padding:4px 10px;border-radius:4px;border:1px solid #fde68a">⚡ Strictly 50 Pieces Pressed</span>
+  <span style="font-size:10px;font-weight:900;letter-spacing:1px;text-transform:uppercase;color:#1e293b;background:#f8fafc;padding:4px 10px;border-radius:4px;border:1px solid #e2e8f0">✨ Everyday Minimalism</span>
+</div>
 <div class="dispatch-badge"><i class="fas fa-rocket"></i> Fast Dispatch: Orders processed within 36 hours</div>
 ${stockHtml}
 <p class="pdesc">${product.description}</p>

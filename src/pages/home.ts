@@ -218,6 +218,11 @@ html, body { overflow-x: hidden !important; width: 100% !important; max-width: 1
 .pcprice{font-size:13px;font-weight:900}
 .pccomp{font-size:11px;color:var(--g400);text-decoration:line-through}
 
+/* PURE TYPOGRAPHY & FABRIC BADGES [AG] */
+.badge-row{display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+.badge-gsm{font-size:9px;font-weight:900;letter-spacing:1px;text-transform:uppercase;color:#426D41;background:#f0fdf4;padding:2px 6px;border-radius:2px;border:1px solid #bbf7d0}
+.badge-limited{font-size:9px;font-weight:900;letter-spacing:1px;text-transform:uppercase;color:#78350f;background:#fef3c7;padding:2px 6px;border-radius:2px;border:1px solid #fde68a}
+.pc-sub{font-size:9px;font-weight:700;color:var(--g400);letter-spacing:1px;text-transform:uppercase;margin:2px 0 6px}
 /* PURE TYPOGRAPHY BADGES [AG] */
 .t-badge{display:inline-block;padding:2px 0 6px;font-size:10px;font-weight:900;letter-spacing:2px;text-transform:uppercase;border-bottom:1.5px solid var(--bk);margin-bottom:12px}
 .t-badge.red{color:var(--red);border-color:var(--red)}
@@ -366,8 +371,12 @@ ${featuredOne && featuredOne.images && featuredOne.images[0] ? `<link rel="prelo
         </div>
       </a>
       <div class="pcinfo">
-        ${totalStock <= 5 ? `<span class="t-badge red">Only ${totalStock} Left</span>` : `<span class="t-badge">Limited Batch</span>`}
+        <div class="badge-row">
+          <span class="badge-gsm">240 GSM</span>
+          <span class="badge-limited">⚡ 50 PRESSED</span>
+        </div>
         <a href="/product/${p.slug}" style="text-decoration:none;color:inherit"><h3 class="pcname">${p.name}</h3></a>
+        <div class="pc-sub">Everyday Minimalism</div>
         <div class="pcp-row">
           <div class="pcprice">${STORE_CONFIG.currencySymbol}${p.price.toLocaleString('en-IN')}</div>
           ${p.comparePrice ? `<div class="pccomp">${STORE_CONFIG.currencySymbol}${p.comparePrice.toLocaleString('en-IN')}</div>` : ''}
