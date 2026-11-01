@@ -373,7 +373,7 @@ ${featuredOne && featuredOne.images && featuredOne.images[0] ? `<link rel="prelo
       <div class="pcinfo">
         <div class="badge-row">
           <span class="badge-gsm">240 GSM</span>
-          <span class="badge-limited">⚡ LIMITED STOCK</span>
+          <span class="badge-limited">LIMITED DROP</span>
         </div>
         <a href="/product/${p.slug}" style="text-decoration:none;color:inherit"><h3 class="pcname">${p.name}</h3></a>
         <div class="pc-sub">Everyday Minimalism</div>
