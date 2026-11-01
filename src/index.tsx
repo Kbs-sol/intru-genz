@@ -819,6 +819,17 @@ app.get('/api/admin/ai-crawlers', async (c: Context<{ Bindings: Bindings }>) => 
   }
 });
 
+// ============ STATIC LOGO ASSETS ============
+// In Cloudflare Pages production, public/ files are served by Cloudflare CDN automatically.
+// In local Hono dev (vite-dev-server with cloudflare adapter), we delegate to the ASSETS binding.
+const _logoAssets = ['/logo-transparent.png','/logo-white.png','/logo-512.png','/logo-192.png','/logo.png'];
+_logoAssets.forEach(path => {
+  app.get(path, async (c) => {
+    if ((c.env as any)?.ASSETS) return (c.env as any).ASSETS.fetch(c.req.raw);
+    return c.notFound();
+  });
+});
+
 // ============ SEO INFRASTRUCTURE ============
 
 app.get('/robots.txt', (c: Context<{ Bindings: Bindings }>) => {
@@ -1240,8 +1251,8 @@ app.get('/manifest.json', (c: Context<{ Bindings: Bindings }>) => {
     dir: 'ltr',
     categories: ['shopping', 'lifestyle', 'fashion'],
     icons: [
-      { src: '/logo-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
-      { src: '/logo-192.png', sizes: '192x192', type: 'image/png' },
+      { src: '/static/logo-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+      { src: '/static/logo-192.png', sizes: '192x192', type: 'image/png' },
       { src: '/favicon.png', sizes: '64x64', type: 'image/png' },
     ],
     screenshots: [

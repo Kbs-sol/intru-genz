@@ -177,7 +177,7 @@ ${isProduct && opt.productPrice ? `<meta property="product:price:amount" content
       "logo": {
         "@type": "ImageObject",
         "@id": "https://intru.in/#logo",
-        "url": "https://intru.in/logo-512.png",
+        "url": "https://intru.in/static/logo-512.png",
         "width": 512,
         "height": 512,
         "caption": "Intru"
@@ -224,7 +224,7 @@ ${isProduct && opt.productPrice ? `<meta property="product:price:amount" content
       "@type": "Brand",
       "@id": "https://intru.in/#brand",
       "name": "Intru",
-      "logo": "https://intru.in/logo-512.png",
+      "logo": "https://intru.in/static/logo-512.png",
       "slogan": "Not for everyone. Made to feel like you.",
       "description": "Minimalist Indian streetwear brand. Limited-edition oversized tees, never restocked.",
       "url": "https://intru.in"
@@ -628,7 +628,7 @@ ${aiAnnounceHtml}
   <a href="/style-guide" class="nbtn" style="display:none" aria-label="Style Guide">Style Guide</a>
   <button onclick="toggleAIChat()" class="nbtn nls" style="color:var(--bk);font-weight:700;background:none;border:none;cursor:pointer;font-family:inherit;font-size:inherit;padding:inherit" aria-label="Open AI Stylist"><i class="fas fa-magic-wand-sparkles" style="margin-right:4px"></i>AI Stylist</button>
 </div>
-<a href="/" class="logo" aria-label="intru.in Homepage"><img src="/logo-transparent.png" alt="Intru" width="108" height="36" style="height:32px;width:auto;display:block;object-fit:contain" fetchpriority="high"></a>
+<a href="/" class="logo" aria-label="intru.in Homepage"><img src="/static/logo-transparent.png" alt="Intru" width="108" height="36" style="height:32px;width:auto;display:block;object-fit:contain" fetchpriority="high"></a>
 <div class="nactions">
   <button class="nbtn" onclick="openIdentifyOrOrders()" id="navAccountBtn">Login</button>
   <button class="ncart" onclick="toggleCart()" aria-label="Cart Bag"><i class="fas fa-shopping-bag"></i><span class="cbadge" id="cb">0</span></button>
@@ -907,7 +907,7 @@ ${aiAnnounceHtml}
 <main style="padding-top:0" id="mainContent">${body}</main>
 <footer class="ftr" id="contact" itemscope itemtype="https://schema.org/WholesaleStore"><div class="ftri">
 <div class="ftrb">
-  <a href="/" style="display:inline-block;margin-bottom:14px" aria-label="Intru Home"><img src="/logo-white.png" alt="Intru" width="120" height="40" style="height:36px;width:auto;display:block;object-fit:contain" loading="lazy"></a>
+  <a href="/" style="display:inline-block;margin-bottom:14px" aria-label="Intru Home"><img src="/static/logo-white.png" alt="Intru" width="120" height="40" style="height:36px;width:auto;display:block;object-fit:contain" loading="lazy"></a>
   <h3 itemprop="name" style="display:none">INTRU.IN</h3>
   <p itemprop="description">${STORE_CONFIG.description}</p>
   <p style="margin-top:20px;font-size:12px;color:#d4d4d4;line-height:1.7">
