@@ -1240,8 +1240,9 @@ app.get('/manifest.json', (c: Context<{ Bindings: Bindings }>) => {
     dir: 'ltr',
     categories: ['shopping', 'lifestyle', 'fashion'],
     icons: [
-      { src: '/favicon.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
-      { src: '/favicon.png', sizes: '192x192', type: 'image/png' },
+      { src: '/logo-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+      { src: '/logo-192.png', sizes: '192x192', type: 'image/png' },
+      { src: '/favicon.png', sizes: '64x64', type: 'image/png' },
     ],
     screenshots: [
       { src: 'https://intru.in/og-default.jpg', sizes: '1200x630', type: 'image/jpeg', label: 'Intru Homepage' }
