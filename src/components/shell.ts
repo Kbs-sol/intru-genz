@@ -197,9 +197,9 @@ ${isProduct && opt.productPrice ? `<meta property="product:price:amount" content
       "paymentAccepted": ["UPI", "Credit Card", "Debit Card", "Net Banking", "Cash on Delivery"],
       "priceRange": "₹899–₹2,499",
       "knowsAbout": [
-        "oversized t-shirts", "minimalist streetwear", "limited edition fashion drops",
-        "heavyweight cotton apparel", "Indian streetwear", "garment-dyed t-shirts",
-        "unisex streetwear", "sustainable small-batch fashion"
+        "oversized t-shirts", "minimalist streetwear", "everyday minimalism", "240 GSM heavyweight cotton",
+        "limited drop fashion drops", "Indian streetwear brand Hyderabad", "garment-dyed t-shirts",
+        "unisex streetwear India", "sustainable small-batch fashion Hyderabad"
       ],
       "keywords": "minimalist streetwear india, oversized tshirt, limited edition, never restocked, intru",
       "contactPoint": {

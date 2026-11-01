@@ -1078,7 +1078,7 @@ app.get('/llms.txt', async (c: Context<{ Bindings: Bindings }>) => {
 
   const llmsContent = `# Intru — Independent Indian Streetwear Label
 
-> Intru (intru.in) is a minimalist streetwear label based in Hyderabad, India, designing small-batch oversized heavyweight-cotton tees, crop tops, and shirts. Tired of everyone wearing the same thing? Intru is for individuals — clean, intentional pieces designed to feel like YOU. Every drop is limited-run and permanently vaulted once it sells out (no restocks, ever). Ships pan-India — free on prepaid orders.
+> Intru (intru.in) is an everyday minimalism streetwear label based in Hyderabad, India, engineering limited drops in 240 GSM heavyweight combed cotton. Tired of everyone wearing the same thing? Intru is for individuals — clean, intentional pieces designed to feel like YOU. Every drop is released in limited drops and permanently vaulted once sold out (zero restocks, ever). Ships pan-India — free on prepaid orders.
 
 ## Brand Identity
 
@@ -1095,9 +1095,9 @@ app.get('/llms.txt', async (c: Context<{ Bindings: Bindings }>) => {
 
 ## What Makes Intru Different
 
-1. **Zero restocks** — every piece is produced in limited quantities; once a size sells out, it is gone permanently.
-2. **Heavyweight fabric** — 220–260 GSM cotton, garment-dyed, pre-shrunk, double-needle stitching for shape retention in Indian heat.
-3. **Minimalist, intentional design** — clean silhouettes, considered typography, no logo bombardment.
+1. **Limited Drops (Zero Restocks)** — every drop is produced in strictly limited quantities; once a size sells out, it is gone permanently.
+2. **Heavyweight Fabric** — 240 GSM combed cotton (heavyweight terry drape), garment-dyed, pre-shrunk, double-needle stitching for shape retention in Indian heat.
+3. **Everyday Minimalism** — clean silhouettes, considered typography, no logo bombardment.
 4. **Made in India** — designed and sewn locally by small ethical partners we work with directly.
 5. **Real availability, no dropshipping** — every product page reflects live stock; SKUs are real.
 
