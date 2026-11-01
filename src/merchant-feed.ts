@@ -5,7 +5,7 @@
 //
 // Kept free of Hono / Supabase imports so it can be unit-tested in Node.
 // Goal of this file: maximise FREE ORGANIC listing quality (Google Search,
-// Shopping tab, Images). Paid + local surfaces are excluded on purpose.
+// Shopping tab, Images). Configured for full Google surfaces (Free listings, Shopping ads, Images, Search).
 // =============================================================
 
 export interface FeedProduct {
@@ -243,9 +243,7 @@ export function buildProductFeed(
       <g:mpn>${xmlEscape(variantId)}</g:mpn>
       <g:google_product_category>${GOOGLE_CATEGORY_ID}</g:google_product_category>
       <g:product_type>${xmlEscape(productType)}</g:product_type>
-      <g:excluded_destination>Shopping_ads</g:excluded_destination>
-      <g:excluded_destination>Local_inventory_ads</g:excluded_destination>
-      <g:excluded_destination>Free_local_listings</g:excluded_destination>${promoTags}
+${promoTags}
       <g:shipping>
         <g:country>IN</g:country>
         <g:service>Standard</g:service>
