@@ -43,12 +43,12 @@ interface ProductAttrs {
   lead: string;          // first sentence of description (<=150 chars, SEO keywords)
 }
 
-const TEE_LEAD = 'Everyday minimalism oversized tee in durable 240 GSM heavyweight cotton. Limited 50 pieces pressed, never restocked. Dropped shoulders, pre-shrunk, garment-dyed. Made in India by INTRU.';
+const TEE_LEAD = 'Everyday minimalism oversized tee in durable 240 GSM heavyweight cotton. Limited stock, never restocked. Dropped shoulders, pre-shrunk, garment-dyed. Made in India by INTRU.';
 
 export const PRODUCT_ATTRS: Record<string, ProductAttrs> = {
-  p1: { titleName: 'Doodles', typeLabel: 'Heavyweight Oversized T-Shirt', feature: '240 GSM Limited 50 Pieces', color: 'White', gender: 'unisex', material: '100% Combed Cotton', lead: TEE_LEAD },
-  p2: { titleName: 'No Risk No Porsche', typeLabel: 'Heavyweight Oversized T-Shirt', feature: '240 GSM Limited 50 Pieces', color: 'Black', gender: 'unisex', material: '100% Combed Cotton', lead: TEE_LEAD },
-  p3: { titleName: 'Orange Puff', typeLabel: 'Heavyweight Oversized T-Shirt', feature: '240 GSM Limited 50 Pieces', color: 'White', gender: 'unisex', material: '100% Combed Cotton', lead: TEE_LEAD },
+  p1: { titleName: 'Doodles', typeLabel: 'Heavyweight Oversized T-Shirt', feature: '240 GSM Limited Stock', color: 'White', gender: 'unisex', material: '100% Combed Cotton', lead: TEE_LEAD },
+  p2: { titleName: 'No Risk No Porsche', typeLabel: 'Heavyweight Oversized T-Shirt', feature: '240 GSM Limited Stock', color: 'Black', gender: 'unisex', material: '100% Combed Cotton', lead: TEE_LEAD },
+  p3: { titleName: 'Orange Puff', typeLabel: 'Heavyweight Oversized T-Shirt', feature: '240 GSM Limited Stock', color: 'White', gender: 'unisex', material: '100% Combed Cotton', lead: TEE_LEAD },
   p4: { titleName: 'Romanticise', typeLabel: 'Oversized Crop Top', feature: 'Soft Cotton', color: 'White', gender: 'female', material: '100% Combed Cotton',
         lead: 'Minimalist cropped tee in durable, soft heavyweight cotton. Clean cut, relaxed oversized fit, pre-shrunk. Made in India by INTRU.' },
   p5: { titleName: 'Stripe 18', typeLabel: 'Oversized Striped Shirt', feature: 'Relaxed Fit', color: 'Light Blue/White', gender: 'unisex', material: 'Cotton', pattern: 'Striped',

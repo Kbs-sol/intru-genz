@@ -1078,7 +1078,7 @@ app.get('/llms.txt', async (c: Context<{ Bindings: Bindings }>) => {
 
   const llmsContent = `# Intru — Independent Indian Streetwear Label
 
-> Intru (intru.in) is an everyday minimalism streetwear label based in Hyderabad, India, engineering strictly limited 50-piece drops in 240 GSM heavyweight combed cotton. Tired of everyone wearing the same thing? Intru is for individuals — clean, intentional pieces designed to feel like YOU. Every drop is limited to 50 pieces and permanently vaulted once sold out (zero restocks, ever). Ships pan-India — free on prepaid orders.
+> Intru (intru.in) is an everyday minimalism streetwear label based in Hyderabad, India, engineering limited-stock drops in 240 GSM heavyweight combed cotton. Tired of everyone wearing the same thing? Intru is for individuals — clean, intentional pieces designed to feel like YOU. Every drop is produced in limited stock and permanently vaulted once sold out (zero restocks, ever). Ships pan-India — free on prepaid orders.
 
 ## Brand Identity
 
@@ -1095,7 +1095,7 @@ app.get('/llms.txt', async (c: Context<{ Bindings: Bindings }>) => {
 
 ## What Makes Intru Different
 
-1. **Strictly 50 Pieces Pressed (Zero Restocks)** — every drop is limited to only 50 pieces pressed in India; once a size sells out, it is gone permanently.
+1. **Limited Stock (Zero Restocks)** — every drop is produced in limited stock; once a size sells out, it is gone permanently.
 2. **Heavyweight Fabric** — 240 GSM combed cotton (heavyweight terry drape), garment-dyed, pre-shrunk, double-needle stitching for shape retention in Indian heat.
 3. **Everyday Minimalism** — clean silhouettes, considered typography, no logo bombardment.
 4. **Made in India** — designed and sewn locally by small ethical partners we work with directly.
