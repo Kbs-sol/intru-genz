@@ -592,6 +592,28 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 @media(max-width:768px){.mnt-banner{font-size:9px;padding:12px 40px 12px 16px;text-align:left;justify-content:flex-start}}
 @media(max-width:768px){.nlinks .nl:not(.nls){display:none}.ftri{grid-template-columns:1fr 1fr;gap:32px}.ftrbt{flex-direction:column;gap:16px;text-align:center}}
 @media(max-width:480px){.ftri{grid-template-columns:1fr}}
+
+/* Offers pill and tray styles */
+.offers-pill{position:fixed;left:16px;bottom:16px;z-index:70;background:linear-gradient(135deg,#eab308,#f59e0b);color:#0a0a0a;border:none;border-radius:100px;padding:11px 18px;font-weight:900;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;box-shadow:0 6px 20px rgba(234,179,8,0.45),0 2px 6px rgba(0,0,0,0.15);display:none;align-items:center;gap:8px;transition:transform .18s var(--eo),box-shadow .18s var(--eo);font-family:var(--sans)}
+.offers-pill.show{display:inline-flex;animation:offersPillIn .5s cubic-bezier(0.34,1.56,0.64,1) both}
+.offers-pill:hover{transform:translateY(-2px) scale(1.03);box-shadow:0 10px 28px rgba(234,179,8,0.55),0 4px 10px rgba(0,0,0,0.2)}
+.offers-pill .op-dot{width:7px;height:7px;background:#dc2626;border-radius:50%;box-shadow:0 0 0 0 rgba(220,38,38,.6);animation:cpnPulse 1.8s infinite}
+.offers-pill-x{background:rgba(10,10,10,0.12);border:none;border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;color:#0a0a0a;font-size:10px;cursor:pointer;margin-left:2px;padding:0}
+.offers-pill-x:hover{background:rgba(10,10,10,0.25)}
+@keyframes offersPillIn{0%{opacity:0;transform:translateY(60px) scale(0.6)}100%{opacity:1;transform:translateY(0) scale(1)}}
+.offers-tray{position:fixed;left:16px;bottom:68px;z-index:69;background:#fff;border:2px solid #0a0a0a;border-radius:16px;padding:16px;max-width:300px;width:calc(100vw - 32px);box-shadow:0 20px 50px rgba(0,0,0,0.25);display:none;flex-direction:column;gap:10px}
+.offers-tray.open{display:flex;animation:offersPillIn .32s cubic-bezier(0.34,1.56,0.64,1) both}
+.offers-tray-h{display:flex;justify-content:space-between;align-items:center;padding-bottom:10px;border-bottom:1px solid #e5e5e5}
+.offers-tray-h strong{font-family:var(--head);font-size:14px;letter-spacing:0.5px;text-transform:uppercase}
+.offers-tray-h button{background:none;border:none;cursor:pointer;color:#999;font-size:16px;padding:4px}
+.offers-tray-list{display:flex;flex-direction:column;gap:8px;max-height:300px;overflow-y:auto}
+.offers-tray-item{display:flex;flex-direction:column;gap:4px;padding:12px;background:linear-gradient(135deg,#fef3c7,#fde68a);border:1.5px dashed #eab308;border-radius:10px;cursor:pointer;transition:transform .15s}
+.offers-tray-item:hover{transform:translateY(-1px);background:linear-gradient(135deg,#fde68a,#fcd34d)}
+.offers-tray-item .ot-code{font-family:monospace;font-weight:900;font-size:14px;letter-spacing:2px;color:#0a0a0a}
+.offers-tray-item .ot-desc{font-size:11px;color:#78350f;font-weight:600;line-height:1.4}
+.offers-tray-item .ot-copy{font-size:9px;font-weight:800;letter-spacing:1px;color:#eab308;text-transform:uppercase;margin-top:4px}
+.offers-tray-empty{text-align:center;padding:20px;color:#999;font-size:12px}
+@media(max-width:640px){.offers-pill{padding:10px 14px;font-size:10px}.offers-tray{max-width:calc(100vw - 32px)}}
 </style>
 </head>
 <body class="${opt?.cls || ''}">
