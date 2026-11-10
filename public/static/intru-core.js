@@ -24,7 +24,9 @@ var CLARITY_EVENT_ALIAS={
   'purchase':'Purchase',
   'login':'Login',
   'contact':'Contact us',
-  'contact_us':'Contact us'
+  'contact_us':'Contact us',
+  'payment_failed':'Payment_Failed',
+  'checkout_dismissed':'Checkout_Dismissed'
 };
 var META_EVENT_ALIAS={
   'page_view':'PageView',
