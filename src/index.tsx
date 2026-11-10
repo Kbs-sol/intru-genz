@@ -25,7 +25,7 @@ import { maintenancePage } from './pages/maintenance'
 import { faqPage } from './pages/faq'
 import { blogIndexPage, blogPostPage } from './pages/blog'
 import { shell } from './components/shell'
-import { buildProductFeed, buildPromotionsFeed, bundlePromo, type FeedPromo } from './merchant-feed'
+import { buildProductFeed, buildPromotionsFeed, bundlePromo, xmlEscape, type FeedPromo } from './merchant-feed'
 import { runDailySalesAgent, computeSalesMetrics } from './ai-sales-agent'
 import { runGrowthLoop } from './ai-loop'
 
@@ -942,41 +942,41 @@ app.get('/sitemap.xml', async (c: Context<{ Bindings: Bindings }>) => {
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
         xmlns:xhtml="http://www.w3.org/1999/xhtml">
   ${staticPages.map(p => `<url>
-    <loc>https://intru.in${p.loc}</loc>
+    <loc>${xmlEscape("https://intru.in" + p.loc)}</loc>
     <lastmod>${now}</lastmod>
     <changefreq>${p.changefreq}</changefreq>
     <priority>${p.priority}</priority>
   </url>`).join('\n  ')}
   ${opts.products.map(p => `<url>
-    <loc>https://intru.in/product/${p.slug}</loc>
+    <loc>https://intru.in/product/${xmlEscape(p.slug)}</loc>
     <lastmod>${(p.updatedAt || now).split('T')[0]}</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.95</priority>
     ${p.images && p.images[0] ? `<image:image>
-      <image:loc>${p.images[0]}</image:loc>
-      <image:title>${p.name} | Intru</image:title>
-      <image:caption>${p.description ? p.description.substring(0, 200) : p.name + ' — exclusive limited streetwear drop by intru.in'}</image:caption>
+      <image:loc>${xmlEscape(p.images[0])}</image:loc>
+      <image:title>${xmlEscape(p.name)} | Intru</image:title>
+      <image:caption>${xmlEscape(p.description ? p.description.substring(0, 200) : p.name + " — exclusive limited streetwear drop by intru.in")}</image:caption>
     </image:image>` : ''}
     ${p.images && p.images[1] ? `<image:image>
-      <image:loc>${p.images[1]}</image:loc>
-      <image:title>${p.name} — View 2 | Intru</image:title>
+      <image:loc>${xmlEscape(p.images[1])}</image:loc>
+      <image:title>${xmlEscape(p.name)} — View 2 | Intru</image:title>
     </image:image>` : ''}
   </url>`).join('\n  ')}
   ${opts.legalPages.map(p => `<url>
-    <loc>https://intru.in/p/${p.slug}</loc>
+    <loc>https://intru.in/p/${xmlEscape(p.slug)}</loc>
     <lastmod>${(p.updatedAt || now).split('T')[0]}</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
   </url>`).join('\n  ')}
   ${((opts.blogPosts && opts.blogPosts.length ? opts.blogPosts : SEED_BLOG_POSTS).filter((p: BlogPost) => p.isPublished !== false)).map((p: BlogPost) => `<url>
-    <loc>https://intru.in/blog/${p.slug}</loc>
+    <loc>https://intru.in/blog/${xmlEscape(p.slug)}</loc>
     <lastmod>${p.updatedISO || p.publishedISO}</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.75</priority>
     <image:image>
-      <image:loc>${p.cover}</image:loc>
-      <image:title>${p.title} | Intru Journal</image:title>
-      <image:caption>${p.excerpt.substring(0, 200)}</image:caption>
+      <image:loc>${xmlEscape(p.cover)}</image:loc>
+      <image:title>${xmlEscape(p.title)} | Intru Journal</image:title>
+      <image:caption>${xmlEscape(p.excerpt ? p.excerpt.substring(0, 200) : "")}</image:caption>
     </image:image>
   </url>`).join('\n  ')}
 </urlset>`;
@@ -995,8 +995,8 @@ app.get('/sitemap-images.xml', async (c: Context<{ Bindings: Bindings }>) => {
   ${opts.products.map(p => `<url>
     <loc>https://intru.in/product/${p.slug}</loc>
     ${p.images.map((img: string, idx: number) => `<image:image>
-      <image:loc>${img}</image:loc>
-      <image:title>${p.name} — View ${idx + 1} | Intru Streetwear India</image:title>
+      <image:loc>${xmlEscape(img)}</image:loc>
+      <image:title>${xmlEscape(p.name)} — View ${idx + 1} | Intru Streetwear India</image:title>
       <image:caption>Limited-edition ${p.name} by intru.in — minimalist heavyweight streetwear for individuals, India</image:caption>
       <image:license>https://intru.in/p/terms</image:license>
     </image:image>`).join('\n    ')}
