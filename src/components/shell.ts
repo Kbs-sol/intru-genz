@@ -2084,7 +2084,11 @@ function doPrepaidCheckout(){
     var options={key:S.rk,order_id:data.razorpayOrderId,name:'intru.in',
       prefill:{email:identifiedEmail,contact:shipPhone},
       theme:{color:'#0a0a0a',backdrop_color:'rgba(0,0,0,0.6)'},
-      modal:{ondismiss:function(){resetBtn();toast('Payment cancelled','err')}},
+      modal:{ondismiss:function(){
+        if(window.track) window.track('checkout_dismissed', { method: 'prepaid' });
+        resetBtn();
+        toast('Payment cancelled','err');
+      }},
       handler:function(response){
         var btn=document.getElementById('checkoutBtn');if(btn)btn.textContent='VERIFYING...';
         fetch('/api/payment/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
@@ -2097,7 +2101,20 @@ function doPrepaidCheckout(){
     };
     ensureRazorpay().then(function(){
       var rzp=new Razorpay(options);
-      rzp.on('payment.failed',function(r){toast('Payment failed: '+(r.error&&r.error.description||''),'err');resetBtn()});
+      rzp.on('payment.failed',function(r){
+        var err = (r && r.error) || {};
+        if(window.track) {
+          window.track('payment_failed', {
+            error_code: err.code || 'UNKNOWN',
+            error_reason: err.reason || 'UNKNOWN',
+            error_source: err.source || 'UNKNOWN',
+            error_step: err.step || 'UNKNOWN',
+            payment_id: err.metadata && err.metadata.payment_id
+          });
+        }
+        toast('Payment failed: '+(err.description||''),'err');
+        resetBtn();
+      });
       rzp.open();
     }).catch(function(e){toast(e.message||'Payment gateway unavailable','err');resetBtn()});
   }).catch(function(e){toast('Error: '+e.message,'err');resetBtn()});
@@ -2175,7 +2192,11 @@ function doMagicCheckout(){
     var options={key:S.rk,one_click_checkout:true,order_id:data.razorpayOrderId,name:'intru.in',show_coupons:false,
       prefill:{email:identifiedEmail,contact:shipPhone},
       theme:{color:'#0a0a0a',backdrop_color:'rgba(0,0,0,0.6)'},
-      modal:{ondismiss:function(){resetBtn();toast('Checkout cancelled','err')}},
+      modal:{ondismiss:function(){
+        if(window.track) window.track('checkout_dismissed', { method: 'magic' });
+        resetBtn();
+        toast('Checkout cancelled','err');
+      }},
       handler:function(response){
         var btn=document.getElementById('checkoutBtn');if(btn)btn.textContent='VERIFYING...';
         fetch('/api/payment/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
@@ -2188,7 +2209,20 @@ function doMagicCheckout(){
     };
     ensureRazorpay().then(function(){
       var rzp=new Razorpay(options);
-      rzp.on('payment.failed',function(r){toast('Payment failed','err');resetBtn()});
+      rzp.on('payment.failed',function(r){
+        var err = (r && r.error) || {};
+        if(window.track) {
+          window.track('payment_failed', {
+            error_code: err.code || 'UNKNOWN',
+            error_reason: err.reason || 'UNKNOWN',
+            error_source: err.source || 'UNKNOWN',
+            error_step: err.step || 'UNKNOWN',
+            payment_id: err.metadata && err.metadata.payment_id
+          });
+        }
+        toast('Payment failed: '+(err.description||''),'err');
+        resetBtn();
+      });
       rzp.open();
     }).catch(function(e){toast(e.message||'Payment gateway unavailable','err');resetBtn()});
   }).catch(function(e){toast('Error: '+e.message,'err');resetBtn()});
@@ -2437,8 +2471,9 @@ try{ loadSavedAddress(); }catch(e){ console.warn('init loadSavedAddress',e); }
 var _kseq=['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'],_kidx=0;
 document.addEventListener('keydown',function(e){
   if(e.repeat) return;
+  if(!e || !e.key) return;
   if(['Shift','Control','Alt','Meta'].includes(e.key)) return;
-  var key = e.key.toLowerCase();
+  var key = String(e.key).toLowerCase();
   var target = _kseq[_kidx].toLowerCase();
   if(key === target){
     _kidx++;

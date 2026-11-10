@@ -2382,7 +2382,7 @@ app.post('/api/webhooks/razorpay', async (c: Context<{ Bindings: Bindings }>) =>
     if (eventType === 'payment.failed' && sbUrl && sbKey) {
       const payment = event.payload?.payment?.entity;
       if (payment?.order_id) {
-        await supabaseFetch(sbUrl, sbKey, `orders?razorpay_order_id=eq.${payment.order_id}`, {
+        await supabaseFetch(sbUrl, sbKey, `orders?razorpay_order_id=eq.${payment.order_id}&status=eq.pending`, {
           method: 'PATCH', body: JSON.stringify({
             status: 'payment_failed', failure_reason: payment.error_description || 'Payment failed',
           }),
