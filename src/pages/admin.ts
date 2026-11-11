@@ -239,11 +239,17 @@ export function adminPage(opts: {
 
 <!-- Orders Tab -->
 <div class="apan act" id="tord">
-<div style="display:flex;align-items:center;margin-bottom:16px;gap:12px">
+<div style="display:flex;align-items:center;margin-bottom:16px;gap:12px;flex-wrap:wrap">
 <span class="asrc" id="ordSrc"></span>
-<div style="position:relative;flex:1 max-width:400px">
+<div style="position:relative;flex:1;min-width:240px;max-width:380px">
   <input type="text" id="ordSearch" placeholder="Search customer, email, phone, pincode..." class="oselect" style="width:100%;padding:8px 12px 8px 32px;margin:0" onkeyup="grepOrders()">
   <i class="fas fa-search" style="position:absolute;left:10px;top:10px;color:var(--g400);font-size:12px"></i>
+</div>
+<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+  <button id="fltAll" class="asub-btn act" onclick="filterOrderStatus('all', this)" style="padding:6px 12px;font-size:10px">All</button>
+  <button id="fltPaid" class="asub-btn" onclick="filterOrderStatus('paid', this)" style="padding:6px 12px;font-size:10px">Paid / Placed</button>
+  <button id="fltPending" class="asub-btn" onclick="filterOrderStatus('pending', this)" style="padding:6px 12px;font-size:10px">Pending</button>
+  <button id="fltFailed" class="asub-btn" onclick="filterOrderStatus('payment_failed', this)" style="padding:6px 12px;font-size:10px;color:#dc2626;border:1px solid #fecaca">⚠️ Payment Failed <span id="cntFailed" style="background:#dc2626;color:#fff;border-radius:10px;padding:1px 6px;font-size:9px;margin-left:4px">0</span></button>
 </div>
 <button class="arefresh" onclick="loadOrders()"><i class="fas fa-sync-alt" style="margin-right:4px"></i>Refresh</button>
 </div>
@@ -949,14 +955,35 @@ function loadLimits(){
 }
 
 var rawOrders = [];
+var activeStatusFilter = 'all';
+
+function filterOrderStatus(st, btn){
+  activeStatusFilter = st;
+  document.querySelectorAll('#tord .asub-btn').forEach(function(b){ b.classList.remove('act'); });
+  if(btn) btn.classList.add('act');
+  grepOrders();
+}
+
 function grepOrders(){
-  var q = document.getElementById('ordSearch').value.toLowerCase();
+  var q = (document.getElementById('ordSearch') ? document.getElementById('ordSearch').value : '').toLowerCase();
+  
+  // Update failed counter badge
+  var failedCount = rawOrders.filter(function(o){ return (o.status || '').toLowerCase() === 'payment_failed'; }).length;
+  var cntBadge = document.getElementById('cntFailed');
+  if(cntBadge) cntBadge.textContent = failedCount;
+
   renderOrders(rawOrders.filter(function(o){
+    var st = (o.status || 'pending').toLowerCase();
+    if(activeStatusFilter === 'payment_failed' && st !== 'payment_failed') return false;
+    if(activeStatusFilter === 'paid' && st !== 'paid' && st !== 'placed' && st !== 'shipped' && st !== 'delivered') return false;
+    if(activeStatusFilter === 'pending' && st !== 'pending') return false;
+
+    if(!q) return true;
     var addr = o.shipping_address || {};
     var items = (o.items || []).map(function(i){return i.name}).join(' ');
     var pool = [
       o.customer_name, o.customer_email, o.customer_phone, 
-      o.razorpay_order_id, o.id, addr.pincode, addr.city, items
+      o.razorpay_order_id, o.id, addr.pincode, addr.city, items, (o.failure_reason || '')
     ].join(' ').toLowerCase();
     return pool.indexOf(q) !== -1;
   }));
@@ -1043,7 +1070,9 @@ function renderOrders(orders){
         +'<div style="margin-top:10px;font-size:10px;line-height:1.4;color:var(--g500);background:rgba(0,0,0,0.03);padding:6px;border-radius:4px;border:1px solid rgba(0,0,0,0.03)">'+addrStr+'</div></td>'
         +'<td data-label="Items" style="font-size:12px;min-width:180px;color:var(--bk);font-weight:500">'+items+'</td>'
         +'<td data-label="Pricing" style="min-width:110px"><div style="font-weight:800;font-size:15px;color:var(--bk)">Rs.'+(o.total||0).toLocaleString('en-IN')+'</div>'+priceSubline+'</td>'
-        +'<td data-label="Status"> <span class="ostatus ost-'+st+'">'+st+'</span></td>'
+        +'<td data-label="Status"><span class="ostatus ost-'+st+'">'+st+'</span>'
+        +(st==='payment_failed' && o.failure_reason ? '<div style="font-size:10px;color:#dc2626;margin-top:6px;max-width:140px;line-height:1.3;font-weight:600"><i class="fas fa-exclamation-triangle" style="margin-right:3px"></i>'+o.failure_reason+'</div>' : '')
+        +'</td>'
         +'<td data-label="Actions" style="min-width:170px"><select class="oselect" style="width:100%;margin-bottom:8px" onchange="updateOrder(\\x27'+oid+'\\x27,this.value)">'
         +'<option value="">Update Status...</option><option value="paid">Mark Paid</option><option value="processing">Processing</option><option value="shipped">Shipped</option><option value="delivered">Delivered</option><option value="cancelled">Cancelled</option></select>'
         +'<button class="shiprocket-btn" style="width:100%;text-align:center;margin-bottom:6px" onclick="copyShiprocket(\\x27'+custName.replace(/'/g,'')+'\\x27,\\x27'+custPhone+'\\x27,\\x27'+addrStr.replace(/'/g,'')+'\\x27)"><i class="fas fa-copy" style="margin-right:4px"></i>Shiprocket Copy</button>'
