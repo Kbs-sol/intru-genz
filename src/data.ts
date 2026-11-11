@@ -1603,14 +1603,14 @@ export async function sendResendEmail(
 // ============ Email templates ============
 
 // ---- Shared email chrome ----
-const BRAND_TAG = 'Intru — Everyday Minimalism for Individuals';
+const BRAND_TAG = 'Intru — Modern Minimalism Everyday';
 
 export function emailHeader(subTitle?: string, pillText?: string): string {
   return `<div style="background:#0a0a0a;padding:32px 24px;text-align:center">
     <a href="https://intru.in" target="_blank" style="text-decoration:none;display:inline-block">
       <img src="https://intru.in/static/logo-white.png" alt="INTRU" width="112" height="36" style="height:32px;width:auto;border:0;display:block;margin:0 auto;object-fit:contain" />
     </a>
-    <div style="color:#a3a3a3;font-size:10px;letter-spacing:2.5px;text-transform:uppercase;margin-top:10px;font-weight:600">EVERYDAY MINIMALISM</div>
+    <div style="color:#a3a3a3;font-size:10px;letter-spacing:2.5px;text-transform:uppercase;margin-top:10px;font-weight:600">MODERN MINIMALISM EVERYDAY</div>
     ${subTitle ? `<div style="color:#ffffff;font-size:15px;letter-spacing:3px;text-transform:uppercase;margin-top:12px;font-weight:700">${subTitle}</div>` : ''}
     ${pillText ? `<div style="display:inline-block;margin-top:10px;padding:4px 12px;background:rgba(255,255,255,0.1);color:#e5e5e5;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;border-radius:3px;border:1px solid rgba(255,255,255,0.2)">${pillText}</div>` : ''}
   </div>`;
@@ -1629,6 +1629,38 @@ function emailFooter(): string {
 }
 
 /** Rich "Order Confirmed" email — sent for prepaid after payment success */
+/** Sent when a payment fails or gateway is interrupted to help customer retry effortlessly */
+export function emailPaymentFailed(orderId: string, name: string, total: number, reason?: string): string {
+  const shortId = orderId.toUpperCase().slice(-8);
+  const retryUrl = 'https://intru.in/collections';
+  const cleanReason = reason && !reason.toLowerCase().includes('unknown') ? reason : 'Your bank or UPI app declined or timed out during authentication.';
+  
+  return `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #e5e5e5">
+    ${emailHeader('Payment Incomplete', `Order #IN-${shortId}`)}
+    <div style="padding:36px 32px">
+      <p style="font-size:16px;color:#0a0a0a;font-weight:700;margin:0 0 8px">Hey ${name ? name.split(' ')[0] : 'there'},</p>
+      <p style="font-size:14px;color:#525252;line-height:1.7;margin:0 0 20px">We noticed your recent payment for order <strong style="color:#0a0a0a">#IN-${shortId}</strong> couldn't be completed.</p>
+      
+      <div style="background:#fafafa;border-left:3px solid #0a0a0a;padding:16px;margin:20px 0 24px;font-size:13px;color:#333;line-height:1.6">
+        <strong style="color:#0a0a0a">What happened:</strong> ${cleanReason}
+        <div style="margin-top:8px;font-size:12px;color:#737373">If funds were debited from your account, your bank will automatically reverse the transaction within 24–48 hours.</div>
+      </div>
+
+      <div style="margin:28px 0;text-align:center">
+        <a href="${retryUrl}" target="_blank" style="background:#0a0a0a;color:#ffffff;padding:16px 36px;text-decoration:none;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;font-size:12px;border-radius:3px;display:inline-block">COMPLETE YOUR DROP →</a>
+      </div>
+
+      <div style="margin:24px 0;padding:18px;background:#fafafa;border:1px solid #f0f0f0;border-radius:4px">
+        <div style="font-size:11px;font-weight:700;color:#0a0a0a;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Order Value</div>
+        <div style="font-size:14px;color:#171717;font-weight:700">Total: ₹${total.toLocaleString('en-IN')}</div>
+      </div>
+
+      <p style="font-size:12px;color:#737373;line-height:1.6;margin:20px 0 0">Need help completing payment via direct UPI or have questions? Simply reply to this email or DM us on Instagram <a href="https://instagram.com/intru.in" target="_blank" style="color:#0a0a0a;font-weight:600;text-decoration:underline">@intru.in</a> — our team is here to assist.</p>
+    </div>
+    ${emailFooter()}
+  </div>`;
+}
+
 export function emailOrderConfirmed(orderId: string, name: string, items: any[], total: number): string {
   const shortId = orderId.toUpperCase().slice(-8);
   const itemRows = items.map((i: any) =>
