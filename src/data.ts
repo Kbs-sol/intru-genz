@@ -1585,6 +1585,7 @@ export async function sendResendEmail(
       },
       body: JSON.stringify({
         from: from || 'intru.in <noreply@order.intru.in>',
+        reply_to: 'shop@intru.in',
         to: Array.isArray(to) ? to : [to],
         subject,
         html,
