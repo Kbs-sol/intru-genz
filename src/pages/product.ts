@@ -342,6 +342,10 @@ ${product.sizes.map(s => {
   return `<button class="szbtn" data-sz="${s}" onclick="selSz(this)">${s}</button>`;
 }).join('')}
 </div>
+<p style="font-size:11px;color:var(--g500);margin-top:8px;margin-bottom:8px;display:flex;align-items:center;gap:6px">
+  <i class="fas fa-check" style="color:#16a34a;font-size:10px"></i>
+  <span><strong>True oversized fit</strong> — order your usual size for the intended drop.</span>
+</p>
 <!-- Sold-out legend (only shown if any size is actually sold out) -->
 ${sizeStock && Object.values(sizeStock as any).some((v: any) => v === 0) ? `
 <p style="font-size:11px;color:var(--g500);margin-top:-8px;margin-bottom:12px"><i class="fas fa-info-circle" style="margin-right:4px;color:var(--g400)"></i>Strike-through = sold out, never restocked. Red number = units remaining.</p>` : ''}

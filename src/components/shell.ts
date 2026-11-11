@@ -650,7 +650,6 @@ ${aiAnnounceHtml}
   <a href="/about" class="nbtn">Story</a>
   <a href="/blog" class="nbtn">Blog</a>
   <a href="/style-guide" class="nbtn" style="display:none" aria-label="Style Guide">Style Guide</a>
-  <button onclick="toggleAIChat()" class="nbtn nls" style="color:var(--bk);font-weight:700;background:none;border:none;cursor:pointer;font-family:inherit;font-size:inherit;padding:inherit" aria-label="Open AI Stylist"><i class="fas fa-magic-wand-sparkles" style="margin-right:4px"></i>AI Stylist</button>
 </div>
 <a href="/" class="logo" aria-label="intru.in Homepage"><img src="/static/logo-transparent.png" alt="Intru" width="108" height="36" style="height:32px;width:auto;display:block;object-fit:contain" fetchpriority="high"></a>
 <div class="nactions">
@@ -777,7 +776,6 @@ ${aiAnnounceHtml}
     <a href="/blog" class="nbtn" onclick="toggleMobNav()">Blog</a>
     <a href="/faq" class="nbtn" onclick="toggleMobNav()">FAQs</a>
     <a href="/style-guide" class="nbtn" onclick="toggleMobNav()">Style Guide</a>
-    <button class="nbtn" onclick="toggleMobNav();toggleAIChat()" style="color:var(--bk);font-weight:700;background:none;border:none;cursor:pointer;font-family:inherit;font-size:inherit;padding:0">✨ AI Stylist</button>
     <a href="/#contact" class="nbtn" onclick="toggleMobNav()">Contact</a>
     <a href="https://www.instagram.com/intru.in/" target="_blank" rel="noopener noreferrer" class="nbtn" onclick="toggleMobNav()" style="display:inline-flex;align-items:center;gap:8px;color:#dc2743;font-weight:700"><i class="fab fa-instagram"></i> @intru.in</a>
     <button class="nbtn" onclick="toggleMobNav();openIdentifyOrOrders()" style="margin-top:20px;border:none;color:var(--bk);font-weight:700">My Account / Login</button>
@@ -1029,34 +1027,7 @@ ${ss.COOKIE_CONSENT_ENABLED === 'true' ? `
 })();
 </script>` : '<!-- Cookie consent disabled by admin. -->'}
 
-<!-- AI Stylist Widget [AG] -->
-<div class="aiw" id="aiStylist">
-  <div class="ai-cta" id="aiCta">
-    <i class="fas fa-sparkles" style="color:#eab308"></i>
-    <span>Ask my AI Stylist</span>
-  </div>
-  <div class="ai-tooltip">Need help? Ask our AI Stylist!</div>
-  <div class="ai-pop" id="aiPop">
-    <div class="ai-hdr">
-      <div>
-        <h4>AI Stylist</h4>
-        <div style="font-size:9px;opacity:0.7;font-weight:700;letter-spacing:1px">BY INTRU.IN</div>
-      </div>
-      <button onclick="toggleAIChat()" style="background:none;border:none;color:var(--wh);cursor:pointer;font-size:18px" aria-label="Close AI Stylist"><i class="fas fa-times"></i></button>
-    </div>
-    <div class="ai-body" id="aiBody">
-      <div class="ai-msg bot">Hi! I'm your INTRU Stylist. Looking for a fresh drop or need help with sizing?</div>
-    </div>
-    <div class="ai-ftr">
-      <input type="text" class="ai-input" id="aiInput" placeholder="Ask me anything..." onkeydown="if(event.key==='Enter')sendAIMessage()">
-      <button class="ai-send" onclick="sendAIMessage()" aria-label="Send message"><i class="fas fa-paper-plane"></i></button>
-    </div>
-  </div>
-  <div class="ai-btn" onclick="toggleAIChat()" role="button" tabindex="0" aria-label="Open AI Stylist chat">
-    <i class="fas fa-magic-wand-sparkles" aria-hidden="true"></i>
-    <div class="ai-dot"></div>
-  </div>
-</div>
+<!-- AI Stylist Widget disabled to declutter mobile screen and prioritize active promo offers -->
 <div class="tc" id="tc"></div>
 ${gKey !== 'YOUR_GOOGLE_CLIENT_ID' ? '<script src="https://accounts.google.com/gsi/client" async defer></script><div id="g_id_onload" data-client_id="' + gKey + '" data-context="signin" data-ux_mode="popup" data-callback="handleGoogleAuth" data-itp_support="true" data-auto_select="false" data-auto_prompt="false"></div>' : '<!-- Google One-Tap: Set GOOGLE_CLIENT_ID env var to enable -->'}
 <script>
@@ -1865,83 +1836,8 @@ function closeAllDrawers(){
   document.body.style.overflow='';
 }
 
-/* ====== AI STYLIST LOGIC [AG] ====== */
-var aiMsgs=JSON.parse(localStorage.getItem('ai_chat')||'[]');
-/* AI CTA Delay Logic */
-setTimeout(function(){
-  var cta = document.getElementById('aiCta');
-  if(cta && !localStorage.getItem('ai_chat_opened')){
-    cta.classList.add('show');
-    /* Auto-hide CTA if user doesn't interact, but keep it available on hover or re-scroll? Let's just keep it for now. */
-  }
-}, 3000);
-
-function toggleAIChat(){
-  var p=document.getElementById('aiPop');
-  var cta=document.getElementById('aiCta');
-  p.classList.toggle('open');
-  if(cta) cta.classList.remove('show');
-  localStorage.setItem('ai_chat_opened', '1');
-  if(p.classList.contains('open')){
-    /* Close cart/drawers so AI chat is visible */
-    closeAllDrawers();
-    renderAIChat();
-    setTimeout(function(){
-      var inp=document.getElementById('aiInput');
-      if(inp) inp.focus();
-      /* On mobile, scroll widget into view */
-      var w=document.getElementById('aiStylist');
-      if(w && window.innerWidth < 768) w.scrollIntoView({behavior:'smooth',block:'end'});
-    }, 150);
-  }
-}
-
-function formatMsg(txt) {
-  if (!txt) return '';
-  txt = txt.replace(/[*]{2}(.*?)[*]{2}/g, '<b>$1</b>');
-  txt = txt.replace(/_(.*?)_/g, '<i>$1</i>');
-
-  /* Handle %%PRODUCT_CARD:slug%% markers */
-  txt = txt.replace(/%%PRODUCT_CARD:([a-z0-9-]+)%%/g, function(match, slug) {
-    return buildStylistCard(slug);
-  });
-  /* Also handle legacy [PRODUCT:slug] format */
-  txt = txt.replace(/\\[PRODUCT:([a-z0-9-]+)\\]/g, function(match, slug) {
-    return buildStylistCard(slug);
-  });
-  return txt;
-}
-function buildStylistCard(slug) {
-  var p = window.STORE_PRODUCTS ? window.STORE_PRODUCTS.find(function(x) { return x.slug === slug; }) : null;
-  if (!p) return '<a href="/product/' + slug + '" style="color:var(--bk);font-weight:700;text-decoration:underline">View Product: ' + slug + '</a>';
-  return '<a href="/product/' + p.slug + '" style="display:block;background:var(--wh);border:1px solid rgba(0,0,0,.05);border-radius:8px;overflow:hidden;margin-top:8px;text-decoration:none;color:inherit">' +
-         '<div style="aspect-ratio:3/4;overflow:hidden;background:var(--g50)"><img src="' + p.images[0] + '" alt="' + p.name + '" style="width:100%;height:100%;object-fit:cover"></div>' +
-         '<div style="padding:10px">' +
-         '<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">' + p.name + '</div>' +
-         '<div style="font-size:12px;font-weight:700;color:var(--bk)">Rs.' + p.price.toLocaleString('en-IN') + '</div>' +
-         '<div style="width:100%;font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;background:var(--bk);color:var(--wh);padding:8px;text-align:center;border-radius:4px;margin-top:8px">Secure Now</div>' +
-         '</div></a>';
-}
-function renderAIChat(){
-  var b=document.getElementById('aiBody');
-  var h='<div class="ai-msg bot">Hi! I\\'m your INTRU Stylist. Looking for a fresh drop or need help with sizing?</div>';
-  aiMsgs.forEach(function(m){h+='<div class="ai-msg '+(m.role==='user'?'user':'bot')+'">'+formatMsg(m.content)+'</div>'});
-  b.innerHTML=h;b.scrollTop=b.scrollHeight;
-}
-function sendAIMessage(){
-  var inp=document.getElementById('aiInput');var txt=inp.value.trim();if(!txt)return;
-  inp.value='';aiMsgs.push({role:'user',content:txt});renderAIChat();
-  var b=document.getElementById('aiBody');
-  var dotWrap=document.createElement('div');dotWrap.className='ai-msg bot';dotWrap.id='aiTyping';
-  dotWrap.innerHTML='<div class="ai-dots"><div class="ai-dot-sq"></div><div class="ai-dot-sq"></div><div class="ai-dot-sq"></div></div>';
-  b.appendChild(dotWrap);b.scrollTop=b.scrollHeight;
-  fetch('/api/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:aiMsgs})})
-  .then(function(r){return r.json()}).then(function(d){
-    var el=document.getElementById('aiTyping');if(el)el.remove();
-    if(d.content){aiMsgs.push({role:'assistant',content:d.content});localStorage.setItem('ai_chat',JSON.stringify(aiMsgs));renderAIChat()}
-    else{toast(d.error||'Stylist is busy','err')}
-  }).catch(function(){var el=document.getElementById('aiTyping');if(el)el.remove();toast('Network error','err')});
-}
+/* ====== AI STYLIST DISABLED TO PRIORITIZE ACTIVE OFFERS ====== */
+function toggleAIChat(){}
 
 /* ====== QUICK ADD (from home/grid) ====== */
 function quickAddToCart(productId,size){
