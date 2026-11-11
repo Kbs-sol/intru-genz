@@ -801,6 +801,7 @@ ${aiAnnounceHtml}
           <input class="cod-inp" id="cod_fname" type="text" placeholder="First Name *" required autocomplete="given-name">
           <input class="cod-inp" id="cod_lname" type="text" placeholder="Last Name *" required autocomplete="family-name">
         </div>
+        <input class="cod-inp" id="cod_email" type="email" placeholder="Email (for order confirmation) *" required autocomplete="email">
         <div class="cod-row">
           <input class="cod-inp" id="cod_phone" type="tel" inputmode="numeric" placeholder="Phone (10 digits) *" required pattern="[0-9]{10}" autocomplete="tel">
           <input class="cod-inp" id="cod_pincode" type="text" inputmode="numeric" placeholder="Pincode *" required pattern="[0-9]{6}" autocomplete="postal-code">
@@ -1364,14 +1365,8 @@ function saveCart(){localStorage.setItem('ic',JSON.stringify(cart));renderCart()
 function addToCart(productId,size,qty){
   if(!productId||!size){toast('Please select a size','err');return false}
   
-  /* Funnel Analytics: Identify First [AG v15.2] */
-  if(!identifiedEmail){
-    pendingCheckout = false; // Reset to just ATC
-    sessionStorage.setItem('intru_pending_atc', JSON.stringify({pid:productId, sz:size, q:qty||1}));
-    openIdentify();
-    toast('Login to secure this item in your bag','ok');
-    return false;
-  }
+  /* [v26] Email gate removed from ATC — email is captured at checkout instead.
+     Keeps the add-to-bag flow frictionless for Instagram/impulse buyers. */
 
   var p=PM[productId];if(!p){toast('Product not found','err');return false}
   if(p.sz&&p.sz.indexOf(size)===-1){toast('Invalid size selected','err');return false}
@@ -1393,13 +1388,7 @@ function addToCart(productId,size,qty){
 
 function buyNow(productId,size){
   if(!productId||!size){toast('Select size','err');return}
-  if(!identifiedEmail){
-    pendingCheckout = true;
-    sessionStorage.setItem('intru_pending_atc', JSON.stringify({pid:productId, sz:size, q:1}));
-    openIdentify();
-    toast('Secure access to buy now','ok');
-    return;
-  }
+  /* [v26] Email gate removed — goes straight to cart + checkout. Email captured at checkout. */
   var added = addToCart(productId,size,1);
   if(added) {
     setTimeout(function(){ checkout(); }, 200);
@@ -1801,6 +1790,38 @@ function renderCart(){
     +'</div>';
   });
   if(itemsWrap) itemsWrap.innerHTML=html;
+
+  /* ====== BUNDLE UPSELL STRIP [v26] ======
+     Shows a progress nudge below items:
+     1 item  → "Add 2 more → get all 3 for ₹1,499"
+     2 items → "Add 1 more → unlock 3 for ₹1,499 & save ₹500+"
+     3+ items → bundle already applied (handled by renderCartTotals) */
+  var totalQty = cart.reduce(function(a,i){return a+i.q},0);
+  var upsellEl = document.getElementById('cartBundleUpsell');
+  if(!upsellEl){
+    upsellEl = document.createElement('div');
+    upsellEl.id = 'cartBundleUpsell';
+    upsellEl.style.cssText = 'margin:12px 0 4px;padding:12px 14px;background:#fafafa;border:1px solid #e5e5e5;border-radius:8px;font-size:12px;line-height:1.5;';
+    if(itemsWrap) itemsWrap.after(upsellEl);
+  }
+  if(totalQty >= 3){
+    upsellEl.style.display = 'none'; // bundle line in footer handles this
+  } else {
+    var need = 3 - totalQty;
+    var pct = Math.round((totalQty / 3) * 100);
+    upsellEl.style.display = 'block';
+    upsellEl.innerHTML = ''
+      + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px">'
+      +   '<span style="font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.8px">🔥 Bundle Offer</span>'
+      +   '<span style="color:#16a34a;font-weight:700;font-size:11px">ANY 3 FOR ₹1,499</span>'
+      + '</div>'
+      + '<div style="background:#e5e5e5;border-radius:99px;height:4px;margin-bottom:8px;overflow:hidden">'
+      +   '<div style="background:#0a0a0a;height:4px;border-radius:99px;width:'+pct+'%;transition:width .4s"></div>'
+      + '</div>'
+      + '<span style="color:#404040;font-size:12px">Add <strong>' + need + ' more</strong> piece' + (need>1?'s':'') + ' to unlock — <span style="color:#16a34a;font-weight:700">save ₹500+</span></span>'
+      + '<a href="/collections" style="display:block;margin-top:9px;text-align:center;padding:8px;background:#0a0a0a;color:#fff;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;border-radius:6px;text-decoration:none">SHOP MORE →</a>';
+  }
+
   renderCartTotals();
 }
 
@@ -2127,6 +2148,7 @@ function doCodCheckout(){
   var fname=document.getElementById('cod_fname').value.trim();
   var lname=document.getElementById('cod_lname').value.trim();
   var name=fname + (lname ? ' ' + lname : '');
+  var email=identifiedEmail || (document.getElementById('cod_email')||{value:''}).value.trim();
   var phone=document.getElementById('cod_phone').value.trim();
   var pincode=document.getElementById('cod_pincode').value.trim();
   var addr=document.getElementById('cod_addr').value.trim();
@@ -2288,15 +2310,21 @@ function confirmAddress() {
   var fname=document.getElementById('cod_fname').value.trim();
   var lname=document.getElementById('cod_lname').value.trim();
   var name=fname + (lname ? ' ' + lname : '');
+  var email=(document.getElementById('cod_email')||{value:''}).value.trim();
   var phone=document.getElementById('cod_phone').value.trim();
   var pincode=document.getElementById('cod_pincode').value.trim();
   var addr=document.getElementById('cod_addr').value.trim();
   var addr2=document.getElementById('cod_addr2').value.trim();
   var city=document.getElementById('cod_city').value.trim();
   var state=document.getElementById('cod_state').value.trim();
-  if(!fname||!lname||!phone||!pincode||!addr){toast('Fill all required fields (*)','err');return}
+  if(!fname||!lname||!email||!phone||!pincode||!addr){toast('Fill all required fields (*)','err');return}
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){toast('Enter a valid email address','err');return}
   if(!/^[0-9]{10}$/.test(phone)){toast('Valid 10-digit phone required','err');return}
   if(!/^[0-9]{6}$/.test(pincode)){toast('Valid 6-digit pincode required','err');return}
+  /* Capture email — becomes identifiedEmail so order confirmation emails fire */
+  identifiedEmail = email;
+  localStorage.setItem('intru_user_email', email);
+  localStorage.setItem('intru_user_name', name);
 
   var btn = document.getElementById('confirmAddressBtn');
   var origText = btn.innerHTML;
@@ -2318,6 +2346,7 @@ function confirmAddress() {
     localStorage.setItem('intru_fname', fname);
     localStorage.setItem('intru_lname', lname);
     localStorage.setItem('intru_name', name);
+    localStorage.setItem('intru_email', email);
     localStorage.setItem('intru_phone', phone);
     localStorage.setItem('intru_pincode', pincode);
     localStorage.setItem('intru_addr', addr);
@@ -2375,7 +2404,7 @@ function editAddress() {
 function loadSavedAddress(){
   var name = localStorage.getItem('intru_name');
   if(name) {
-    var fields = ['phone','pincode','addr','addr2','city','state'];
+    var fields = ['email','phone','pincode','addr','addr2','city','state'];
     fields.forEach(function(f){
       var val = localStorage.getItem('intru_'+f);
       var el = document.getElementById('cod_'+f);
