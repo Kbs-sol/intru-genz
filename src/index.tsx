@@ -8,7 +8,7 @@ import {
   fetchProducts, fetchProductBySlug, fetchProductById, fetchLegalPages,
   fetchFAQs, fetchBlogPosts,
   sendResendEmail, emailDropSecured, emailCodReceived, emailCodManagerAlert,
-  emailOrderConfirmed, emailCodVerificationRequired,
+  emailOrderConfirmed, emailCodVerificationRequired, emailPaymentFailed,
   checkResendGuard, logResendEmail,
   fetchStoreSetting, fetchAllStoreSettings, uploadToR2, incrementView, fetchAnalytics, fetchProductRatings
 } from './data'
@@ -2382,11 +2382,41 @@ app.post('/api/webhooks/razorpay', async (c: Context<{ Bindings: Bindings }>) =>
     if (eventType === 'payment.failed' && sbUrl && sbKey) {
       const payment = event.payload?.payment?.entity;
       if (payment?.order_id) {
-        await supabaseFetch(sbUrl, sbKey, `orders?razorpay_order_id=eq.${payment.order_id}&status=eq.pending`, {
-          method: 'PATCH', body: JSON.stringify({
-            status: 'payment_failed', failure_reason: payment.error_description || 'Payment failed',
-          }),
-        });
+        // Fetch order details before updating to send recovery email
+        let customerEmail = payment.email || '';
+        let customerName = payment.contact || 'there';
+        let orderTotal = payment.amount ? Math.round(payment.amount / 100) : 0;
+
+        const orderRes = await supabaseFetch(sbUrl, sbKey, `orders?razorpay_order_id=eq.${payment.order_id}&select=customer_email,customer_name,total,status`);
+        if (orderRes.ok) {
+          const orders = await orderRes.json() as any[];
+          if (orders.length > 0 && orders[0].status === 'pending') {
+            if (!customerEmail) customerEmail = orders[0].customer_email || '';
+            if (orders[0].customer_name) customerName = orders[0].customer_name;
+            if (orders[0].total) orderTotal = orders[0].total;
+
+            await supabaseFetch(sbUrl, sbKey, `orders?razorpay_order_id=eq.${payment.order_id}&status=eq.pending`, {
+              method: 'PATCH', body: JSON.stringify({
+                status: 'payment_failed', failure_reason: payment.error_description || 'Payment failed',
+              }),
+            });
+
+            // Send polite recovery email if customer email is available
+            const resendKey = getEnv(c.env, 'RESEND_API_KEY');
+            if (resendKey && customerEmail) {
+              const guard = await checkResendGuard(sbUrl, sbKey, 'payment_failed');
+              if (guard.allowed) {
+                try {
+                  const failureHtml = emailPaymentFailed(payment.order_id, customerName, orderTotal, payment.error_description);
+                  await sendResendEmail(resendKey, customerEmail, "We noticed an issue with your Intru payment", failureHtml);
+                  await logResendEmail(sbUrl, sbKey, customerEmail, 'payment_failed', payment.order_id);
+                } catch (err) {
+                  console.error('Payment failed email recovery error:', err);
+                }
+              }
+            }
+          }
+        }
       }
     }
 
@@ -2711,21 +2741,24 @@ app.post('/api/admin/orders/:id/email', async (c: Context<{ Bindings: Bindings }
   <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#f5f5f5;padding:24px 12px">
     <tr><td align="center">
       <table role="presentation" cellpadding="0" cellspacing="0" width="600" style="max-width:600px;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.06)">
-        <tr><td style="background:#0a0a0a;padding:22px 32px">
-          <div style="font-family:'Archivo Black',Impact,sans-serif;font-size:22px;letter-spacing:3px;color:#fff;text-transform:uppercase">INTRU</div>
-          <div style="font-size:10px;color:#888;letter-spacing:2px;text-transform:uppercase;margin-top:4px">Order #IN-${shortId}</div>
+        <tr><td style="background:#0a0a0a;padding:28px 24px;text-align:center">
+          <a href="https://intru.in" target="_blank" style="text-decoration:none;display:inline-block">
+            <img src="https://intru.in/static/logo-white.png" alt="INTRU" width="112" height="36" style="height:32px;width:auto;border:0;display:block;margin:0 auto;object-fit:contain" />
+          </a>
+          <div style="color:#a3a3a3;font-size:10px;letter-spacing:2.5px;text-transform:uppercase;margin-top:10px;font-weight:600">MODERN MINIMALISM EVERYDAY</div>
+          <div style="display:inline-block;margin-top:10px;padding:4px 12px;background:rgba(255,255,255,0.1);color:#e5e5e5;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;border-radius:3px;border:1px solid rgba(255,255,255,0.2)">Order #IN-${shortId}</div>
         </td></tr>
-        <tr><td style="padding:32px">
-          <div style="font-size:15px;font-weight:700;margin-bottom:14px">${greeting}</div>
-          <div style="font-size:14px;line-height:1.7;color:#222">${bodyHtml}</div>
-          <div style="margin-top:28px;padding-top:20px;border-top:1px solid #eee">
-            <div style="font-size:12px;color:#666;margin-bottom:10px">Questions? Fastest way to reach us:</div>
-            <a href="https://instagram.com/intru.in" style="display:inline-block;background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:700;font-size:12px;letter-spacing:1px;text-transform:uppercase">📩 DM us on Instagram</a>
+        <tr><td style="padding:36px 32px">
+          <div style="font-size:16px;font-weight:700;color:#0a0a0a;margin-bottom:14px">${greeting}</div>
+          <div style="font-size:14px;line-height:1.7;color:#333">${bodyHtml}</div>
+          <div style="margin-top:32px;padding-top:20px;border-top:1px solid #f0f0f0">
+            <div style="font-size:12px;color:#737373;margin-bottom:10px">Need support or sizing advice?</div>
+            <a href="https://instagram.com/intru.in" target="_blank" style="display:inline-block;background:#0a0a0a;color:#ffffff;padding:8px 18px;border-radius:3px;text-decoration:none;font-weight:700;font-size:10px;letter-spacing:1px;text-transform:uppercase">DM @INTRU.IN</a>
           </div>
         </td></tr>
-        <tr><td style="background:#fafafa;padding:16px 32px;text-align:center;font-size:10px;color:#999;line-height:1.6">
-          <div>Intru — minimalist streetwear for individuals</div>
-          <div><a href="https://intru.in" style="color:#999;text-decoration:none">intru.in</a></div>
+        <tr><td style="background:#fafafa;padding:20px 24px;text-align:center;font-size:11px;color:#737373;line-height:1.6;border-top:1px solid #f0f0f0">
+          <div style="color:#525252;font-weight:600;margin-bottom:2px">Intru — Modern Minimalism Everyday</div>
+          <div><a href="https://intru.in" target="_blank" style="color:#737373;text-decoration:none">intru.in</a> · 240+ GSM · Limited Drops · Pan-India Dispatch</div>
           <!-- Grievance officer: <a href="mailto:grievance@intru.in">grievance@intru.in</a> --></td></tr>
       </table>
     </td></tr>
@@ -3891,18 +3924,27 @@ app.post('/api/admin/abandoned/send-single', async (c: Context<{ Bindings: Bindi
     }
 
     const recoveryHtml = `
-      <div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:540px;margin:0 auto;background:#fff;border:1px solid #e5e7eb">
-        <div style="background:#0a0a0a;padding:36px;text-align:center">
-          <h1 style="color:#fff;font-size:20px;margin:0;letter-spacing:4px;text-transform:uppercase">YOUR DROP IS WAITING</h1>
+      <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #e5e5e5">
+        <div style="background:#0a0a0a;padding:32px 24px;text-align:center">
+          <a href="https://intru.in" target="_blank" style="text-decoration:none;display:inline-block">
+            <img src="https://intru.in/static/logo-white.png" alt="INTRU" width="112" height="36" style="height:32px;width:auto;border:0;display:block;margin:0 auto;object-fit:contain" />
+          </a>
+          <div style="color:#a3a3a3;font-size:10px;letter-spacing:2.5px;text-transform:uppercase;margin-top:10px;font-weight:600">MODERN MINIMALISM EVERYDAY</div>
+          <div style="color:#ffffff;font-size:15px;letter-spacing:3px;text-transform:uppercase;margin-top:12px;font-weight:700">Your Drop Is Waiting</div>
         </div>
-        <div style="padding:36px;text-align:center">
-          <p style="font-size:16px;color:#0a0a0a;margin:0 0 16px;font-weight:700">Still thinking?</p>
-          <p style="font-size:14px;color:#525252;line-height:1.7;margin:0 0 32px">You left something in your bag. Our drops are limited — once they're gone, they never restock. Don't miss out.</p>
-          <a href="https://intru.in" style="background:#0a0a0a;color:#fff;padding:18px 40px;text-decoration:none;font-weight:700;letter-spacing:2px;text-transform:uppercase;font-size:13px;border-radius:4px;display:inline-block">SECURE MY DROP →</a>
-          <p style="font-size:11px;color:#9ca3af;margin-top:24px">Use code <strong>BACKFORIT</strong> at checkout for a surprise.</p>
+        <div style="padding:36px 32px;text-align:center">
+          <p style="font-size:16px;color:#0a0a0a;margin:0 0 12px;font-weight:700">Still thinking about it?</p>
+          <p style="font-size:14px;color:#525252;line-height:1.7;margin:0 0 28px">You left a piece in your bag. Intru releases limited batches crafted with 240+ GSM combed cotton — once a drop is claimed, it is never restocked.</p>
+          <div style="margin:28px 0">
+            <a href="https://intru.in" target="_blank" style="background:#0a0a0a;color:#ffffff;padding:16px 36px;text-decoration:none;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;font-size:12px;border-radius:3px;display:inline-block">SECURE MY DROP →</a>
+          </div>
+          <div style="background:#fafafa;border:1px solid #f0f0f0;border-radius:4px;padding:14px;margin-top:20px;font-size:12px;color:#525252">
+            <strong>Free Express Shipping:</strong> Included on all prepaid orders pan-India with 36-hour dispatch.
+          </div>
         </div>
-        <div style="background:#f5f5f5;padding:20px;text-align:center;font-size:11px;color:#9ca3af">
-          intru.in — Limited Drops. No Restocks.
+        <div style="background:#fafafa;padding:20px 24px;text-align:center;font-size:11px;color:#737373;border-top:1px solid #f0f0f0">
+          <div style="color:#525252;font-weight:600;margin-bottom:2px">Intru — Modern Minimalism Everyday</div>
+          <div><a href="https://intru.in" target="_blank" style="color:#737373;text-decoration:none">intru.in</a> · Limited Drops · Zero Restocks</div>
         </div>
       </div>`;
 
@@ -3995,13 +4037,27 @@ app.post('/api/admin/abandoned/trigger', async (c: Context<{ Bindings: Bindings 
 
         if (!alreadySent) {
           const recoveryBody = `
-            <div style="font-family:sans-serif;text-align:center;padding:40px;background:#f9fafb;border-radius:12px">
-              <h1 style="font-size:24px;letter-spacing:1px">STILL THINKING?</h1>
-              <p>You left something in your bag. Our drops are limited and won't restock.</p>
-              <div style="margin:30px 0">
-                <a href="https://intru.in" style="background:#000;color:#fff;padding:16px 32px;text-decoration:none;font-weight:700;letter-spacing:1px;border-radius:6px">SECURE MY DROP</a>
+            <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #e5e5e5">
+              <div style="background:#0a0a0a;padding:32px 24px;text-align:center">
+                <a href="https://intru.in" target="_blank" style="text-decoration:none;display:inline-block">
+                  <img src="https://intru.in/static/logo-white.png" alt="INTRU" width="112" height="36" style="height:32px;width:auto;border:0;display:block;margin:0 auto;object-fit:contain" />
+                </a>
+                <div style="color:#a3a3a3;font-size:10px;letter-spacing:2.5px;text-transform:uppercase;margin-top:10px;font-weight:600">MODERN MINIMALISM EVERYDAY</div>
+                <div style="color:#ffffff;font-size:15px;letter-spacing:3px;text-transform:uppercase;margin-top:12px;font-weight:700">Still Thinking?</div>
               </div>
-              <p style="font-size:12px;color:#999">Use code <strong>BACKFORIT</strong> for a secret surprise at checkout.</p>
+              <div style="padding:36px 32px;text-align:center">
+                <p style="font-size:14px;color:#525252;line-height:1.7;margin:0 0 24px">You left a piece in your bag. Our drops are produced in small, numbered batches and are never restocked once claimed.</p>
+                <div style="margin:28px 0">
+                  <a href="https://intru.in" target="_blank" style="background:#0a0a0a;color:#ffffff;padding:16px 36px;text-decoration:none;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;font-size:12px;border-radius:3px;display:inline-block">SECURE MY DROP →</a>
+                </div>
+                <div style="background:#fafafa;border:1px solid #f0f0f0;border-radius:4px;padding:14px;font-size:12px;color:#525252">
+                  <strong>Free Express Shipping:</strong> On all prepaid orders pan-India. Dispatched within 36 hours.
+                </div>
+              </div>
+              <div style="background:#fafafa;padding:20px 24px;text-align:center;font-size:11px;color:#737373;border-top:1px solid #f0f0f0">
+                <div style="color:#525252;font-weight:600;margin-bottom:2px">Intru — Modern Minimalism Everyday</div>
+                <div><a href="https://intru.in" target="_blank" style="color:#737373;text-decoration:none">intru.in</a> · Limited Drops · Zero Restocks</div>
+              </div>
             </div>
           `;
           await sendResendEmail(resendKey, lead.email, 'Your Intru drop is waiting...', recoveryBody);

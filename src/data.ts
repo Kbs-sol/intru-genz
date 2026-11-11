@@ -1603,40 +1603,82 @@ export async function sendResendEmail(
 // ============ Email templates ============
 
 // ---- Shared email chrome ----
-const BRAND_TAG = 'Intru — minimalist streetwear for individuals';
+const BRAND_TAG = 'Intru — Modern Minimalism Everyday';
+
+export function emailHeader(subTitle?: string, pillText?: string): string {
+  return `<div style="background:#0a0a0a;padding:32px 24px;text-align:center">
+    <a href="https://intru.in" target="_blank" style="text-decoration:none;display:inline-block">
+      <img src="https://intru.in/static/logo-white.png" alt="INTRU" width="112" height="36" style="height:32px;width:auto;border:0;display:block;margin:0 auto;object-fit:contain" />
+    </a>
+    <div style="color:#a3a3a3;font-size:10px;letter-spacing:2.5px;text-transform:uppercase;margin-top:10px;font-weight:600">MODERN MINIMALISM EVERYDAY</div>
+    ${subTitle ? `<div style="color:#ffffff;font-size:15px;letter-spacing:3px;text-transform:uppercase;margin-top:12px;font-weight:700">${subTitle}</div>` : ''}
+    ${pillText ? `<div style="display:inline-block;margin-top:10px;padding:4px 12px;background:rgba(255,255,255,0.1);color:#e5e5e5;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;border-radius:3px;border:1px solid rgba(255,255,255,0.2)">${pillText}</div>` : ''}
+  </div>`;
+}
+
 function emailFooter(): string {
   // Grievance officer email embedded as HTML comment only (compliance), NOT visible.
-  return `<div style="background:#fafafa;padding:20px 24px;text-align:center;font-size:11px;color:#9ca3af;line-height:1.6">
-    <div style="font-size:11px;color:#6b7280;margin-bottom:6px">Need help fastest? DM us on Instagram — that's our #1 support channel.</div>
-    <a href="https://instagram.com/intru.in" style="display:inline-block;background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);color:#fff;padding:9px 18px;border-radius:6px;text-decoration:none;font-weight:700;font-size:11px;letter-spacing:1px;text-transform:uppercase;margin-bottom:14px">📩 DM @intru.in</a>
-    <div style="margin:0">${BRAND_TAG}</div>
-    <div><a href="https://intru.in" style="color:#9ca3af;text-decoration:none">intru.in</a></div>
+  return `<div style="background:#fafafa;padding:24px 20px;text-align:center;font-size:11px;color:#737373;line-height:1.6;border-top:1px solid #f0f0f0">
+    <div style="font-size:12px;color:#171717;font-weight:600;margin-bottom:4px">Questions or sizing support?</div>
+    <div style="font-size:11px;color:#737373;margin-bottom:12px">DM us on Instagram — our team responds in minutes.</div>
+    <a href="https://instagram.com/intru.in" target="_blank" style="display:inline-block;background:#0a0a0a;color:#ffffff;padding:8px 18px;border-radius:3px;text-decoration:none;font-weight:700;font-size:10px;letter-spacing:1px;text-transform:uppercase;margin-bottom:16px">DM @INTRU.IN</a>
+    <div style="color:#525252;font-weight:600;margin:0 0 2px">${BRAND_TAG}</div>
+    <div><a href="https://intru.in" target="_blank" style="color:#737373;text-decoration:none">intru.in</a> · 240+ GSM · Limited Drops · Pan-India Dispatch</div>
     <!-- Grievance officer: grievance@intru.in -->
   </div>`;
 }
 
 /** Rich "Order Confirmed" email — sent for prepaid after payment success */
+/** Sent when a payment fails or gateway is interrupted to help customer retry effortlessly */
+export function emailPaymentFailed(orderId: string, name: string, total: number, reason?: string): string {
+  const shortId = orderId.toUpperCase().slice(-8);
+  const retryUrl = 'https://intru.in/collections';
+  const cleanReason = reason && !reason.toLowerCase().includes('unknown') ? reason : 'Your bank or UPI app declined or timed out during authentication.';
+  
+  return `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #e5e5e5">
+    ${emailHeader('Payment Incomplete', `Order #IN-${shortId}`)}
+    <div style="padding:36px 32px">
+      <p style="font-size:16px;color:#0a0a0a;font-weight:700;margin:0 0 8px">Hey ${name ? name.split(' ')[0] : 'there'},</p>
+      <p style="font-size:14px;color:#525252;line-height:1.7;margin:0 0 20px">We noticed your recent payment for order <strong style="color:#0a0a0a">#IN-${shortId}</strong> couldn't be completed.</p>
+      
+      <div style="background:#fafafa;border-left:3px solid #0a0a0a;padding:16px;margin:20px 0 24px;font-size:13px;color:#333;line-height:1.6">
+        <strong style="color:#0a0a0a">What happened:</strong> ${cleanReason}
+        <div style="margin-top:8px;font-size:12px;color:#737373">If funds were debited from your account, your bank will automatically reverse the transaction within 24–48 hours.</div>
+      </div>
+
+      <div style="margin:28px 0;text-align:center">
+        <a href="${retryUrl}" target="_blank" style="background:#0a0a0a;color:#ffffff;padding:16px 36px;text-decoration:none;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;font-size:12px;border-radius:3px;display:inline-block">COMPLETE YOUR DROP →</a>
+      </div>
+
+      <div style="margin:24px 0;padding:18px;background:#fafafa;border:1px solid #f0f0f0;border-radius:4px">
+        <div style="font-size:11px;font-weight:700;color:#0a0a0a;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Order Value</div>
+        <div style="font-size:14px;color:#171717;font-weight:700">Total: ₹${total.toLocaleString('en-IN')}</div>
+      </div>
+
+      <p style="font-size:12px;color:#737373;line-height:1.6;margin:20px 0 0">Need help completing payment via direct UPI or have questions? Simply reply to this email or DM us on Instagram <a href="https://instagram.com/intru.in" target="_blank" style="color:#0a0a0a;font-weight:600;text-decoration:underline">@intru.in</a> — our team is here to assist.</p>
+    </div>
+    ${emailFooter()}
+  </div>`;
+}
+
 export function emailOrderConfirmed(orderId: string, name: string, items: any[], total: number): string {
   const shortId = orderId.toUpperCase().slice(-8);
   const itemRows = items.map((i: any) =>
-    `<tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-size:13px;color:#333">${i.name} <span style="color:#777;font-size:11px">(${i.size})</span></td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;text-align:right;font-size:13px;font-weight:700">Rs.${(i.lineTotal||i.unitPrice*i.quantity).toLocaleString('en-IN')}</td></tr>`
+    `<tr><td style="padding:12px 0;border-bottom:1px solid #f0f0f0;font-size:13px;color:#171717;font-weight:500">${i.name} <span style="color:#737373;font-size:11px;font-weight:400">· Size ${i.size} × ${i.quantity || 1}</span></td><td style="padding:12px 0;border-bottom:1px solid #f0f0f0;text-align:right;font-size:13px;font-weight:700;color:#0a0a0a">₹${(i.lineTotal||i.unitPrice*(i.quantity||1)).toLocaleString('en-IN')}</td></tr>`
   ).join('');
-  return `<div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:560px;margin:0 auto;background:#fff;border:1px solid #e5e7eb">
-    <div style="background:#0a0a0a;padding:40px;text-align:center">
-      <h1 style="color:#fff;font-size:22px;margin:0;letter-spacing:4px;text-transform:uppercase">DROP SECURED ✓</h1>
-      <p style="color:#a3a3a3;font-size:12px;margin:8px 0 0;letter-spacing:2px">INTRU — MADE FOR INDIVIDUALS</p>
-    </div>
-    <div style="padding:40px 36px">
-      <p style="font-size:16px;color:#0a0a0a;margin:0 0 8px">Hey ${name || 'there'},</p>
-      <p style="font-size:14px;color:#525252;line-height:1.7;margin:0 0 28px">Payment verified. Your order <strong style="color:#0a0a0a">#IN-${shortId}</strong> is in our dispatch queue. Tracking lands within 24 hours.</p>
-      <table style="width:100%;border-collapse:collapse;margin-bottom:20px">${itemRows}</table>
-      <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:700;color:#0a0a0a;padding-top:12px;border-top:2px solid #0a0a0a">
-        <span>Total Paid</span><span>Rs.${total.toLocaleString('en-IN')}</span>
+  return `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #e5e5e5">
+    ${emailHeader('Drop Secured', `Order #IN-${shortId}`)}
+    <div style="padding:36px 32px">
+      <p style="font-size:16px;color:#0a0a0a;font-weight:700;margin:0 0 8px">Hey ${name ? name.split(' ')[0] : 'there'},</p>
+      <p style="font-size:14px;color:#525252;line-height:1.7;margin:0 0 24px">Payment verified. Your piece is locked in and moving to our quality check & dispatch queue. Tracking details will land in your inbox within 24 hours.</p>
+      <table style="width:100%;border-collapse:collapse;margin-bottom:16px">${itemRows}</table>
+      <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:700;color:#0a0a0a;padding-top:14px;border-top:2px solid #0a0a0a">
+        <span>Total Paid</span><span>₹${total.toLocaleString('en-IN')}</span>
       </div>
-      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:16px;margin:28px 0;font-size:13px;color:#166534">
-        <strong>⚡ Prepaid Priority</strong> — Expected delivery: 3-7 business days.
+      <div style="background:#fafafa;border-left:3px solid #0a0a0a;padding:14px 16px;margin:28px 0;font-size:12px;color:#525252;line-height:1.6">
+        <strong style="color:#0a0a0a">Prepaid Priority Shipping:</strong> Free express delivery across India. Expected arrival in 3–7 business days.
       </div>
-      <p style="font-size:12px;color:#737373;line-height:1.6;margin:20px 0 0">Tired of everyone wearing the same thing? You're not alone — that's exactly why Intru exists. Clean, intentional, oversized. Made for you.</p>
+      <p style="font-size:12px;color:#737373;line-height:1.6;margin:20px 0 0">Intru is built on everyday minimalism: 240+ GSM heavyweight cotton, dropped shoulder silhouettes, and small batch drops designed for individuals.</p>
     </div>
     ${emailFooter()}
   </div>`;
@@ -1645,29 +1687,25 @@ export function emailOrderConfirmed(orderId: string, name: string, items: any[],
 /** COD Verification Required email — replaces old emailCodReceived with idempotent verify link */
 export function emailCodVerificationRequired(orderId: string, name: string, items: any[], total: number, verifyToken?: string): string {
   const shortId = orderId.toUpperCase().slice(-8);
-  // [AUDIT 2026-10-03] Include HMAC token in verify URL — /verify-order now requires it.
   const verifyUrl = verifyToken
     ? `https://intru.in/verify-order?id=${orderId}&t=${encodeURIComponent(verifyToken)}`
     : `https://intru.in/verify-order?id=${orderId}`;
-  return `<div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:560px;margin:0 auto;background:#fff;border:1px solid #e5e7eb">
-    <div style="background:#0a0a0a;padding:36px;text-align:center">
-      <h1 style="color:#fff;font-size:20px;margin:0;letter-spacing:4px;text-transform:uppercase">ACTION REQUIRED</h1>
-      <p style="color:#fcd34d;font-size:11px;margin:8px 0 0;letter-spacing:2px;font-weight:700">VERIFY YOUR COD ORDER TO START PRODUCTION</p>
-    </div>
-    <div style="padding:36px">
-      <p style="font-size:16px;color:#0a0a0a;margin:0 0 8px">Hi ${name || 'there'},</p>
-      <p style="font-size:14px;color:#525252;line-height:1.7;margin:0 0 24px">We've received your Cash on Delivery order <strong style="color:#0a0a0a">#IN-${shortId}</strong>. To prevent fraud and move your order into production, <strong>please verify this is a genuine order by clicking below.</strong></p>
+  return `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #e5e5e5">
+    ${emailHeader('Confirm COD Order', `Order #IN-${shortId}`)}
+    <div style="padding:36px 32px">
+      <p style="font-size:16px;color:#0a0a0a;font-weight:700;margin:0 0 8px">Hi ${name ? name.split(' ')[0] : 'there'},</p>
+      <p style="font-size:14px;color:#525252;line-height:1.7;margin:0 0 24px">We received your Cash on Delivery request for order <strong style="color:#0a0a0a">#IN-${shortId}</strong>. Because all Intru drops are limited and never restocked, please tap below to verify your delivery address and release your order to dispatch.</p>
       <div style="text-align:center;margin:32px 0">
-        <a href="${verifyUrl}" style="background:#0a0a0a;color:#fff;padding:18px 40px;text-decoration:none;font-weight:700;letter-spacing:2px;text-transform:uppercase;font-size:13px;border-radius:4px;display:inline-block">CONFIRM MY ORDER →</a>
+        <a href="${verifyUrl}" target="_blank" style="background:#0a0a0a;color:#ffffff;padding:16px 36px;text-decoration:none;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;font-size:12px;border-radius:3px;display:inline-block">CONFIRM ORDER →</a>
       </div>
-      <div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:6px;padding:16px;margin:24px 0;font-size:12px;color:#92400e;line-height:1.6">
-        <strong>⚠️ Unverified orders are automatically cancelled after 24 hours.</strong> Click the button above to lock in your drop.
+      <div style="background:#fefce8;border-left:3px solid #eab308;padding:14px 16px;margin:24px 0;font-size:12px;color:#713f12;line-height:1.6">
+        <strong>Dispatch Notice:</strong> Unverified COD orders are automatically released after 24 hours so waiting buyers can claim remaining stock.
       </div>
-      <div style="margin:24px 0;padding:20px;background:#f9fafb;border-radius:6px">
-        <p style="font-size:12px;font-weight:700;color:#0a0a0a;margin:0 0 8px">Order Summary:</p>
-        <p style="font-size:13px;color:#525252;margin:0">Total: <strong>Rs.${total.toLocaleString('en-IN')}</strong> (incl. Rs.99 COD/Shipping Fee)</p>
+      <div style="margin:24px 0;padding:18px;background:#fafafa;border:1px solid #f0f0f0;border-radius:4px">
+        <div style="font-size:11px;font-weight:700;color:#0a0a0a;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Order Summary</div>
+        <div style="font-size:14px;color:#171717;font-weight:700">Total Payable: ₹${total.toLocaleString('en-IN')} <span style="font-size:12px;font-weight:400;color:#737373">(incl. ₹99 COD handling)</span></div>
       </div>
-      <p style="font-size:11px;color:#9ca3af;line-height:1.6;text-align:center">Button not working? Copy this link:<br><span style="color:#0a0a0a;word-break:break-all">${verifyUrl}</span></p>
+      <p style="font-size:11px;color:#a3a3a3;line-height:1.6;text-align:center">Button not opening? Copy this direct link:<br><span style="color:#0a0a0a;word-break:break-all">${verifyUrl}</span></p>
     </div>
     ${emailFooter()}
   </div>`;
@@ -1675,14 +1713,14 @@ export function emailCodVerificationRequired(orderId: string, name: string, item
 
 export function emailDropSecured(orderId: string, items: any[], total: number): string {
   const shortId = orderId.toUpperCase().slice(-8);
-  return `<div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:560px;margin:0 auto;background:#fff;border:1px solid #16a34a">
-    <div style="background:#16a34a;padding:32px;text-align:center">
-      <h1 style="color:#fff;font-size:24px;margin:0;letter-spacing:4px;text-transform:uppercase">DROP SECURED</h1>
-      <p style="color:#dcfce7;font-size:11px;margin:8px 0 0;letter-spacing:2px">Order #IN-${shortId}</p>
-    </div>
-    <div style="padding:32px">
-      <p style="font-size:14px;color:#333;line-height:1.7;margin:0">Your Intru order is locked in. Dispatch queue: active. Tracking within 24 hours.</p>
-      <p style="font-size:13px;color:#666;line-height:1.7;margin:16px 0 0">Total: <strong>Rs.${total.toLocaleString('en-IN')}</strong></p>
+  return `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #e5e5e5">
+    ${emailHeader('Drop Secured', `Order #IN-${shortId}`)}
+    <div style="padding:36px 32px">
+      <p style="font-size:14px;color:#171717;line-height:1.7;margin:0">Your Intru drop is locked in. Our team is preparing your package for courier handover. Tracking details will arrive within 24 hours.</p>
+      <div style="margin:20px 0;padding:16px;background:#fafafa;border:1px solid #f0f0f0;border-radius:4px">
+        <div style="font-size:14px;color:#0a0a0a;font-weight:700">Total: ₹${total.toLocaleString('en-IN')}</div>
+      </div>
+      <p style="font-size:12px;color:#737373;line-height:1.6;margin:16px 0 0">Every Intru drop is crafted in limited numbers with 240+ GSM combed cotton. Made for everyday wear.</p>
     </div>
     ${emailFooter()}
   </div>`;
@@ -1691,23 +1729,21 @@ export function emailDropSecured(orderId: string, items: any[], total: number): 
 export function emailCodReceived(orderId: string, name: string, items: any[], total: number): string {
   const shortId = orderId.toUpperCase().slice(-8);
   const confirmUrl = `https://intru.in/confirm-order/${orderId}`;
-  return `<div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:560px;margin:0 auto;background:#fff;border:1px solid #eee">
-    <div style="background:#0a0a0a;padding:32px;text-align:center">
-      <h1 style="color:#fff;font-size:24px;margin:0;letter-spacing:4px;text-transform:uppercase">ORDER RECEIVED</h1>
-    </div>
-    <div style="padding:32px">
-      <p style="font-size:16px;color:#333">Hey ${name || 'there'},</p>
-      <p style="font-size:14px;color:#666;line-height:1.7">We got your Cash on Delivery order <strong>#IN-${shortId}</strong>. One quick step: confirm it's really you so we can start production.</p>
+  return `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #e5e5e5">
+    ${emailHeader('Order Received', `Order #IN-${shortId}`)}
+    <div style="padding:36px 32px">
+      <p style="font-size:16px;color:#0a0a0a;font-weight:700">Hey ${name ? name.split(' ')[0] : 'there'},</p>
+      <p style="font-size:14px;color:#525252;line-height:1.7">We received your Cash on Delivery order <strong style="color:#0a0a0a">#IN-${shortId}</strong>. Please confirm your order so we can prepare your parcel for dispatch.</p>
       
       <div style="text-align:center;margin:32px 0">
-        <a href="${confirmUrl}" style="background:#0a0a0a;color:#fff;padding:18px 32px;text-decoration:none;font-weight:700;letter-spacing:2px;text-transform:uppercase;font-size:14px;border-radius:4px;display:inline-block">CONFIRM MY ORDER</a>
+        <a href="${confirmUrl}" target="_blank" style="background:#0a0a0a;color:#ffffff;padding:16px 36px;text-decoration:none;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;font-size:12px;border-radius:3px;display:inline-block">CONFIRM MY ORDER →</a>
       </div>
 
-      <p style="font-size:12px;color:#999;line-height:1.6;text-align:center">Button not working? Copy this link:<br>${confirmUrl}</p>
+      <p style="font-size:11px;color:#a3a3a3;line-height:1.6;text-align:center">Button not working? Copy this link:<br><span style="color:#0a0a0a;word-break:break-all">${confirmUrl}</span></p>
       
-      <div style="margin-top:40px;padding-top:20px;border-top:1px solid #eee">
-        <p style="font-size:14px;color:#333;font-weight:700;margin-bottom:8px">Order Summary:</p>
-        <p style="font-size:13px;color:#666">Total: Rs.${total.toLocaleString('en-IN')} (incl. Rs.99 COD/Shipping Fee)</p>
+      <div style="margin-top:32px;padding:18px;background:#fafafa;border:1px solid #f0f0f0;border-radius:4px">
+        <div style="font-size:11px;font-weight:700;color:#0a0a0a;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Order Summary</div>
+        <div style="font-size:14px;color:#171717;font-weight:700">Total: ₹${total.toLocaleString('en-IN')} <span style="font-size:12px;font-weight:400;color:#737373">(incl. ₹99 COD handling)</span></div>
       </div>
     </div>
     ${emailFooter()}
