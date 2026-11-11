@@ -2317,15 +2317,16 @@ function confirmAddress() {
   var fname=document.getElementById('cod_fname').value.trim();
   var lname=document.getElementById('cod_lname').value.trim();
   var name=fname + (lname ? ' ' + lname : '');
-  var email=(document.getElementById('cod_email')||{value:''}).value.trim();
-  var phone=document.getElementById('cod_phone').value.trim();
-  var pincode=document.getElementById('cod_pincode').value.trim();
+  var emailInput = document.getElementById('cod_email');
+  var email = (emailInput ? emailInput.value : '').trim().toLowerCase();
+  var phone=document.getElementById('cod_phone').value.trim().replace(/\s+/g, '');
+  var pincode=document.getElementById('cod_pincode').value.trim().replace(/\s+/g, '');
   var addr=document.getElementById('cod_addr').value.trim();
   var addr2=document.getElementById('cod_addr2').value.trim();
   var city=document.getElementById('cod_city').value.trim();
   var state=document.getElementById('cod_state').value.trim();
   if(!fname||!lname||!email||!phone||!pincode||!addr){toast('Fill all required fields (*)','err');return}
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){toast('Enter a valid email address','err');return}
+  if(email.indexOf('@')===-1 || email.indexOf('.')===-1 || email.length < 5){toast('Enter a valid email address','err');return}
   if(!/^[0-9]{10}$/.test(phone)){toast('Valid 10-digit phone required','err');return}
   if(!/^[0-9]{6}$/.test(pincode)){toast('Valid 6-digit pincode required','err');return}
   /* Capture email — becomes identifiedEmail so order confirmation emails fire */
