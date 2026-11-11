@@ -304,10 +304,11 @@ export function shell(
   const gtmId = (gtmRaw === 'off') ? '' : (gtmRaw || '');
   // AI-loop-controlled site-wide announcement bar. The daily loop writes the
   // AI_ANNOUNCEMENT store setting (e.g. an urgency / stock-clearing message).
-  // Empty or 'off' hides it. Kept minimal & dismissible to match brand voice.
+  // TEMP: AI_ANNOUNCEMENT disabled — promo takes first priority. Re-enable by
+  // reverting the aiAnnounce line below to: (aiAnnounceRaw === 'off') ? '' : (aiAnnounceRaw || defaultAnnounce)
   const defaultAnnounce = '🔥 LIMITED OFFER: ANY 3 FOR ₹1,499 · AUTO-APPLIED AT CHECKOUT';
   const aiAnnounceRaw = (ss.AI_ANNOUNCEMENT || '').trim();
-  const aiAnnounce = (aiAnnounceRaw === 'off') ? '' : (aiAnnounceRaw || defaultAnnounce);
+  const aiAnnounce = defaultAnnounce; // TEMP: always show promo, ignore AI loop
   const aiAnnounceHtml = aiAnnounce
     ? `<div class="ai-announce" id="aiAnnounce" role="status">${aiAnnounce.replace(/</g, '&lt;').replace(/>/g, '&gt;')}<button class="ai-announce-x" onclick="document.getElementById('aiAnnounce').style.display='none'" aria-label="Dismiss">&times;</button></div>`
     : '';
