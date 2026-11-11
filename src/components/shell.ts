@@ -305,8 +305,9 @@ export function shell(
   // AI-loop-controlled site-wide announcement bar. The daily loop writes the
   // AI_ANNOUNCEMENT store setting (e.g. an urgency / stock-clearing message).
   // Empty or 'off' hides it. Kept minimal & dismissible to match brand voice.
+  const defaultAnnounce = '🔥 LIMITED OFFER: ANY 3 FOR ₹1,499 · AUTO-APPLIED AT CHECKOUT';
   const aiAnnounceRaw = (ss.AI_ANNOUNCEMENT || '').trim();
-  const aiAnnounce = (aiAnnounceRaw === 'off') ? '' : aiAnnounceRaw;
+  const aiAnnounce = (aiAnnounceRaw === 'off') ? '' : (aiAnnounceRaw || defaultAnnounce);
   const aiAnnounceHtml = aiAnnounce
     ? `<div class="ai-announce" id="aiAnnounce" role="status">${aiAnnounce.replace(/</g, '&lt;').replace(/>/g, '&gt;')}<button class="ai-announce-x" onclick="document.getElementById('aiAnnounce').style.display='none'" aria-label="Dismiss">&times;</button></div>`
     : '';
@@ -354,7 +355,7 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
   .glass, .ai-pop, .cdrw, .id-ovl, .covl { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
 }
-.nav{position:fixed;top:0;left:0;right:0;z-index:100;border-bottom:1px solid rgba(0,0,0,.06);transition:all .4s var(--eo);height:72px;display:flex;align-items:center;contain:layout style paint}
+.nav{position:sticky;top:0;left:0;right:0;z-index:100;border-bottom:1px solid rgba(0,0,0,.06);transition:all .4s var(--eo);height:72px;display:flex;align-items:center;background:rgba(255,255,255,.98)}
 .nav.scrolled{height:64px;box-shadow:0 1px 32px rgba(0,0,0,.04);background:rgba(255,255,255,.94)}
 .navi{max-width:1440px;margin:0 auto;width:100%;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 32px}
 .logo{font-family:var(--head);font-size:22px;letter-spacing:-.04em;text-transform:uppercase;grid-column:2;display:flex;align-items:center}.logo span{font-family:var(--sans);font-weight:400;opacity:.4;text-transform:none;font-size:16px}
@@ -584,7 +585,7 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 .mnt-banner{width:100%;background:var(--bk);color:var(--wh);font-size:11px;font-weight:700;display:none;align-items:center;justify-content:center;gap:12px;padding:12px 24px;position:fixed;top:0;left:0;right:0;z-index:90;letter-spacing:1px;text-transform:uppercase}
 .mnt-banner strong{color:#fff;text-decoration:underline}
 /* AI-loop announcement bar */
-.ai-announce{position:relative;width:100%;background:var(--bk);color:var(--wh);font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;text-align:center;padding:9px 40px;line-height:1.4;z-index:95}
+.ai-announce{position:relative;width:100%;background:#0a0a0a;color:#ffffff;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;text-align:center;padding:10px 40px;line-height:1.4;z-index:101;box-shadow:0 1px 4px rgba(0,0,0,0.2)}
 .ai-announce-x{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--g400);font-size:20px;line-height:1;cursor:pointer;padding:2px 6px}
 .ai-announce-x:hover{color:var(--wh)}
 @media(max-width:768px){.ai-announce{font-size:9px;padding:9px 34px}}
@@ -910,7 +911,7 @@ ${aiAnnounceHtml}
      worsening the 74% landing→product loss. Combo deal messaging moved to cart drawer.
      [v23] Replaced with floating "Offers" pill — bottom-left FAB that doesn't affect
      LCP and is dismissible per session. Expands into a tray listing active coupons. -->
-<button class="offers-pill" id="offersPill" onclick="toggleOffersTray()" aria-label="View active offers" style="display:none">
+<button class="offers-pill" id="offersPill" onclick="toggleOffersTray()" aria-label="View active offers">
   <span class="op-dot"></span>
   <i class="fas fa-tag"></i>
   <span id="offersPillLabel">OFFERS</span>
@@ -1530,20 +1531,20 @@ function _dismissHomePromo(){
    Target element id="pdpPromoSlot" exists only on product pages. */
 function renderPdpPromoChip(){
   var slot = document.getElementById('pdpPromoSlot');
-  if(!slot || !_publicCoupons || !_publicCoupons.length) return;
-  var top = _publicCoupons[0];
-  var discStr = top.type==='percent' ? (top.value+'% OFF') : ('₹'+top.value+' OFF');
-  var html = '<div style="background:linear-gradient(90deg,#fef3c7,#fde68a);border:1.5px dashed #eab308;border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:10px;margin:14px 0 10px">'
-    + '<i class="fas fa-tag" style="color:#dc2626;font-size:14px"></i>'
-    + '<div style="flex:1;font-size:12px;line-height:1.35;color:#78350f;font-weight:600">'
-    +   'Save <strong style="font-weight:900;color:#0a0a0a">'+discStr+'</strong> on this order with code '
-    +   '<strong style="font-family:monospace;background:#0a0a0a;color:#eab308;padding:2px 7px;border-radius:3px;letter-spacing:1.5px;font-size:11px">'+top.code+'</strong>'
+  if(!slot) return;
+  var html = '<div style="background:#f8fafc;border:1.5px solid #e2e8f0;border-left:3.5px solid #0a0a0a;border-radius:4px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin:16px 0 12px">'
+    + '<div style="display:flex;align-items:center;gap:10px">'
+    +   '<i class="fas fa-layer-group" style="color:#0a0a0a;font-size:16px"></i>'
+    +   '<div style="font-size:12px;line-height:1.4;color:#1e293b">'
+    +     '<span style="font-weight:800;color:#0a0a0a;text-transform:uppercase;letter-spacing:0.5px">Bundle Offer:</span> Any 3 pieces for <strong style="color:#16a34a;font-weight:800">₹1,499</strong>'
+    +     '<div style="font-size:11px;color:#64748b;margin-top:2px">Applied automatically at checkout &middot; Free express shipping</div>'
+    +   '</div>'
     + '</div>'
-    + '<button onclick="_pdpCopyPromo(\\x27'+top.code+'\\x27,this)" style="background:#0a0a0a;color:#fafafa;border:none;padding:6px 10px;border-radius:4px;font-size:9px;font-weight:900;letter-spacing:1px;text-transform:uppercase;cursor:pointer;font-family:inherit">COPY</button>'
+    + '<button onclick="toggleCart()" style="background:#0a0a0a;color:#ffffff;border:none;padding:7px 12px;border-radius:3px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;white-space:nowrap">View Bag</button>'
     + '</div>';
   slot.innerHTML = html;
   slot.style.display = 'block';
-  try{ if(typeof window.track==='function') window.track('promo_shown',{placement:'pdp_chip',code:top.code}); }catch(e){}
+  try{ if(typeof window.track==='function') window.track('promo_shown',{placement:'pdp_chip',offer:'bundle_1499'}); }catch(e){}
 }
 function _pdpCopyPromo(code,btn){
   try{ if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(code); }catch(e){}
@@ -1575,35 +1576,36 @@ function renderOffersPill(){
   var pill = document.getElementById('offersPill');
   var tray = document.getElementById('offersTrayList');
   var label = document.getElementById('offersPillLabel');
-  if(!pill || !_publicCoupons) return;
-  /* Respect per-session dismissal */
+  if(!pill) return;
   if(sessionStorage.getItem('intru_offers_pill_dismissed')==='1'){ pill.style.display='none'; return; }
-  if(!_publicCoupons.length){ pill.style.display='none'; return; }
-  /* Show pill with top offer teaser */
-  var top = _publicCoupons[0];
-  var teaser = top.type==='percent' ? (top.value+'% OFF') : ('₹'+top.value+' OFF');
-  if(label) label.textContent = teaser;
+  if(label) label.textContent = '3 FOR ₹1,499';
   pill.classList.add('show');
-  /* Build tray content */
   if(tray){
-    var html = '';
-    _publicCoupons.slice(0,5).forEach(function(c){
-      var safeDesc = String(c.description||'').replace(/'/g,'&#39;').replace(/</g,'&lt;');
-      var discStr = c.type==='percent' ? (c.value+'% OFF') : ('₹'+c.value+' OFF');
-      html += '<div class="offers-tray-item" onclick="pickOfferFromTray(\\x27'+c.code+'\\x27)">'
-        + '<div style="display:flex;justify-content:space-between;align-items:center">'
-        +   '<span class="ot-code">'+c.code+'</span>'
-        +   '<span style="font-size:11px;font-weight:900;color:#dc2626">'+discStr+'</span>'
-        + '</div>'
-        + (safeDesc ? '<div class="ot-desc">'+safeDesc+'</div>' : '')
-        + '<div class="ot-copy"><i class="fas fa-copy"></i> Tap to copy & shop</div>'
-        + '</div>';
-    });
-    if(!html) html = '<div class="offers-tray-empty">No active offers right now.</div>';
+    var html = '<div class="offers-tray-item" onclick="toggleCart();toggleOffersTray()" style="border:1.5px solid #0a0a0a;background:#ffffff;padding:14px;border-radius:8px">'
+      + '<div style="display:flex;justify-content:space-between;align-items:center">'
+      +   '<span class="ot-code" style="letter-spacing:1px;font-size:13px;font-family:var(--sans);font-weight:800">ANY 3 FOR ₹1,499</span>'
+      +   '<span style="font-size:9px;font-weight:800;color:#16a34a;background:#dcfce7;padding:2px 6px;border-radius:3px">AUTO-APPLIED</span>'
+      + '</div>'
+      + '<div class="ot-desc" style="color:#525252;margin-top:6px;font-size:11px;line-height:1.4">Add any 3 pieces to your bag. Price drops to ₹1,499 automatically at checkout.</div>'
+      + '<div class="ot-copy" style="color:#0a0a0a;margin-top:8px;font-weight:700"><i class="fas fa-shopping-bag" style="margin-right:4px"></i> Tap to open bag &rarr;</div>'
+      + '</div>';
+    if(_publicCoupons && _publicCoupons.length){
+      _publicCoupons.slice(0,3).forEach(function(c){
+        var safeDesc = String(c.description||'').replace(/'/g,'&#39;').replace(/</g,'&lt;');
+        var discStr = c.type==='percent' ? (c.value+'% OFF') : ('₹'+c.value+' OFF');
+        html += '<div class="offers-tray-item" onclick="pickOfferFromTray(\\x27'+c.code+'\\x27)">'
+          + '<div style="display:flex;justify-content:space-between;align-items:center">'
+          +   '<span class="ot-code">'+c.code+'</span>'
+          +   '<span style="font-size:11px;font-weight:900;color:#dc2626">'+discStr+'</span>'
+          + '</div>'
+          + (safeDesc ? '<div class="ot-desc">'+safeDesc+'</div>' : '')
+          + '<div class="ot-copy"><i class="fas fa-copy"></i> Tap to copy code</div>'
+          + '</div>';
+      });
+    }
     tray.innerHTML = html;
   }
-  /* Track that pill was shown for ROI measurement */
-  try{ if(typeof window.track==='function') window.track('promo_shown',{placement:'offers_pill',count:_publicCoupons.length}); }catch(e){}
+  try{ if(typeof window.track==='function') window.track('promo_shown',{placement:'offers_pill',offer:'bundle_1499'}); }catch(e){}
 }
 function toggleOffersTray(){
   var tray = document.getElementById('offersTray');
