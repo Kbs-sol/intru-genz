@@ -48,6 +48,7 @@ export function adminPage(opts: {
 .apan{display:none}.apan.act{display:block}
 .otbl-wrap{width:100%;overflow-x:auto;border:1.5px solid var(--g100);border-radius:8px;background:var(--wh)}
 .otbl{width:100%;border-collapse:collapse;font-size:13px;min-width:860px}
+.otbl tr{display:table-row}
 @media(max-width:768px){
   /* [AUDIT 2026-10-03] A-1: Complete the mobile table card-collapse pattern.
      data-label attrs were on 7 cells but the CSS to read them was MISSING — this is it. */
@@ -175,7 +176,10 @@ export function adminPage(opts: {
 .price-sub{font-size:10px;color:#92400e;font-weight:700;margin-top:3px;line-height:1.2}
 .price-sub-muted{color:var(--g400);font-weight:600}
 /* [v19] Rows visually identical; the badge column carries the payment-type differentiation */
-.cod-row,.prepaid-row{background:transparent}
+.intru-cod-row,.intru-prepaid-row{background:transparent !important;display:table-row !important}
+@media(max-width:768px){
+  .otbl .intru-cod-row, .otbl .intru-prepaid-row{display:block !important}
+}
 .oselect{padding:8px 10px;border:1.5px solid var(--g200);font-size:12px;font-family:inherit;border-radius:3px;background:var(--wh);width:100%}
 /* Coupon table */
 .cpn-act{background:#d1fae5;color:#065f46}.cpn-inact{background:#fee2e2;color:#991b1b}
@@ -1029,7 +1033,7 @@ function renderOrders(orders){
       var priceSubline = isCod
         ? (o.cod_fee>0 ? '<div class="price-sub">+ Rs.'+o.cod_fee+' COD handling</div>' : '<div class="price-sub price-sub-muted">Cash on delivery</div>')
         : '<div class="price-sub price-sub-muted">Paid online</div>';
-      h+='<tr class="'+(isCod?'cod-row':'prepaid-row')+'">'
+      h+='<tr class="'+(isCod?'intru-cod-row':'intru-prepaid-row')+'">'
         +'<td data-label="Order ID" style="min-width:110px"><div style="font-weight:800;font-size:12px;letter-spacing:-0.5px;margin-bottom:6px">#'+(o.razorpay_order_id||o.id||'').slice(-8).toUpperCase()+'</div>'
         +payBadge+'</td>'
         +'<td data-label="Date &amp; Time" style="min-width:130px">'+fmtOrderDate(o.created_at)+'</td>'
