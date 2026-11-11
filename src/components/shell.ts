@@ -355,7 +355,7 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
   .glass, .ai-pop, .cdrw, .id-ovl, .covl { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
 }
-.nav{position:fixed;top:0;left:0;right:0;z-index:100;border-bottom:1px solid rgba(0,0,0,.06);transition:all .4s var(--eo);height:72px;display:flex;align-items:center;contain:layout style paint}
+.nav{position:sticky;top:0;left:0;right:0;z-index:100;border-bottom:1px solid rgba(0,0,0,.06);transition:all .4s var(--eo);height:72px;display:flex;align-items:center;background:rgba(255,255,255,.98)}
 .nav.scrolled{height:64px;box-shadow:0 1px 32px rgba(0,0,0,.04);background:rgba(255,255,255,.94)}
 .navi{max-width:1440px;margin:0 auto;width:100%;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 32px}
 .logo{font-family:var(--head);font-size:22px;letter-spacing:-.04em;text-transform:uppercase;grid-column:2;display:flex;align-items:center}.logo span{font-family:var(--sans);font-weight:400;opacity:.4;text-transform:none;font-size:16px}
@@ -585,7 +585,7 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 .mnt-banner{width:100%;background:var(--bk);color:var(--wh);font-size:11px;font-weight:700;display:none;align-items:center;justify-content:center;gap:12px;padding:12px 24px;position:fixed;top:0;left:0;right:0;z-index:90;letter-spacing:1px;text-transform:uppercase}
 .mnt-banner strong{color:#fff;text-decoration:underline}
 /* AI-loop announcement bar */
-.ai-announce{position:relative;width:100%;background:var(--bk);color:var(--wh);font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;text-align:center;padding:9px 40px;line-height:1.4;z-index:95}
+.ai-announce{position:relative;width:100%;background:#0a0a0a;color:#ffffff;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;text-align:center;padding:10px 40px;line-height:1.4;z-index:101;box-shadow:0 1px 4px rgba(0,0,0,0.2)}
 .ai-announce-x{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--g400);font-size:20px;line-height:1;cursor:pointer;padding:2px 6px}
 .ai-announce-x:hover{color:var(--wh)}
 @media(max-width:768px){.ai-announce{font-size:9px;padding:9px 34px}}
@@ -911,7 +911,7 @@ ${aiAnnounceHtml}
      worsening the 74% landing→product loss. Combo deal messaging moved to cart drawer.
      [v23] Replaced with floating "Offers" pill — bottom-left FAB that doesn't affect
      LCP and is dismissible per session. Expands into a tray listing active coupons. -->
-<button class="offers-pill" id="offersPill" onclick="toggleOffersTray()" aria-label="View active offers" style="display:none">
+<button class="offers-pill" id="offersPill" onclick="toggleOffersTray()" aria-label="View active offers">
   <span class="op-dot"></span>
   <i class="fas fa-tag"></i>
   <span id="offersPillLabel">OFFERS</span>
