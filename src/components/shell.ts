@@ -1480,7 +1480,10 @@ function loadPublicCoupons(){
     renderOffersPill();
     renderHomePromoStrip();
     renderPdpPromoChip();
-  }).catch(function(){ _publicCoupons = []; });
+  }).catch(function(){
+    _publicCoupons = [];
+    renderOffersPill();
+  });
 }
 
 /* [v23] HOMEPAGE PROMO STRIP — single-line between trust bar and marquee.
@@ -1567,7 +1570,8 @@ function renderOffersPill(){
   var tray = document.getElementById('offersTrayList');
   var label = document.getElementById('offersPillLabel');
   if(!pill) return;
-  if(sessionStorage.getItem('intru_offers_pill_dismissed')==='1'){ pill.style.display='none'; return; }
+  /* TEMP: pill always visible during active promo — ignore session dismiss */
+  // if(sessionStorage.getItem('intru_offers_pill_dismissed')==='1'){ pill.style.display='none'; return; }
   if(label) label.textContent = '3 FOR ₹1,499';
   pill.classList.add('show');
   if(tray){
@@ -1633,11 +1637,14 @@ function pickOfferFromTray(code){
 }
 /* Boot offers pill on idle so it doesn't delay LCP */
 (function(){
-  function _boot(){ try{ loadPublicCoupons(); }catch(e){} }
+  function _boot(){
+    try{ renderOffersPill(); }catch(e){}
+    try{ loadPublicCoupons(); }catch(e){}
+  }
   if(typeof requestIdleCallback==='function'){
-    requestIdleCallback(_boot, {timeout:3000});
+    requestIdleCallback(_boot, {timeout:1500});
   } else {
-    setTimeout(_boot, 1800);
+    setTimeout(_boot, 600);
   }
 })();
 

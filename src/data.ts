@@ -115,79 +115,77 @@ export const SEED_PRODUCTS: Product[] = [
   {
     id: "p1", slug: "doodles-t-shirt", name: "Doodles T-Shirt",
     tagline: "Warmth and joy",
-    description: "Playful doodle-art printed tee that radiates warmth. Heavyweight cotton with puff-print detailing. Pre-shrunk, garment-dyed, and designed to feel like it was made just for YOU.",
+    description: "Playful doodle-art printed tee that radiates warmth. Crafted from premium cotton with puff-print detailing. Pre-shrunk, garment-dyed, and designed to feel like it was made just for you.",
     price: 999, comparePrice: 1499, currency: "INR",
     images: [
-      "https://intru.in/cdn/shop/files/3.png?v=1748692106&width=1946",
-      "https://intru.in/cdn/shop/files/3.png?v=1748692106&width=1000",
-      "https://intru.in/cdn/shop/files/3.png?v=1748692106&width=800",
-      "https://intru.in/cdn/shop/files/3.png?v=1748692106&width=600"
+      "https://pub-3d33945b0faa46f0bba387791a02fb62.r2.dev/products/prod_001.webp",
+      "https://pub-3d33945b0faa46f0bba387791a02fb62.r2.dev/products/1773215170014_5.webp",
+      "https://pub-3d33945b0faa46f0bba387791a02fb62.r2.dev/products/1773215133987_2.webp",
+      "https://pub-3d33945b0faa46f0bba387791a02fb62.r2.dev/products/1773215151541_4.webp"
     ],
-    sizes: ["S", "M", "L", "XL", "XXL"], category: "T-Shirts", inStock: true, featured: true,
-    seoTitle: "Doodles T-Shirt — Oversized Puff-Print Streetwear India | Intru",
-    seoDescription: "Doodles T-Shirt — hand-drawn puff-print art on 220-260 GSM heavyweight oversized cotton. True dropped shoulder, limited drop, never restocked. Shop India's most-loved minimalist streetwear tee at intru.in. · Free shipping · COD available."
+    sizes: ["XS", "S", "M", "L"], category: "T-Shirts", inStock: true, featured: true,
+    seoTitle: "Doodles T-Shirt — Limited Drop | INTRU.IN",
+    seoDescription: "Playful doodle-art puff-print tee. 240 GSM premium cotton, garment-dyed, pre-shrunk. Exclusive limited drop by INTRU.IN — never restocked. Free shipping on prepaid."
   },
   {
-    id: "p2", slug: "no-risk-porsche", name: "No Risk Porsche",
+    id: "p2", slug: "no-risk-porsche", name: "No Risk No Porsche",
     tagline: "Bold edge",
-    description: "A statement tee for those who move without hesitation. Bold graphic print, heavyweight cotton, and an oversized fit that feels intentional. No risk, no reward.",
+    description: "A statement tee for those who move without hesitation. Bold graphic print, premium cotton, and a fit that commands attention. No risk, no reward.",
     price: 999, comparePrice: 1499, currency: "INR",
     images: [
-      "https://intru.in/cdn/shop/files/F51687B9-2BF2-43E0-988A-30272833B19E.jpg?v=1756359581&width=1920",
-      "https://intru.in/cdn/shop/files/F51687B9-2BF2-43E0-988A-30272833B19E.jpg?v=1756359581&width=1000",
-      "https://intru.in/cdn/shop/files/F51687B9-2BF2-43E0-988A-30272833B19E.jpg?v=1756359581&width=800",
-      "https://intru.in/cdn/shop/files/F51687B9-2BF2-43E0-988A-30272833B19E.jpg?v=1756359581&width=600"
+      "https://pub-3d33945b0faa46f0bba387791a02fb62.r2.dev/products/prod_002.webp",
+      "https://pub-3d33945b0faa46f0bba387791a02fb62.r2.dev/products/1773214856621_img_7595.webp",
+      "https://pub-3d33945b0faa46f0bba387791a02fb62.r2.dev/products/1773214835470_img_7607.webp",
+      "https://pub-3d33945b0faa46f0bba387791a02fb62.r2.dev/products/1773214792337_img_7590.webp"
     ],
-    sizes: ["S", "M", "L", "XL", "XXL"], category: "T-Shirts", inStock: true, featured: true,
-    seoTitle: "No Risk No Porsche T-Shirt — Oversized Heavyweight Streetwear India | Intru",
-    seoDescription: "Shop the No Risk No Porsche oversized t-shirt — 220-260 GSM heavyweight cotton, dropped shoulder, true oversized fit. Limited drop, never restocked. Free shipping across India (Hyderabad, Mumbai, Bangalore, Delhi). ₹999 · sizes S-XXL · COD available."
+    sizes: ["XS", "S", "M", "L"], category: "T-Shirts", inStock: true, featured: true,
+    seoTitle: "No Risk No Porsche T-Shirt — Limited Drop | INTRU.IN",
+    seoDescription: "Bold graphic oversized tee for those who move different. Limited edition drop by INTRU.IN. Premium Indian streetwear — once gone, never restocked. Free shipping on prepaid."
   },
   {
     id: "p3", slug: "orange-puff-printed-t-shirt", name: "Orange Puff",
     tagline: "Caffeine-core",
-    description: "Orange puff-printed tee with a texture you can feel. Caffeine-core energy meets streetwear minimalism. Heavyweight cotton, relaxed oversized fit, limited run.",
+    description: "Orange puff-printed tee with a texture you can feel. Caffeine-core energy meets streetwear minimalism. Premium cotton, relaxed fit, limited run.",
     price: 899, comparePrice: 1499, currency: "INR",
     images: [
-      "https://intru.in/cdn/shop/files/1_3de916a1-a217-41ee-9b2e-9e2c3130c4d6.png?v=1748190442&width=1445",
-      "https://intru.in/cdn/shop/files/1_3de916a1-a217-41ee-9b2e-9e2c3130c4d6.png?v=1748190442&width=1000",
-      "https://intru.in/cdn/shop/files/1_3de916a1-a217-41ee-9b2e-9e2c3130c4d6.png?v=1748190442&width=800",
-      "https://intru.in/cdn/shop/files/1_3de916a1-a217-41ee-9b2e-9e2c3130c4d6.png?v=1748190442&width=600"
+      "https://pub-3d33945b0faa46f0bba387791a02fb62.r2.dev/products/prod_003.webp",
+      "https://pub-3d33945b0faa46f0bba387791a02fb62.r2.dev/products/1773215388118_doodle__2_.webp",
+      "https://pub-3d33945b0faa46f0bba387791a02fb62.r2.dev/products/1773215422497_doodle__3_.webp",
+      "https://pub-3d33945b0faa46f0bba387791a02fb62.r2.dev/products/1773215439906_doodle__4_.webp"
     ],
-    sizes: ["S", "M", "L", "XL"], category: "T-Shirts", inStock: true, featured: true,
-    seoTitle: "Orange Puff Printed Oversized T-Shirt — Heavyweight Cotton India | Intru",
-    seoDescription: "Orange Puff Printed T-Shirt — heavyweight puff-print oversized tee, dropped shoulder, garment-dyed cotton. Textured caffeine-core streetwear for individuals. ₹899 · sizes S-XL · limited drop, never restocked · free shipping India."
+    sizes: ["XS", "S", "M", "L"], category: "T-Shirts", inStock: true, featured: true,
+    seoTitle: "Orange Puff Printed T-Shirt — Limited Drop | INTRU.IN",
+    seoDescription: "Caffeine-core puff-print oversized tee in bold orange. 240 GSM premium cotton. Exclusive limited drop by INTRU.IN — never restocked. Free shipping on all prepaid orders."
   },
   {
     id: "p4", slug: "romanticise-crop-tee", name: "Romanticise Crop",
     tagline: "Breezy ease",
     description: "Cropped silhouette meets everyday comfort. Soft cotton, clean cut, and an effortless vibe. Designed over two months because we refused to rush perfection.",
-    price: 699, comparePrice: 999, currency: "INR",
+    price: 799, comparePrice: 999, currency: "INR",
     images: [
-      "https://intru.in/cdn/shop/files/4_f2aa413e-6e91-49bd-8f16-2efd41b4d6ea.png?v=1748190572&width=1946",
-      "https://intru.in/cdn/shop/files/4_f2aa413e-6e91-49bd-8f16-2efd41b4d6ea.png?v=1748190572&width=1000",
-      "https://intru.in/cdn/shop/files/4_f2aa413e-6e91-49bd-8f16-2efd41b4d6ea.png?v=1748190572&width=800",
-      "https://intru.in/cdn/shop/files/4_f2aa413e-6e91-49bd-8f16-2efd41b4d6ea.png?v=1748190572&width=600"
+      "https://pub-3d33945b0faa46f0bba387791a02fb62.r2.dev/products/1773215270836_crop__2_.webp",
+      "https://pub-3d33945b0faa46f0bba387791a02fb62.r2.dev/products/1773215317169_crop__4_.webp",
+      "https://pub-3d33945b0faa46f0bba387791a02fb62.r2.dev/products/1773215298132_crop__1_.webp",
+      "https://pub-3d33945b0faa46f0bba387791a02fb62.r2.dev/products/prod_004.webp"
     ],
-    // [AG: category taxonomy] Was miscategorized as T-Shirts; belongs in Crop Tops so the
-    // /collections?cat=Crop-Tops deep-link (header dropdown + footer) has stock to show.
     sizes: ["XS", "S", "M", "L"], category: "Crop Tops", inStock: true, featured: true,
-    seoTitle: "Romanticise Crop Tee — Heavyweight Cotton Cropped Streetwear | INTRU.IN",
-    seoDescription: "Effortless breezy style meets streetwear. The Romanticise Crop Tee features soft cotton and a perfect relaxed silhouette. Limited edition, never restocked."
+    seoTitle: "Romanticise Crop Tee — Limited Drop | INTRU.IN",
+    seoDescription: "Breezy oversized crop tee with a soft, lived-in feel. Limited drop by INTRU.IN — premium Indian streetwear for women. Never restocked. Free shipping on prepaid orders."
   },
   {
     id: "p5", slug: "stripe-18-shirt", name: "Stripe 18 Shirt",
     tagline: "Cool tones",
-    description: "Cool-toned striped shirt with a structured collar and relaxed body. Heavyweight woven fabric, mother-of-pearl buttons, and a fit that bridges casual and smart.",
+    description: "Cool-toned striped shirt with a structured collar and relaxed body. Premium woven fabric, mother-of-pearl buttons, and a fit that bridges casual and smart.",
     price: 1099, comparePrice: 1699, currency: "INR",
     images: [
-      "https://intru.in/cdn/shop/files/99.png?v=1748173436&width=1946",
-      "https://intru.in/cdn/shop/files/99.png?v=1748173436&width=1000",
-      "https://intru.in/cdn/shop/files/99.png?v=1748173436&width=800",
-      "https://intru.in/cdn/shop/files/99.png?v=1748173436&width=600"
+      "https://pub-3d33945b0faa46f0bba387791a02fb62.r2.dev/products/1773214906090_main_image.webp",
+      "https://pub-3d33945b0faa46f0bba387791a02fb62.r2.dev/products/prod_005.webp",
+      "https://pub-3d33945b0faa46f0bba387791a02fb62.r2.dev/products/1773214934295_0076.webp",
+      "https://pub-3d33945b0faa46f0bba387791a02fb62.r2.dev/products/1773214953146_100.webp"
     ],
-    sizes: ["S", "M", "L", "XL", "XXL"], category: "Shirts", inStock: true, featured: true,
-    seoTitle: "Stripe 18 Shirt — Oversized Striped Streetwear Shirt India | Intru",
-    seoDescription: "The Stripe 18 Shirt — cool-toned oversized striped shirt for men, heavyweight woven cotton, mother-of-pearl buttons, dropped shoulder. Smart-casual layer that bridges streetwear and formal. ₹1,099 · sizes S-XXL · free shipping across India · COD available."
+    sizes: ["S", "M", "L"], category: "Shirts", inStock: true, featured: true,
+    seoTitle: "Stripe 18 Shirt — Limited Drop | INTRU.IN",
+    seoDescription: "Cool-toned striped oversized shirt. Relaxed fit, premium fabric — designed to last beyond the trend. Limited drop by INTRU.IN, Hyderabad. Free shipping on prepaid orders."
   },
   {
     id: "p6", slug: "summer-shirt", name: "Summer Shirt",
@@ -195,14 +193,14 @@ export const SEED_PRODUCTS: Product[] = [
     description: "Your go-to summer layer. Lightweight, breathable, and effortlessly styled. Made for golden-hour walks and spontaneous weekend plans.",
     price: 999, comparePrice: 1599, currency: "INR",
     images: [
-      "https://intru.in/cdn/shop/files/03.png?v=1756359941&width=1946",
-      "https://intru.in/cdn/shop/files/03.png?v=1756359941&width=1000",
-      "https://intru.in/cdn/shop/files/03.png?v=1756359941&width=800",
-      "https://intru.in/cdn/shop/files/03.png?v=1756359941&width=600"
+      "https://pub-3d33945b0faa46f0bba387791a02fb62.r2.dev/products/1773215488870_01.webp",
+      "https://pub-3d33945b0faa46f0bba387791a02fb62.r2.dev/products/1773215505469_02.webp",
+      "https://pub-3d33945b0faa46f0bba387791a02fb62.r2.dev/products/1773215530410_04.webp",
+      "https://pub-3d33945b0faa46f0bba387791a02fb62.r2.dev/products/1773215505469_02.webp"
     ],
-    sizes: ["S", "M", "L", "XL"], category: "Shirts", inStock: true, featured: true,
-    seoTitle: "Summer Shirt — Lightweight & Breathable Layer | INTRU.IN",
-    seoDescription: "The ultimate sunshine staple. Lightweight, breathable, and designed for golden-hour vibes. Shop our limited-run Summer Shirt at INTRU.IN."
+    sizes: ["S", "M", "L"], category: "Shirts", inStock: true, featured: true,
+    seoTitle: "Summer Shirt — Limited Drop | INTRU.IN",
+    seoDescription: "The sunshine-core oversized shirt you reach for first. Lightweight premium cotton, relaxed silhouette. Limited drop by INTRU.IN — never restocked. Free shipping on prepaid."
   },
 ];
 
@@ -720,11 +718,10 @@ export const SEED_BLOG_POSTS: BlogPost[] = [
 <table style="width:100%;border-collapse:collapse;font-size:14px">
 <thead><tr style="border-bottom:2px solid #0a0a0a"><th style="text-align:left;padding:12px 8px">Size</th><th style="text-align:left;padding:12px 8px">Chest (in)</th><th style="text-align:left;padding:12px 8px">Length (in)</th><th style="text-align:left;padding:12px 8px">Fits body chest (in)</th></tr></thead>
 <tbody>
+<tr style="border-bottom:1px solid #e8e8e8"><td style="padding:10px 8px">XS</td><td style="padding:10px 8px">42</td><td style="padding:10px 8px">26</td><td style="padding:10px 8px">34–36</td></tr>
 <tr style="border-bottom:1px solid #e8e8e8"><td style="padding:10px 8px">S</td><td style="padding:10px 8px">44</td><td style="padding:10px 8px">27</td><td style="padding:10px 8px">36–38</td></tr>
 <tr style="border-bottom:1px solid #e8e8e8"><td style="padding:10px 8px">M</td><td style="padding:10px 8px">46</td><td style="padding:10px 8px">28</td><td style="padding:10px 8px">38–40</td></tr>
 <tr style="border-bottom:1px solid #e8e8e8"><td style="padding:10px 8px">L</td><td style="padding:10px 8px">48</td><td style="padding:10px 8px">29</td><td style="padding:10px 8px">40–42</td></tr>
-<tr style="border-bottom:1px solid #e8e8e8"><td style="padding:10px 8px">XL</td><td style="padding:10px 8px">50</td><td style="padding:10px 8px">30</td><td style="padding:10px 8px">42–44</td></tr>
-<tr><td style="padding:10px 8px">XXL</td><td style="padding:10px 8px">52</td><td style="padding:10px 8px">31</td><td style="padding:10px 8px">44–46</td></tr>
 </tbody></table>
 </div>
 <p>Notice the pattern: the <strong>tee chest is always ~6–8 inches wider than your body chest</strong>. That gap is the oversized drape, built into the pattern.</p>
