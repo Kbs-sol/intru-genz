@@ -318,6 +318,22 @@ export function shell(
   const sj = JSON.stringify({ cs: STORE_CONFIG.currencySymbol, ft: STORE_CONFIG.freeShippingThreshold, sc: STORE_CONFIG.shippingCost, rk: rpKey, magic: useMagic, gcr: gcrMerchantId });
 
   return `<!DOCTYPE html><html lang="en"><head>
+<script>/* [v27] Top-of-head WebView bridge error suppressor (Instagram / FB / Google App WebViews) */
+(function(){
+  var _oe=window.onerror;
+  window.onerror=function(msg,src,l,c,err){
+    var m=String(msg||'').toLowerCase();
+    if(m.indexOf('java object is gone')!==-1||m.indexOf('java exception')!==-1||m.indexOf('postmessage')!==-1||(m.indexOf('script error')!==-1&&!src)){return true;}
+    return typeof _oe==='function'?_oe.apply(this,arguments):false;
+  };
+  window.addEventListener('unhandledrejection',function(e){
+    var m=String(e.reason&&(e.reason.message||e.reason)||'').toLowerCase();
+    if(m.indexOf('java object is gone')!==-1||m.indexOf('java exception')!==-1||m.indexOf('postmessage')!==-1){
+      if(e.preventDefault)e.preventDefault();
+    }
+  });
+})();
+</script>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 ${buildHead(title, desc, { og, url, type: opt?.pageType, productPrice: opt?.productPrice, productAvailability: opt?.productAvailability, productName: opt?.productName, ga4Id, clarityId, gtmId, metaPixelId })}
 ${opt?.schema ? '<script type="application/ld+json">' + opt.schema + '</script>' : ''}
@@ -406,7 +422,8 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%;height:aut
 .pcard-actions{position:absolute;bottom:0;left:0;right:0;background:rgba(255,255,255,.98);padding:16px;transform:translateY(100%);transition:transform .4s var(--eo);display:flex;flex-direction:column;gap:12px;z-index:10}
 .pcard:hover .pcard-actions{transform:translateY(0)}
 .pcsizes{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
-.pcsz{width:32px;height:32px;border:1px solid var(--g200);border-radius:2px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s}.pcsz:hover{border-color:var(--bk);background:var(--g50)}
+.pcsz{width:32px;height:32px;border:1px solid var(--g200);border-radius:2px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none;transition:all .2s}.pcsz:hover{border-color:var(--bk);background:var(--g50)}
+.pcsz:active{transform:scale(0.92);background:var(--g100)}
 .pcsz.act{background:var(--bk);color:var(--wh);border-color:var(--bk)}
 .pcbtns{display:flex;gap:8px}
 .pcbtns button{flex:1;padding:12px;font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;border:none;transition:all .2s}
@@ -1413,10 +1430,22 @@ function handlePriceChanged(d){
 var appliedCoupon = null;
 
 function applyCoupon(){
-  var code = document.getElementById('couponInput').value.trim().toUpperCase();
-  if(!code) return;
+  var inp = document.getElementById('couponInput');
+  var code = (inp ? inp.value : '').trim().toUpperCase();
+  if(!code){
+    if(inp){
+      inp.classList.add('sz-error');
+      setTimeout(function(){ inp.classList.remove('sz-error'); }, 400);
+      inp.focus();
+    }
+    toast('Please enter a promo code', 'err');
+    return;
+  }
   var totals = getCartTotals();
-  if(totals.bundleCount>0){ toast("Coupons can't be combined with the Clearance bundle",'err'); return; }
+  if(totals.bundleCount>0){
+    toast("Coupons can't be combined with the 3 for ₹1,499 clearance deal", 'err');
+    return;
+  }
   
   fetch('/api/coupons/validate', {
     method: 'POST', 
@@ -1709,8 +1738,18 @@ function renderCartTotals(){
   show('bdCodRow',payMode==='cod');
   if(payMode==='cod') set('bdCodAmt',fmt(t.codFee));
   set('bdTotal',fmt(t.total));
+  var cs=document.getElementById('couponSection');
   var cn=document.getElementById('cpnBundleNote');
-  if(cn) cn.style.display=(t.bundleCount>0)?'block':'none';
+  if(t.bundleCount>0){
+    if(cs) cs.style.display='none';
+    if(cn){
+      cn.style.display='block';
+      cn.innerHTML='<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:10px 14px;color:#166534;font-size:12px;font-weight:600;display:flex;align-items:center;gap:8px"><i class="fas fa-check-circle" style="color:#22c55e"></i><span>Best clearance deal applied: 3 for ₹1,499 (Saved ' + fmt(t.bundleDiscount) + ')</span></div>';
+    }
+  } else {
+    if(cs) cs.style.display='flex';
+    if(cn){ cn.style.display='none'; cn.textContent="Coupon codes can't be combined with the Clearance bundle."; }
+  }
 }
 
 function renderCart(){
@@ -2007,26 +2046,26 @@ function doPrepaidCheckout(){
     if(data.code==='PRICE_CHANGED'){handlePriceChanged(data);resetBtn();return}
     if(data.error){throw new Error(data.error)}
     if(!data.razorpayOrderId){toast('Order: '+fmt(data.total)+'. Configure Razorpay.','err');resetBtn();return}
-    if(typeof Razorpay==='undefined'){toast('Payment SDK failed. Refresh.','err');resetBtn();return}
-    var options={key:S.rk,order_id:data.razorpayOrderId,name:'intru.in',
-      prefill:{email:identifiedEmail,contact:shipPhone},
-      theme:{color:'#0a0a0a',backdrop_color:'rgba(0,0,0,0.6)'},
-      modal:{ondismiss:function(){
-        if(window.track) window.track('checkout_dismissed', { method: 'prepaid' });
-        resetBtn();
-        toast('Payment cancelled','err');
-      }},
-      handler:function(response){
-        var btn=document.getElementById('checkoutBtn');if(btn)btn.textContent='VERIFYING...';
-        fetch('/api/payment/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-          razorpay_order_id:response.razorpay_order_id,razorpay_payment_id:response.razorpay_payment_id,razorpay_signature:response.razorpay_signature
-        })}).then(function(r){return r.json()}).then(function(vd){
-          if(vd.success){trackPurchase(vd.orderId,vd.total,_purchaseSnapshot,'prepaid');gcrOptIn(vd.orderId,vd.email||identifiedEmail);cart=[];saveCart();toggleCart();if(!orderToastFired){orderToastFired=true;toast('Drop secured! Order: '+(vd.orderId||'').slice(-8).toUpperCase()+'. Check email.','ok-green')}}
-          else{toast('Verification failed: '+(vd.error||''),'err')}
-        }).catch(function(e){toast('Error: '+e.message,'err')}).finally(function(){resetBtn()});
-      }
-    };
     ensureRazorpay().then(function(){
+      if(typeof Razorpay==='undefined'){toast('Payment gateway unavailable. Please refresh or try COD.','err');resetBtn();return}
+      var options={key:S.rk,order_id:data.razorpayOrderId,name:'intru.in',
+        prefill:{email:identifiedEmail,contact:shipPhone},
+        theme:{color:'#0a0a0a',backdrop_color:'rgba(0,0,0,0.6)'},
+        modal:{ondismiss:function(){
+          if(window.track) window.track('checkout_dismissed', { method: 'prepaid' });
+          resetBtn();
+          toast('Payment cancelled','err');
+        }},
+        handler:function(response){
+          var btn=document.getElementById('checkoutBtn');if(btn)btn.textContent='VERIFYING...';
+          fetch('/api/payment/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+            razorpay_order_id:response.razorpay_order_id,razorpay_payment_id:response.razorpay_payment_id,razorpay_signature:response.razorpay_signature
+          })}).then(function(r){return r.json()}).then(function(vd){
+            if(vd.success){trackPurchase(vd.orderId,vd.total,_purchaseSnapshot,'prepaid');gcrOptIn(vd.orderId,vd.email||identifiedEmail);cart=[];saveCart();toggleCart();if(!orderToastFired){orderToastFired=true;toast('Drop secured! Order: '+(vd.orderId||'').slice(-8).toUpperCase()+'. Check email.','ok-green')}}
+            else{toast('Verification failed: '+(vd.error||''),'err')}
+          }).catch(function(e){toast('Error: '+e.message,'err')}).finally(function(){resetBtn()});
+        }
+      };
       var rzp=new Razorpay(options);
       rzp.on('payment.failed',function(r){
         var err = (r && r.error) || {};
